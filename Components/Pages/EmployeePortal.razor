@@ -1,0 +1,378 @@
+@page "/employee"
+@page "/stylist"
+@inject SalonDataService SalonService
+@inject NavigationManager Navigation
+
+<PageTitle>Stylist & Specialist Workspace | Beauty Hair</PageTitle>
+
+<div class="portal-layout">
+    <!-- Dark Stylist Sidebar -->
+    <aside class="portal-sidebar">
+        <div class="portal-brand-block">
+            <span class="portal-brand-name">BEAUTY HAIR</span>
+            <span class="portal-brand-sub" style="color: #60A5FA;"><i class="bi bi-scissors"></i> STYLIST SUITE</span>
+        </div>
+
+        <div class="portal-group-label">MY WORKSPACE</div>
+        <button class="portal-nav-btn @(currentTab == "schedule" ? "active" : "")" @onclick='() => currentTab = "schedule"'>
+            <i class="bi bi-calendar-check"></i> My Chair & Clients
+        </button>
+        <button class="portal-nav-btn @(currentTab == "earnings" ? "active" : "")" @onclick='() => currentTab = "earnings"'>
+            <i class="bi bi-wallet-fill"></i> My Performance & Tips
+        </button>
+        <button class="portal-nav-btn @(currentTab == "rituals" ? "active" : "")" @onclick='() => currentTab = "rituals"'>
+            <i class="bi bi-book"></i> Ritual Guide & Catalog
+        </button>
+
+        <div class="portal-user-footer">
+            <div>
+                <span class="portal-user-name">@currentStylistName</span>
+                <span class="portal-user-role" style="color: #93C5FD;">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Role : "Senior Stylist")</span>
+            </div>
+            <button class="btn-logout-icon" title="Logout" @onclick="HandleLogout">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Stylist Body -->
+    <main class="portal-main-body">
+        <div class="portal-top-bar">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></span>
+                    <span style="font-size: 12px; font-weight: 700; color: #059669; text-transform: uppercase;">Chair Active &bull; Station 03</span>
+                </div>
+                <h1 class="portal-page-heading">Welcome, @currentStylistName</h1>
+                <p style="color: var(--text-muted); font-size: 14px;">Here is your personal client schedule and chair workflow for today.</p>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary-dark" @onclick="() => showWalkinModal = true">
+                    <i class="bi bi-plus-lg"></i> Quick Add to My Chair
+                </button>
+            </div>
+        </div>
+
+        <!-- Stylist KPI Grid -->
+        <div class="portal-kpi-grid">
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Today's Assigned Clients</span>
+                <div class="portal-kpi-num">@MyAppointments.Count</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Clients Completed</span>
+                <div class="portal-kpi-num" style="color: #10B981;">@MyAppointments.Count(a => a.Status == "Completed")</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Service Value Delivered</span>
+                <div class="portal-kpi-num">₱@MyAppointments.Where(a => a.Status == "Completed" || a.Status == "In Progress").Sum(a => a.Price).ToString("N0")</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Est. Commission (25%)</span>
+                <div class="portal-kpi-num" style="color: var(--gold-accent);">
+                    ₱@(Math.Round(MyAppointments.Where(a => a.Status == "Completed").Sum(a => a.Price) * 0.25m, 0).ToString("N0"))
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: My Chair & Schedule -->
+        @if (currentTab == "schedule")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <div>
+                        <h3 class="portal-card-title">Chair Queue & Client Appointments</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+                    </div>
+
+                    <!-- Filter Switch -->
+                    <div style="display: flex; gap: 6px; background: #F3F4F6; padding: 4px; border-radius: 6px;">
+                        <button style="border: none; padding: 6px 12px; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer; background: @(filterOnlyMe ? "#FFFFFF" : "transparent"); color: @(filterOnlyMe ? "var(--text-dark)" : "var(--text-muted)"); box-shadow: @(filterOnlyMe ? "0 1px 3px rgba(0,0,0,0.1)" : "none");"
+                                @onclick="() => filterOnlyMe = true">
+                            My Clients (@MyAppointments.Count)
+                        </button>
+                        <button style="border: none; padding: 6px 12px; border-radius: 4px; font-size: 12.5px; font-weight: 600; cursor: pointer; background: @(!filterOnlyMe ? "#FFFFFF" : "transparent"); color: @(!filterOnlyMe ? "var(--text-dark)" : "var(--text-muted)"); box-shadow: @(!filterOnlyMe ? "0 1px 3px rgba(0,0,0,0.1)" : "none");"
+                                @onclick="() => filterOnlyMe = false">
+                            All Stylists (@SalonService.Appointments.Count)
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    @foreach (var appt in DisplayedAppointments)
+                    {
+                        bool isMyClient = appt.StylistName.Equals(currentStylistName, StringComparison.OrdinalIgnoreCase);
+                        <div style="border: 1px solid var(--border-light); border-left: 4px solid @(appt.Status == "In Progress" ? "#3B82F6" : appt.Status == "Completed" ? "#10B981" : "var(--gold-accent)"); border-radius: 4px; padding: 18px; background: #FFFFFF;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <h4 style="font-size: 17px; margin: 0;">@appt.ClientName</h4>
+                                        <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
+                                        @if (appt.IsPaid)
+                                        {
+                                            <span style="font-size: 11px; background: #ECFDF5; color: #065F46; font-weight: 700; padding: 2px 6px; border-radius: 3px;">
+                                                <i class="bi bi-check-circle-fill"></i> PAID
+                                            </span>
+                                        }
+                                    </div>
+                                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                                        <span><i class="bi bi-clock"></i> @appt.TimeSlot</span> &bull; 
+                                        <span><i class="bi bi-telephone"></i> @appt.ClientPhone</span> &bull; 
+                                        <span><i class="bi bi-person"></i> Specialist: <strong>@appt.StylistName</strong></span>
+                                    </div>
+                                </div>
+
+                                <div style="text-align: right;">
+                                    <span style="font-size: 18px; font-weight: 800; color: var(--text-dark);">₱@appt.Price.ToString("N0")</span>
+                                    <span style="font-size: 12px; color: var(--text-muted); display: block;">@appt.ServiceName</span>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Chair Workflow Actions -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 12px; margin-top: 10px;">
+                                <div style="display: flex; gap: 8px; flex: 1; margin-right: 12px;">
+                                    <input type="text" class="booking-input" style="font-size: 12.5px; padding: 6px 10px;" placeholder="Add formula / client consultation notes..." 
+                                           value="@appt.Notes" 
+                                           @onchange="@((ChangeEventArgs e) => SaveNote(appt.Id, e.Value?.ToString()))" />
+                                </div>
+
+                                <div style="display: flex; gap: 8px;">
+                                    @if (appt.Status == "Confirmed")
+                                    {
+                                        <button style="background: #1E293B; color: #FFFFFF; border: none; padding: 8px 14px; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;"
+                                                @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>
+                                            <i class="bi bi-play-circle-fill"></i> Seat Client & Start
+                                        </button>
+                                    }
+                                    else if (appt.Status == "In Progress")
+                                    {
+                                        <button style="background: #10B981; color: #FFFFFF; border: none; padding: 8px 14px; border-radius: 4px; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;"
+                                                @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>
+                                            <i class="bi bi-check-circle-fill"></i> Finish Ritual (Done)
+                                        </button>
+                                    }
+                                    else if (appt.Status == "Completed")
+                                    {
+                                        <span style="color: #059669; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                            <i class="bi bi-check2-all"></i> Ready for Checkout
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!DisplayedAppointments.Any())
+                    {
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="bi bi-calendar-x" style="font-size: 32px;"></i>
+                            <p style="margin-top: 8px;">No appointments assigned for this filter today.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- TAB 2: Earnings & Performance -->
+        @if (currentTab == "earnings")
+        {
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">Today's Completed Services</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        @foreach (var appt in MyAppointments.Where(a => a.Status == "Completed"))
+                        {
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #FAFAFA; border: 1px solid var(--border-light); border-radius: 4px;">
+                                <div>
+                                    <strong>@appt.ClientName</strong>
+                                    <div style="font-size: 12.5px; color: var(--text-muted);">@appt.ServiceName &bull; @appt.TimeSlot</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <strong style="font-size: 15px;">₱@appt.Price.ToString("N0")</strong>
+                                    <span style="display: block; font-size: 12px; color: #10B981; font-weight: 700;">+₱@(Math.Round(appt.Price * 0.25m, 0).ToString("N0")) (25%)</span>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!MyAppointments.Any(a => a.Status == "Completed"))
+                        {
+                            <p style="color: var(--text-muted); font-size: 13.5px; text-align: center; padding: 20px 0;">Complete appointments in your chair queue to record earnings.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">Stylist Commission Summary</h3>
+                    </div>
+                    <div style="background: #F9FAFB; padding: 20px; border-radius: 4px; border: 1px solid var(--border-light);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: var(--text-muted);">Specialist:</span>
+                            <strong>@currentStylistName</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: var(--text-muted);">Standard Commission Rate:</span>
+                            <strong style="color: #3B82F6;">25% per service</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="color: var(--text-muted);">Total Service Sales:</span>
+                            <strong>₱@MyAppointments.Where(a => a.Status == "Completed").Sum(a => a.Price).ToString("N0")</strong>
+                        </div>
+                        <div style="border-top: 1px dashed var(--border-light); padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 16px; font-weight: 800;">Estimated Payout:</span>
+                            <span style="font-size: 24px; font-weight: 800; color: #10B981;">
+                                ₱@(Math.Round(MyAppointments.Where(a => a.Status == "Completed").Sum(a => a.Price) * 0.25m, 0).ToString("N0"))
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 3: Ritual Guide & Catalog -->
+        @if (currentTab == "rituals")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <h3 class="portal-card-title">Treatment & Ritual Catalog</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    @foreach (var svc in SalonService.Services)
+                    {
+                        <div style="border: 1px solid var(--border-light); padding: 18px; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 16px;">@svc.Number - @svc.Name</strong>
+                                <span style="font-weight: 800; color: var(--gold-accent);">@svc.PriceFormatted</span>
+                            </div>
+                            <p style="font-size: 13.5px; color: var(--text-body); margin-bottom: 8px;">@svc.Description</p>
+                            <span style="font-size: 12px; color: #6B7280; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">Standard Time: 45 - 90 mins</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </main>
+</div>
+
+<!-- Modal Quick Add to Chair -->
+@if (showWalkinModal)
+{
+    <div class="booking-modal-backdrop" @onclick="() => showWalkinModal = false">
+        <div class="booking-modal-card" @onclick:stopPropagation>
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Client to My Chair</h3>
+                <button class="btn-close-modal" @onclick="() => showWalkinModal = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Client Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Maria Santos" @bind="newChairAppt.ClientName" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Contact Number</label>
+                    <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newChairAppt.ClientPhone" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Service</label>
+                    <select class="booking-input" @bind="newChairAppt.ServiceName">
+                        @foreach (var pkg in SalonService.Packages)
+                        {
+                            <option value="@($"{pkg.Name} Package")">@pkg.Name Package</option>
+                        }
+                        @foreach (var svc in SalonService.Services)
+                        {
+                            <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Time Slot</label>
+                    <input type="text" class="booking-input" @bind="newChairAppt.TimeSlot" />
+                </div>
+            </div>
+
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 12px;" @onclick="SaveChairBooking" disabled="@(string.IsNullOrWhiteSpace(newChairAppt.ClientName))">
+                Add to My Chair Schedule
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private string currentTab = "schedule";
+    private bool filterOnlyMe = true;
+    private bool showWalkinModal = false;
+    private string currentStylistName = "Sofia Martinez";
+
+    private AppointmentRecord newChairAppt = new()
+    {
+        ServiceName = "01 Haircut",
+        TimeSlot = "Now (Seated)",
+        Price = 850,
+        Status = "In Progress"
+    };
+
+    protected override void OnInitialized()
+    {
+        if (SalonService.CurrentUser.IsLoggedIn && !string.IsNullOrWhiteSpace(SalonService.CurrentUser.Name))
+        {
+            currentStylistName = SalonService.CurrentUser.Name;
+        }
+        else
+        {
+            currentStylistName = SalonService.Team.FirstOrDefault()?.Name ?? "Sofia Martinez";
+        }
+    }
+
+    private List<AppointmentRecord> MyAppointments =>
+        SalonService.Appointments.Where(a => a.StylistName.Contains(currentStylistName, StringComparison.OrdinalIgnoreCase) ||
+                                            currentStylistName.Contains(a.StylistName, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private List<AppointmentRecord> DisplayedAppointments =>
+        filterOnlyMe ? MyAppointments : SalonService.Appointments;
+
+    private void SaveNote(int id, string? notes)
+    {
+        if (notes != null)
+        {
+            SalonService.UpdateAppointmentNotes(id, notes);
+        }
+    }
+
+    private void SaveChairBooking()
+    {
+        if (string.IsNullOrWhiteSpace(newChairAppt.ClientName)) return;
+
+        decimal price = 850;
+        var pkg = SalonService.Packages.FirstOrDefault(p => newChairAppt.ServiceName.Contains(p.Name, StringComparison.OrdinalIgnoreCase));
+        if (pkg != null) price = pkg.Price;
+        var svc = SalonService.Services.FirstOrDefault(s => newChairAppt.ServiceName.Contains(s.Name, StringComparison.OrdinalIgnoreCase));
+        if (svc != null) price = svc.Price;
+
+        newChairAppt.StylistName = currentStylistName;
+        newChairAppt.Price = price;
+        newChairAppt.Date = DateTime.Today;
+
+        SalonService.AddAppointment(newChairAppt);
+        showWalkinModal = false;
+        newChairAppt = new()
+        {
+            ServiceName = "01 Haircut",
+            TimeSlot = "Now (Seated)",
+            Price = 850,
+            Status = "In Progress"
+        };
+    }
+
+    private void HandleLogout()
+    {
+        SalonService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

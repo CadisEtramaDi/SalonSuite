@@ -1,0 +1,20 @@
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <div class="not-found-container">
+                <div class="not-found-card">
+                    <div class="not-found-icon-box">
+                        <i class="bi bi-compass"></i>
+                    </div>
+                    <h2>404 - Suite Not Found</h2>
+                    <p>The page or salon resource you are looking for has been moved or does not exist.</p>
+                    <a href="/" class="btn-gold"><i class="bi bi-house-door-fill"></i> Return to Dashboard</a>
+                </div>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

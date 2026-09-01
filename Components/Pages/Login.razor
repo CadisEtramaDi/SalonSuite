@@ -1,0 +1,415 @@
+@page "/login"
+@page "/register"
+@inject SalonDataService SalonService
+@inject FirebaseAuthService FirebaseAuth
+@inject NavigationManager Navigation
+
+<PageTitle>@(isRegisterMode ? "Create Customer Account" : "Sign In") | Salon Studio</PageTitle>
+
+<div class="login-split-page">
+    <!-- Left Editorial Dark Panel -->
+    <div class="login-editorial-panel">
+        <div>
+            <a href="/" class="back-to-web-link">
+                <i class="bi bi-arrow-left"></i> Back to website
+            </a>
+
+            <div class="login-brand-tag">BEAUTY HAIR</div>
+            <span class="login-brand-sub">ERP & CRM</span>
+
+            <div style="margin-top: 60px;">
+                <span class="section-tag" style="color: #9CA3AF;">SALON MANAGEMENT</span>
+                <h1 class="login-hero-heading">Luxury Beauty Management</h1>
+                <p class="login-hero-desc">
+                    A complete ERP & CRM platform for modern beauty salons — appointments, clients, inventory, loyalty, and growth.
+                </p>
+
+                <div class="login-features-grid">
+                    <div class="login-feature-item">
+                        <i class="bi bi-check-lg"></i>
+                        <span>10 Modules</span>
+                    </div>
+                    <div class="login-feature-item">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Role-Based Access</span>
+                    </div>
+                    <div class="login-feature-item">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Firebase Auth</span>
+                    </div>
+                    <div class="login-feature-item">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Loyalty CRM</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="login-panel-footer">
+            &copy; 2026 Beauty Hair &mdash; Est. 2018
+        </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="login-form-panel">
+        <div class="login-card-inner">
+            @if (isRegisterMode)
+            {
+                <!-- Customer Registration -->
+                <div class="login-form-header">
+                    <span class="portal-tag">CLIENT REGISTRATION</span>
+                    <h2 class="login-title">Create Account</h2>
+                    <p class="login-subtitle">Sign up to manage your appointments, preferred stylists, and salon rewards</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 10px 14px; border-radius: 4px; font-size: 13.5px; margin-bottom: 16px;">
+                        <i class="bi bi-exclamation-circle-fill"></i> @errorMessage
+                    </div>
+                }
+
+                @if (registerSuccess)
+                {
+                    <div style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 12px 14px; border-radius: 4px; font-size: 13.5px; margin-bottom: 16px;">
+                        <i class="bi bi-check-circle-fill"></i> Account created successfully with Firebase! Welcome to Salon Studio.
+                    </div>
+                }
+
+                <form @onsubmit="HandleCustomerRegister" @onsubmit:preventDefault>
+                    <div class="login-field-group">
+                        <label class="login-field-label">Full Name</label>
+                        <input type="text" class="login-input-text" placeholder="e.g. Maria Santos" @bind="fullNameInput" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Mobile Phone Number</label>
+                        <input type="tel" class="login-input-text" placeholder="+63 917 000 0000" @bind="phoneInput" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Email address</label>
+                        <input type="email" class="login-input-text" placeholder="you@example.com" @bind="emailInput" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Password</label>
+                        <div style="position: relative;">
+                            <input type="@(showPassword ? "text" : "password")" class="login-input-text" style="width: 100%; padding-right: 40px;" placeholder="•••••••• (min. 6 characters)" @bind="passwordInput" required />
+                            <button type="button" @onclick="() => showPassword = !showPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; color: #9CA3AF; font-size: 15px;">
+                                <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Confirm Password</label>
+                        <input type="password" class="login-input-text" placeholder="••••••••" @bind="confirmPasswordInput" required />
+                    </div>
+
+                    <button type="submit" class="btn-signin-full" style="margin-top: 8px;" disabled="@isAuthenticating">
+                        @if (isAuthenticating)
+                        {
+                            <span><i class="bi bi-arrow-repeat spin"></i> Creating account in Firebase...</span>
+                        }
+                        else
+                        {
+                            <span>Sign Up as Client</span>
+                        }
+                    </button>
+                </form>
+
+                <div style="margin-top: 14px; padding: 10px 12px; background: #F3F4F6; border-radius: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                    <i class="bi bi-info-circle"></i> <strong>Employee & Cashier Registration:</strong> Use your staff email (e.g. <code>cashier@@...</code>, <code>stylist@@...</code>, <code>manager@@...</code>, or <code>@@beautyhair.com</code>) to automatically activate CRM portal permissions.
+                </div>
+
+                <div class="create-acc-row" style="margin-top: 16px;">
+                    Already have an account? <strong style="color: var(--text-dark); cursor: pointer; text-decoration: underline;" @onclick="() => SwitchMode(false)">Sign In</strong>
+                </div>
+            }
+            else
+            {
+                <!-- Universal Sign In -->
+                <div class="login-form-header">
+                    <span class="portal-tag">FIREBASE AUTHENTICATION</span>
+                    <h2 class="login-title">Welcome back</h2>
+                    <p class="login-subtitle">Sign in with your Firebase credentials</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 10px 14px; border-radius: 4px; font-size: 13.5px; margin-bottom: 16px;">
+                        <i class="bi bi-exclamation-circle-fill"></i> @errorMessage
+                    </div>
+                }
+
+                @if (!FirebaseAuth.IsConfigured)
+                {
+                    <div style="background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; padding: 10px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 16px;">
+                        <i class="bi bi-shield-lock"></i> <strong>Firebase Config:</strong> Add your Firebase Web API Key in <code>appsettings.json</code> &rarr; <code>Firebase:ApiKey</code>.
+                    </div>
+                }
+
+                <form @onsubmit="HandleLogin" @onsubmit:preventDefault>
+                    <div class="login-field-group">
+                        <label class="login-field-label">Email address</label>
+                        <input type="email" class="login-input-text" placeholder="you@beautyhair.com or client@gmail.com" @bind="emailInput" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Password</label>
+                        <div style="position: relative;">
+                            <input type="@(showPassword ? "text" : "password")" class="login-input-text" style="width: 100%; padding-right: 40px;" placeholder="••••••••" @bind="passwordInput" required />
+                            <button type="button" @onclick="() => showPassword = !showPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; color: #9CA3AF; font-size: 15px;">
+                                <i class="bi @(showPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="login-options-row">
+                        <label class="remember-label">
+                            <input type="checkbox" @bind="rememberMe" />
+                            <span>Remember me</span>
+                        </label>
+                        <a href="javascript:void(0)" class="forgot-link" @onclick="HandleForgotPassword">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-signin-full" disabled="@isAuthenticating">
+                        @if (isAuthenticating)
+                        {
+                            <span><i class="bi bi-arrow-repeat spin"></i> Verifying with Firebase...</span>
+                        }
+                        else
+                        {
+                            <span>Sign In</span>
+                        }
+                    </button>
+                </form>
+
+                <div class="create-acc-row">
+                    Don't have an account? <strong style="color: var(--text-dark); cursor: pointer; text-decoration: underline;" @onclick="() => SwitchMode(true)">Create Account</strong>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool isRegisterMode = false;
+    private string fullNameInput = "";
+    private string phoneInput = "";
+    private string emailInput = "";
+    private string passwordInput = "";
+    private string confirmPasswordInput = "";
+    private bool showPassword = false;
+    private bool rememberMe = true;
+    private string errorMessage = "";
+    private bool registerSuccess = false;
+    private bool isAuthenticating = false;
+
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.Uri.ToLower();
+        if (uri.Contains("/register"))
+        {
+            isRegisterMode = true;
+        }
+    }
+
+    private void SwitchMode(bool register)
+    {
+        isRegisterMode = register;
+        errorMessage = "";
+        registerSuccess = false;
+        isAuthenticating = false;
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = "";
+        if (string.IsNullOrWhiteSpace(emailInput))
+        {
+            errorMessage = "Please enter your email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(passwordInput))
+        {
+            errorMessage = "Please enter your password.";
+            return;
+        }
+
+        isAuthenticating = true;
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var result = await FirebaseAuth.SignInWithEmailPasswordAsync(emailInput, passwordInput);
+            if (!result.Success)
+            {
+                errorMessage = result.ErrorMessage ?? "Authentication failed.";
+                isAuthenticating = false;
+                return;
+            }
+        }
+
+        isAuthenticating = false;
+
+        string username = "User";
+        if (!string.IsNullOrWhiteSpace(emailInput))
+        {
+            var parts = emailInput.Trim().Split('@');
+            if (parts.Length > 0 && !string.IsNullOrEmpty(parts[0]))
+            {
+                username = char.ToUpper(parts[0][0]) + (parts[0].Length > 1 ? parts[0].Substring(1) : "");
+            }
+        }
+
+        if (emailInput.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            username = "Francis Arnejo";
+        }
+        else if (emailInput.Equals("admin@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            username = "Salon Administrator";
+        }
+        else if (emailInput.Equals("cashier@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            username = "Clara (Cashier)";
+        }
+        else if (emailInput.Contains("employee", StringComparison.OrdinalIgnoreCase))
+        {
+            username = "Sofia Martinez";
+        }
+
+        string role = DetermineUserRole(emailInput);
+        SalonService.LoginAs(role, username, emailInput);
+
+        string redirectUrl = GetRedirectUrlForRole(role);
+        Navigation.NavigateTo(redirectUrl);
+    }
+
+    private async Task HandleCustomerRegister()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(fullNameInput))
+        {
+            errorMessage = "Please enter your full name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(emailInput))
+        {
+            errorMessage = "Please enter your email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(passwordInput))
+        {
+            errorMessage = "Please enter a password.";
+            return;
+        }
+
+        if (passwordInput.Length < 6)
+        {
+            errorMessage = "Password must be at least 6 characters in Firebase.";
+            return;
+        }
+
+        if (passwordInput != confirmPasswordInput)
+        {
+            errorMessage = "Passwords do not match. Please verify your password.";
+            return;
+        }
+
+        isAuthenticating = true;
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var result = await FirebaseAuth.SignUpWithEmailPasswordAsync(emailInput, passwordInput);
+            if (!result.Success)
+            {
+                errorMessage = result.ErrorMessage ?? "Registration failed.";
+                isAuthenticating = false;
+                return;
+            }
+        }
+
+        isAuthenticating = false;
+
+        string assignedRole = DetermineUserRole(emailInput);
+        SalonService.LoginAs(assignedRole, fullNameInput, emailInput);
+        registerSuccess = true;
+
+        await Task.Delay(1200);
+        string redirectUrl = GetRedirectUrlForRole(assignedRole);
+        Navigation.NavigateTo(redirectUrl);
+    }
+
+    private string GetRedirectUrlForRole(string role) => role switch
+    {
+        "Salon Owner / Admin" or "Salon Manager" => "/admin",
+        "Cashier / Front Desk" => "/cashier",
+        "Stylist / Specialist" or "Staff Member" => "/employee",
+        _ => "/"
+    };
+
+    private string DetermineUserRole(string email)
+    {
+        if (email.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("owner", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Salon Owner / Admin";
+        }
+        if (email.Contains("cashier", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("pos", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("billing", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Cashier / Front Desk";
+        }
+        if (email.Contains("stylist", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("specialist", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Stylist / Specialist";
+        }
+        if (email.Contains("manager", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Salon Manager";
+        }
+        if (email.Contains("staff", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("employee", StringComparison.OrdinalIgnoreCase) ||
+            email.EndsWith("@beautyhair.com", StringComparison.OrdinalIgnoreCase) ||
+            email.EndsWith("@beautyhair.ph", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Staff Member";
+        }
+
+        return "Customer";
+    }
+
+    private async Task HandleForgotPassword()
+    {
+        if (string.IsNullOrWhiteSpace(emailInput))
+        {
+            errorMessage = "Please enter your email address above, then click 'Forgot password?'.";
+            return;
+        }
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var result = await FirebaseAuth.SendPasswordResetEmailAsync(emailInput);
+            if (result.Success)
+            {
+                errorMessage = $"Password reset email has been sent to {emailInput}.";
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Failed to send password reset email.";
+            }
+        }
+        else
+        {
+            errorMessage = $"Password reset request received for {emailInput}. (Add Firebase API Key to send live email).";
+        }
+    }
+}

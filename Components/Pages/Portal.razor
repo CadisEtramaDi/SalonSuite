@@ -1,0 +1,383 @@
+@page "/portal"
+@page "/admin"
+@inject SalonDataService SalonService
+@inject NavigationManager Navigation
+
+<PageTitle>Beauty Hair ERP & CRM | Management Portal</PageTitle>
+
+<div class="portal-layout">
+    <!-- Dark Editorial Sidebar -->
+    <aside class="portal-sidebar">
+        <div class="portal-brand-block">
+            <span class="portal-brand-name">BEAUTY HAIR</span>
+            <span class="portal-brand-sub" style="color: #F59E0B;"><i class="bi bi-shield-lock-fill"></i> ADMIN ERP & CRM</span>
+        </div>
+
+        <div class="portal-group-label">ADMIN MODULES</div>
+        <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => currentTab = "appointments"'>
+            <i class="bi bi-calendar3"></i> Master Schedule
+        </button>
+        <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => currentTab = "services"'>
+            <i class="bi bi-scissors"></i> Services & Catalog
+        </button>
+        <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => currentTab = "team"'>
+            <i class="bi bi-people"></i> Staff & Specialists
+        </button>
+        <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => currentTab = "billing"'>
+            <i class="bi bi-receipt"></i> Financials & Invoices
+        </button>
+
+        <div class="portal-user-footer">
+            <div>
+                <span class="portal-user-name">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Isabella Reyes")</span>
+                <span class="portal-user-role">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Role : "Salon Owner / Admin")</span>
+            </div>
+            <button class="btn-logout-icon" title="Logout" @onclick="HandleLogout">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="portal-main-body">
+        <div class="portal-top-bar">
+            <div>
+                <h1 class="portal-page-heading">
+                    @(currentTab == "appointments" ? "Appointments & Schedule" :
+                      currentTab == "services" ? "Services & Treatment Catalog" :
+                      currentTab == "team" ? "Specialists & Staff Roster" : "POS & Invoicing")
+                </h1>
+                <p style="color: var(--text-muted); font-size: 14px;">Real-time management for Beauty Hair Salon Studio</p>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                @if (currentTab == "team")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showNewStaffModal = true">
+                        <i class="bi bi-person-plus-fill"></i> Add Staff Member
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-primary-dark" @onclick="() => showNewBookingModal = true">
+                        <i class="bi bi-plus-lg"></i> New Appointment
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- KPI Metric Cards -->
+        <div class="portal-kpi-grid">
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Today's Bookings</span>
+                <div class="portal-kpi-num">@SalonService.Appointments.Count</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Today's Revenue</span>
+                <div class="portal-kpi-num">₱@SalonService.Appointments.Sum(a => a.Price).ToString("N0")</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Active Specialists</span>
+                <div class="portal-kpi-num">@SalonService.Team.Count</div>
+            </div>
+            <div class="portal-kpi-card">
+                <span class="portal-kpi-label">Client Satisfaction</span>
+                <div class="portal-kpi-num">4.9 / 5.0</div>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        @if (currentTab == "appointments")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <h3 class="portal-card-title">Live Schedule</h3>
+                    <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 14px;">Time</th>
+                                <th style="padding: 12px 14px;">Client Name</th>
+                                <th style="padding: 12px 14px;">Contact</th>
+                                <th style="padding: 12px 14px;">Service</th>
+                                <th style="padding: 12px 14px;">Specialist</th>
+                                <th style="padding: 12px 14px;">Price</th>
+                                <th style="padding: 12px 14px;">Status</th>
+                                <th style="padding: 12px 14px; text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var appt in SalonService.Appointments)
+                            {
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <td style="padding: 14px; font-weight: 700;">@appt.TimeSlot</td>
+                                    <td style="padding: 14px; font-weight: 600;">@appt.ClientName</td>
+                                    <td style="padding: 14px; color: var(--text-muted);">@appt.ClientPhone</td>
+                                    <td style="padding: 14px;">@appt.ServiceName</td>
+                                    <td style="padding: 14px;">@appt.StylistName</td>
+                                    <td style="padding: 14px; font-weight: 700;">₱@appt.Price.ToString("N0")</td>
+                                    <td style="padding: 14px;">
+                                        <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">
+                                            @appt.Status
+                                        </span>
+                                    </td>
+                                    <td style="padding: 14px; text-align: right;">
+                                        @if (appt.Status == "Confirmed")
+                                        {
+                                            <button style="background: #F3F4F6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
+                                        }
+                                        else if (appt.Status == "In Progress")
+                                        {
+                                            <button style="background: #ECFDF5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (currentTab == "services")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <h3 class="portal-card-title">Treatment & Ritual Catalog</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                    @foreach (var svc in SalonService.Services)
+                    {
+                        <div style="border: 1px solid var(--border-light); padding: 18px; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 16px;">@svc.Number - @svc.Name</strong>
+                                <span style="font-weight: 800; color: var(--gold-accent);">@svc.PriceFormatted</span>
+                            </div>
+                            <p style="font-size: 13.5px; color: var(--text-body);">@svc.Description</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (currentTab == "team")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <h3 class="portal-card-title">Specialists & Staff Roster</h3>
+                    <span style="font-size: 13px; color: var(--text-muted);">Admin Provisioned Staff</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    @foreach (var member in SalonService.Team)
+                    {
+                        <div style="border: 1px solid var(--border-light); padding: 20px; border-radius: 4px; text-align: center; background: #FFFFFF;">
+                            <img src="@member.ImageUrl" alt="@member.Name" style="width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid #E5E7EB;" />
+                            <h4 style="font-size: 16px; margin-bottom: 2px;">@member.Name</h4>
+                            <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 8px;">@member.Role</span>
+                            <span style="display: inline-block; font-size: 11px; background: #ECFDF5; color: #059669; font-weight: 700; padding: 2px 8px; border-radius: 4px;">ACTIVE STAFF</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else if (currentTab == "billing")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <h3 class="portal-card-title">Daily POS Invoices</h3>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    @foreach (var appt in SalonService.Appointments)
+                    {
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #FAFAFA; border: 1px solid var(--border-light); border-radius: 4px;">
+                            <div>
+                                <strong>Invoice #INV-2026-00@(appt.Id)</strong> &bull; <span>@appt.ClientName</span>
+                                <div style="font-size: 12.5px; color: var(--text-muted);">@appt.ServiceName &bull; @appt.StylistName</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 16px; font-weight: 800;">₱@appt.Price.ToString("N0")</span>
+                                <span style="display: block; font-size: 11.5px; color: #059669; font-weight: 700;">PAID</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </main>
+</div>
+
+<!-- Modal for New Booking in CRM -->
+@if (showNewBookingModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">New Appointment</h3>
+                <button class="btn-close-modal" @onclick="() => showNewBookingModal = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Client Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Maria Santos" @bind="newAppt.ClientName" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Contact Number</label>
+                    <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newAppt.ClientPhone" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Service / Package</label>
+                    <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnCRMServiceChanged">
+                        <optgroup label="✨ Service Packages">
+                            @foreach (var pkg in SalonService.Packages)
+                            {
+                                <option value="@($"{pkg.Name} Package")">@pkg.Name Package</option>
+                            }
+                        </optgroup>
+                        <optgroup label="✂️ Individual Services">
+                            @foreach (var svc in SalonService.Services)
+                            {
+                                <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name</option>
+                            }
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Specialist</label>
+                    <select class="booking-input" @bind="newAppt.StylistName">
+                        @foreach (var member in SalonService.Team)
+                        {
+                            <option value="@member.Name">@member.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Time Slot</label>
+                    <input type="text" class="booking-input" placeholder="e.g. 02:00 PM" @bind="newAppt.TimeSlot" />
+                </div>
+            </div>
+
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="SaveCRMBooking" disabled="@(string.IsNullOrWhiteSpace(newAppt.ClientName))">
+                Create Appointment
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal for Provisioning New Staff Member -->
+@if (showNewStaffModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Provision Staff Member</h3>
+                <button class="btn-close-modal" @onclick="() => showNewStaffModal = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Staff Full Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Adrienne Chen" @bind="newStaff.Name" />
+                </div>
+
+                <div class="form-group">
+                    <label class="booking-label">Position / Role</label>
+                    <select class="booking-input" @bind="newStaff.Role">
+                        <option value="Senior Stylist">Senior Stylist</option>
+                        <option value="Color Specialist">Color Specialist</option>
+                        <option value="Creative Director">Creative Director</option>
+                        <option value="Esthetician">Esthetician</option>
+                        <option value="Front Desk Cashier">Front Desk & Cashier</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="booking-label">Avatar Photo URL</label>
+                    <input type="text" class="booking-input" placeholder="https://..." @bind="newStaff.ImageUrl" />
+                </div>
+            </div>
+
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="SaveNewStaff" disabled="@(string.IsNullOrWhiteSpace(newStaff.Name))">
+                Add Staff to Roster
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    private string currentTab = "appointments";
+    private bool showNewBookingModal = false;
+    private bool showNewStaffModal = false;
+
+    private AppointmentRecord newAppt = new()
+    {
+        ServiceName = "Signature Package",
+        StylistName = "Sofia Martinez",
+        Date = DateTime.Today,
+        TimeSlot = "02:00 PM",
+        Price = 3990,
+        Status = "Confirmed"
+    };
+
+    private TeamMemberItem newStaff = new()
+    {
+        Role = "Senior Stylist",
+        ImageUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80"
+    };
+
+    private void HandleLogout()
+    {
+        SalonService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+
+    private void OnCRMServiceChanged()
+    {
+        var pkg = SalonService.Packages.FirstOrDefault(p => newAppt.ServiceName.Contains(p.Name, StringComparison.OrdinalIgnoreCase));
+        if (pkg != null)
+        {
+            newAppt.Price = pkg.Price;
+            return;
+        }
+
+        var svc = SalonService.Services.FirstOrDefault(s => newAppt.ServiceName.Contains(s.Name, StringComparison.OrdinalIgnoreCase));
+        if (svc != null)
+        {
+            newAppt.Price = svc.Price;
+            return;
+        }
+    }
+
+    private void SaveCRMBooking()
+    {
+        if (string.IsNullOrWhiteSpace(newAppt.ClientName)) return;
+        SalonService.AddAppointment(newAppt);
+        showNewBookingModal = false;
+        newAppt = new()
+        {
+            ServiceName = "Signature Package",
+            StylistName = SalonService.Team.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            Date = DateTime.Today,
+            TimeSlot = "02:00 PM",
+            Price = 3990,
+            Status = "Confirmed"
+        };
+    }
+
+    private void SaveNewStaff()
+    {
+        if (string.IsNullOrWhiteSpace(newStaff.Name)) return;
+        SalonService.AddTeamMember(newStaff);
+        showNewStaffModal = false;
+        newStaff = new()
+        {
+            Role = "Senior Stylist",
+            ImageUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80"
+        };
+    }
+}
