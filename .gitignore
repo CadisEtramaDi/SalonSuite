@@ -1,0 +1,9 @@
+## .NET / C# standard ignore
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+*.log

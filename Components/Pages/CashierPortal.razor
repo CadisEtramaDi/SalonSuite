@@ -9,20 +9,23 @@
     <!-- Dark POS Sidebar -->
     <aside class="portal-sidebar">
         <div class="portal-brand-block">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
             <span class="portal-brand-name">BEAUTY HAIR</span>
             <span class="portal-brand-sub" style="color: #F59E0B;"><i class="bi bi-receipt-cutoff"></i> POS & CASHIER</span>
         </div>
 
-        <div class="portal-group-label">TERMINAL MENU</div>
-        <button class="portal-nav-btn @(currentTab == "register" ? "active" : "")" @onclick='() => currentTab = "register"'>
-            <i class="bi bi-calculator"></i> POS Checkout Register
-        </button>
-        <button class="portal-nav-btn @(currentTab == "invoices" ? "active" : "")" @onclick='() => currentTab = "invoices"'>
-            <i class="bi bi-receipt"></i> Today's Invoices
-        </button>
-        <button class="portal-nav-btn @(currentTab == "checkin" ? "active" : "")" @onclick='() => currentTab = "checkin"'>
-            <i class="bi bi-person-check"></i> Walk-in Check-in
-        </button>
+        <div class="portal-nav-scroll">
+            <div class="portal-group-label">TERMINAL MENU</div>
+            <button class="portal-nav-btn @(currentTab == "register" ? "active" : "")" @onclick='() => currentTab = "register"'>
+                <i class="bi bi-calculator"></i> POS Checkout Register
+            </button>
+            <button class="portal-nav-btn @(currentTab == "invoices" ? "active" : "")" @onclick='() => currentTab = "invoices"'>
+                <i class="bi bi-receipt"></i> Today's Invoices
+            </button>
+            <button class="portal-nav-btn @(currentTab == "checkin" ? "active" : "")" @onclick='() => currentTab = "checkin"'>
+                <i class="bi bi-person-check"></i> Walk-in Check-in
+            </button>
+        </div>
 
         <div class="portal-user-footer">
             <div>
@@ -105,7 +108,7 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        @foreach (var appt in SalonService.Appointments.Where(a => !a.IsPaid))
+                        @foreach (var appt in SalonService.Appointments.Where(a => !a.IsPaid).OrderByDescending(a => a.Id))
                         {
                             bool isSelected = selectedApptId == appt.Id;
                             <div style="border: 2px solid @(isSelected ? "var(--gold-accent)" : "var(--border-light)"); padding: 14px; border-radius: 4px; cursor: pointer; background: @(isSelected ? "#FFFDF5" : "#FFFFFF"); transition: all 0.2s ease;"
@@ -151,18 +154,43 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                             <div>
                                 <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Client Name</label>
-                                <input type="text" class="booking-input" @bind="billingClientName" placeholder="Client Name" />
+                                <input type="text" class="booking-input" @bind="billingClientName" @bind:after="OnClientNameChanged" placeholder="Client Name" />
                             </div>
                             <div>
                                 <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Assigned Stylist</label>
                                 <select class="booking-input" @bind="billingStylistName">
-                                    @foreach (var tm in SalonService.Team)
+                                    @foreach (var tm in SalonService.Stylists)
                                     {
                                         <option value="@tm.Name">@tm.Name</option>
                                     }
                                 </select>
                             </div>
                         </div>
+
+                        <!-- Customer Loyalty Status Banner -->
+                        @if (matchedCustomer != null)
+                        {
+                            <div style="background: #FAF5FF; border: 1px solid #E9D5FF; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-size: 11px; font-weight: 800; color: #7C3AED; text-transform: uppercase;">CRM CLIENT: @matchedCustomer.FullName</span>
+                                    <div style="font-size: 12px; color: var(--text-dark);">
+                                        Tier: <strong>@matchedCustomer.Tier</strong> &bull; Points: <strong style="color: #D97706;">@matchedCustomer.LoyaltyPoints pts</strong>
+                                    </div>
+                                </div>
+                                @if (matchedCustomer.LoyaltyPoints >= 200 && !redeemPoints)
+                                {
+                                    <button type="button" style="background: #7C3AED; color: #FFF; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;" @onclick="ToggleRedeemPoints">
+                                        Redeem 200 pts (-₱350)
+                                    </button>
+                                }
+                                else if (redeemPoints)
+                                {
+                                    <span style="color: #059669; font-weight: 700; font-size: 12px;">
+                                        <i class="bi bi-check-circle-fill"></i> 200 pts Redeemed (-₱350)
+                                    </span>
+                                }
+                            </div>
+                        }
 
                         <div style="margin-bottom: 16px;">
                             <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Selected Ritual / Service</label>
@@ -182,30 +210,46 @@
                             </select>
                         </div>
 
-                        <!-- Retail Add-ons -->
+                        <!-- Dynamic Retail Product Add-ons from Inventory -->
                         <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Add-on Salon Products</label>
+                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                                Add-on Salon Retail Products (Live Inventory)
+                            </label>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button type="button" class="btn-addon @(hasSerum ? "selected" : "")" @onclick="() => { hasSerum = !hasSerum; CalculateTotals(); }">
-                                    <i class="bi @(hasSerum ? "bi-check-square-fill" : "bi-square")"></i> Moroccan Serum (+₱450)
-                                </button>
-                                <button type="button" class="btn-addon @(hasTonic ? "selected" : "")" @onclick="() => { hasTonic = !hasTonic; CalculateTotals(); }">
-                                    <i class="bi @(hasTonic ? "bi-check-square-fill" : "bi-square")"></i> Scalp Tonic (+₱350)
-                                </button>
-                                <button type="button" class="btn-addon @(hasShampoo ? "selected" : "")" @onclick="() => { hasShampoo = !hasShampoo; CalculateTotals(); }">
-                                    <i class="bi @(hasShampoo ? "bi-check-square-fill" : "bi-square")"></i> Keratin Shampoo (+₱650)
-                                </button>
+                                @foreach (var prod in SalonService.Products.Where(p => p.Category == "Retail" || p.Category == "Hair Care"))
+                                {
+                                    bool isSelected = selectedProductIds.Contains(prod.Id);
+                                    <button type="button" class="btn-addon @(isSelected ? "selected" : "")" @onclick="() => ToggleProductSelection(prod.Id)">
+                                        <i class="bi @(isSelected ? "bi-check-square-fill" : "bi-square")"></i>
+                                        @prod.Name (+₱@prod.RetailPrice.ToString("N0"))
+                                        <span style="font-size: 11px; opacity: 0.8; margin-left: 4px;">[@prod.StockQuantity in stock]</span>
+                                    </button>
+                                }
                             </div>
                         </div>
 
-                        <!-- Discount Option -->
+                        <!-- Promo Code Input & Standard Discounts -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Promo Code / Voucher</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" class="booking-input" style="font-family: monospace; text-transform: uppercase; font-weight: 700;" placeholder="e.g. WELCOME10, VIP200" @bind="promoCodeInput" />
+                                <button type="button" class="btn-primary-dark" style="padding: 0 16px;" @onclick="ApplyPromoCode">Apply</button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(promoMessage))
+                            {
+                                <div style="font-size: 12px; margin-top: 4px; color: @(promoApplied ? "#059669" : "#DC2626"); font-weight: 600;">
+                                    <i class="bi @(promoApplied ? "bi-check-circle" : "bi-exclamation-circle")"></i> @promoMessage
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Quick Discounts -->
                         <div style="margin-bottom: 20px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Apply Discount</label>
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Standard Discounts</label>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                                 <button type="button" class="btn-discount @(selectedDiscountType == "NONE" ? "active" : "")" @onclick='() => SetDiscount("NONE")'>None (0%)</button>
                                 <button type="button" class="btn-discount @(selectedDiscountType == "SENIOR" ? "active" : "")" @onclick='() => SetDiscount("SENIOR")'>Senior (20%)</button>
                                 <button type="button" class="btn-discount @(selectedDiscountType == "VIP" ? "active" : "")" @onclick='() => SetDiscount("VIP")'>VIP (10%)</button>
-                                <button type="button" class="btn-discount @(selectedDiscountType == "PROMO" ? "active" : "")" @onclick='() => SetDiscount("PROMO")'>Promo (-₱200)</button>
                             </div>
                         </div>
 
@@ -218,19 +262,36 @@
                             @if (addonTotal > 0)
                             {
                                 <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;">
-                                    <span style="color: var(--text-muted);">Retail Add-ons:</span>
+                                    <span style="color: var(--text-muted);">Retail Add-ons (@selectedProductIds.Count items):</span>
                                     <span>+₱@addonTotal.ToString("N0")</span>
                                 </div>
                             }
                             @if (calculatedDiscount > 0)
                             {
                                 <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
-                                    <span>Discount Applied (@selectedDiscountType):</span>
+                                    <span>Standard Discount (@selectedDiscountType):</span>
                                     <span>-₱@calculatedDiscount.ToString("N0")</span>
                                 </div>
                             }
+                            @if (promoDiscount > 0)
+                            {
+                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
+                                    <span>Promo Code (@promoCodeApplied):</span>
+                                    <span>-₱@promoDiscount.ToString("N0")</span>
+                                </div>
+                            }
+                            @if (loyaltyDiscount > 0)
+                            {
+                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #7C3AED;">
+                                    <span>Loyalty Points Redemption:</span>
+                                    <span>-₱@loyaltyDiscount.ToString("N0")</span>
+                                </div>
+                            }
                             <div style="border-top: 1px dashed var(--border-light); margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="font-size: 16px;">Total Due:</strong>
+                                <div>
+                                    <strong style="font-size: 16px;">Total Due:</strong>
+                                    <span style="display: block; font-size: 11px; color: #059669; font-weight: 700;">+@((int)(netTotalDue / 100)) Loyalty Pts to Earn</span>
+                                </div>
                                 <strong style="font-size: 22px; color: var(--gold-accent);">₱@netTotalDue.ToString("N0")</strong>
                             </div>
                         </div>
@@ -271,7 +332,7 @@
                             </div>
                         }
 
-                        <button class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 14px; font-size: 16px;" @onclick="ProcessPayment" disabled="@(string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                        <button class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 14px; font-size: 16px;" @onclick="ProcessPayment" disabled="@(string.IsNullOrWhiteSpace(billingClientName) || netTotalDue < 0)">
                             <i class="bi bi-check2-circle"></i> Complete Payment & Issue Receipt (₱@netTotalDue.ToString("N0"))
                         </button>
                     </div>
@@ -368,7 +429,7 @@
                     <div class="form-group">
                         <label class="booking-label">Available Specialist</label>
                         <select class="booking-input" @bind="walkinStylist">
-                            @foreach (var member in SalonService.Team)
+                            @foreach (var member in SalonService.Stylists)
                             {
                                 <option value="@member.Name">@member.Name</option>
                             }
@@ -380,89 +441,91 @@
                     </div>
                 </div>
 
-                <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveWalkinCheckin" disabled="@(string.IsNullOrWhiteSpace(walkinName))">
-                    Check-in Client & Add to Live Queue
+                <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 18px; padding: 14px;" @onclick="SaveWalkinCheckin" disabled="@(string.IsNullOrWhiteSpace(walkinName))">
+                    Check In Client & Send to Chair Queue
                 </button>
             </div>
         }
     </main>
 </div>
 
-<!-- Receipt Modal -->
+<!-- Thermal Receipt Modal -->
 @if (viewingReceipt != null)
 {
-    <div class="booking-modal-backdrop" @onclick="() => viewingReceipt = null">
-        <div class="booking-modal-card" style="max-width: 440px; background: #FFFFFF; font-family: 'Courier New', Courier, monospace;" @onclick:stopPropagation>
-            <div style="text-align: center; border-bottom: 2px dashed #D1D5DB; padding-bottom: 14px; margin-bottom: 14px;">
-                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: 2px; margin: 0;">BEAUTY HAIR</h2>
-                <span style="font-size: 12px; color: #6B7280; display: block;">LUXURY SALON STUDIO</span>
-                <span style="font-size: 11px; color: #9CA3AF;">Ayala Ave, Makati City &bull; (02) 8888-2345</span>
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card" style="max-width: 400px; font-family: 'Courier New', Courier, monospace; background: #FAFAFA; border: 1px dashed #666;">
+            <div style="text-align: center; border-bottom: 1px dashed #999; padding-bottom: 12px; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 2px;">BEAUTY HAIR</h3>
+                <span style="font-size: 11px;">Luxury Salon & Rituals</span><br />
+                <span style="font-size: 10px; color: #666;">Official Cash Register Receipt</span>
             </div>
 
-            <div style="font-size: 13px; line-height: 1.6; margin-bottom: 14px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>INVOICE #:</span>
-                    <strong>@viewingReceipt.InvoiceNumber</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>DATE & TIME:</span>
-                    <span>@viewingReceipt.Timestamp.ToString("yyyy-MM-dd hh:mm tt")</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>CASHIER:</span>
-                    <span>@viewingReceipt.CashierName</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>CLIENT:</span>
-                    <strong>@viewingReceipt.ClientName</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>SPECIALIST:</span>
-                    <span>@viewingReceipt.StylistName</span>
-                </div>
+            <div style="font-size: 12px; line-height: 1.6; margin-bottom: 12px; border-bottom: 1px dashed #999; padding-bottom: 12px;">
+                <div>Receipt: <strong>@viewingReceipt.InvoiceNumber</strong></div>
+                <div>Date: @viewingReceipt.Timestamp.ToString("yyyy-MM-dd hh:mm tt")</div>
+                <div>Client: <strong>@viewingReceipt.ClientName</strong></div>
+                <div>Specialist: @viewingReceipt.StylistName</div>
+                <div>Cashier: @viewingReceipt.CashierName</div>
             </div>
 
-            <div style="border-top: 1px dashed #D1D5DB; border-bottom: 1px dashed #D1D5DB; padding: 10px 0; margin-bottom: 14px; font-size: 13.5px;">
+            <div style="font-size: 13px; margin-bottom: 12px; border-bottom: 1px dashed #999; padding-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span>@viewingReceipt.ServiceName</span>
                     <span>₱@viewingReceipt.Subtotal.ToString("N0")</span>
                 </div>
+                @if (viewingReceipt.RetailAddonsTotal > 0)
+                {
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>Retail Products</span>
+                        <span>+₱@viewingReceipt.RetailAddonsTotal.ToString("N0")</span>
+                    </div>
+                }
                 @if (viewingReceipt.Discount > 0)
                 {
-                    <div style="display: flex; justify-content: space-between; color: #DC2626; margin-bottom: 4px;">
-                        <span>DISCOUNT</span>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #DC2626;">
+                        <span>Discount</span>
                         <span>-₱@viewingReceipt.Discount.ToString("N0")</span>
                     </div>
                 }
-                <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; margin-top: 8px;">
-                    <span>TOTAL AMOUNT:</span>
+                @if (viewingReceipt.PromoDiscount > 0)
+                {
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #DC2626;">
+                        <span>Promo (@viewingReceipt.PromoCode)</span>
+                        <span>-₱@viewingReceipt.PromoDiscount.ToString("N0")</span>
+                    </div>
+                }
+                @if (viewingReceipt.LoyaltyDiscount > 0)
+                {
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #7C3AED;">
+                        <span>Loyalty Points Used</span>
+                        <span>-₱@viewingReceipt.LoyaltyDiscount.ToString("N0")</span>
+                    </div>
+                }
+                <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; border-top: 1px solid #333; margin-top: 6px; padding-top: 6px;">
+                    <span>TOTAL:</span>
                     <span>₱@viewingReceipt.Total.ToString("N0")</span>
                 </div>
-            </div>
-
-            <div style="font-size: 13px; line-height: 1.6; margin-bottom: 18px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>PAYMENT METHOD:</span>
-                    <strong>@viewingReceipt.PaymentMethod</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>AMOUNT TENDERED:</span>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px;">
+                    <span>Paid (@viewingReceipt.PaymentMethod):</span>
                     <span>₱@viewingReceipt.AmountPaid.ToString("N0")</span>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>CHANGE:</span>
-                    <span>₱@viewingReceipt.Change.ToString("N0")</span>
-                </div>
+                @if (viewingReceipt.PaymentMethod == "Cash")
+                {
+                    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                        <span>Change:</span>
+                        <span>₱@viewingReceipt.Change.ToString("N0")</span>
+                    </div>
+                }
             </div>
 
-            <div style="text-align: center; font-size: 12px; color: #6B7280; margin-bottom: 16px;">
-                <p style="margin: 0;">Thank you for pampering with us!</p>
-                <p style="margin: 0;">Follow us @@beautyhairsalon</p>
+            <div style="text-align: center; font-size: 11px; color: #555; margin-bottom: 14px;">
+                <div>✨ Points Earned: <strong>+@viewingReceipt.PointsEarned pts</strong></div>
+                <div>Thank you for choosing Beauty Hair!</div>
             </div>
 
-            <button class="btn-primary-dark" style="width: 100%; justify-content: center; font-family: sans-serif;" @onclick="() => viewingReceipt = null">
-                <i class="bi bi-check-lg"></i> Close Receipt
-            </button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-primary-dark" style="flex: 1; justify-content: center;" @onclick="() => viewingReceipt = null">Done</button>
+            </div>
         </div>
     </div>
 }
@@ -472,28 +535,38 @@
     private int selectedApptId = 0;
     private string billingClientName = "";
     private string billingStylistName = "";
-    private string billingServiceName = "Signature Package";
-    private decimal baseServicePrice = 3990;
-    private bool hasSerum = false;
-    private bool hasTonic = false;
-    private bool hasShampoo = false;
+    private string billingServiceName = "";
+    private decimal baseServicePrice = 850;
+    private HashSet<int> selectedProductIds = new();
     private decimal addonTotal = 0;
     private string selectedDiscountType = "NONE";
     private decimal calculatedDiscount = 0;
-    private decimal netTotalDue = 3990;
+
+    // Promo & Loyalty Fields
+    private string promoCodeInput = "";
+    private string promoCodeApplied = "";
+    private decimal promoDiscount = 0;
+    private bool promoApplied = false;
+    private string promoMessage = "";
+    private CustomerRecord? matchedCustomer = null;
+    private bool redeemPoints = false;
+    private decimal loyaltyDiscount = 0;
+
+    private decimal netTotalDue = 850;
     private string selectedPaymentMethod = "Cash";
-    private decimal cashTendered = 4000;
-    private decimal calculatedChange = 10;
-    private string successNotification = "";
+    private decimal cashTendered = 850;
+    private decimal calculatedChange = 0;
+
+    private string? successNotification = null;
     private InvoiceRecord? lastPaidInvoice = null;
     private InvoiceRecord? viewingReceipt = null;
 
-    // Walk-in form states
+    // Walk-in form
     private string walkinName = "";
-    private string walkinPhone = "+63 9";
-    private string walkinService = "Signature Package";
+    private string walkinPhone = "";
+    private string walkinService = "Precision Haircut";
     private string walkinStylist = "Sofia Martinez";
-    private string walkinSlot = "Now (Walk-in)";
+    private string walkinSlot = "Walk-in (Now)";
 
     protected override void OnInitialized()
     {
@@ -508,6 +581,14 @@
         }
     }
 
+    private void OnClientNameChanged()
+    {
+        matchedCustomer = SalonService.FindCustomerByPhoneOrName(billingClientName);
+        redeemPoints = false;
+        loyaltyDiscount = 0;
+        CalculateTotals();
+    }
+
     private void SelectAppointmentForBilling(AppointmentRecord appt)
     {
         selectedApptId = appt.Id;
@@ -515,10 +596,16 @@
         billingStylistName = appt.StylistName;
         billingServiceName = appt.ServiceName;
         baseServicePrice = appt.Price;
-        hasSerum = false;
-        hasTonic = false;
-        hasShampoo = false;
+        selectedProductIds.Clear();
         selectedDiscountType = "NONE";
+        promoCodeInput = "";
+        promoCodeApplied = "";
+        promoDiscount = 0;
+        promoApplied = false;
+        promoMessage = "";
+        matchedCustomer = SalonService.FindCustomerByPhoneOrName(appt.ClientName);
+        redeemPoints = false;
+        loyaltyDiscount = 0;
         CalculateTotals();
     }
 
@@ -526,13 +613,67 @@
     {
         selectedApptId = 0;
         billingClientName = "Walk-in Client";
-        billingStylistName = SalonService.Team.FirstOrDefault()?.Name ?? "Sofia Martinez";
-        billingServiceName = "01 Haircut";
+        billingStylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez";
+        billingServiceName = "01 Precision Haircut";
         baseServicePrice = 850;
-        hasSerum = false;
-        hasTonic = false;
-        hasShampoo = false;
+        selectedProductIds.Clear();
         selectedDiscountType = "NONE";
+        promoCodeInput = "";
+        promoCodeApplied = "";
+        promoDiscount = 0;
+        promoApplied = false;
+        promoMessage = "";
+        matchedCustomer = null;
+        redeemPoints = false;
+        loyaltyDiscount = 0;
+        CalculateTotals();
+    }
+
+    private void ToggleProductSelection(int productId)
+    {
+        if (selectedProductIds.Contains(productId))
+        {
+            selectedProductIds.Remove(productId);
+        }
+        else
+        {
+            selectedProductIds.Add(productId);
+        }
+        CalculateTotals();
+    }
+
+    private void ToggleRedeemPoints()
+    {
+        if (matchedCustomer != null && matchedCustomer.LoyaltyPoints >= 200)
+        {
+            redeemPoints = true;
+            loyaltyDiscount = 350;
+        }
+        else
+        {
+            redeemPoints = false;
+            loyaltyDiscount = 0;
+        }
+        CalculateTotals();
+    }
+
+    private void ApplyPromoCode()
+    {
+        decimal sub = baseServicePrice + addonTotal;
+        var result = SalonService.ValidatePromo(promoCodeInput, sub);
+        promoMessage = result.Message;
+        promoApplied = result.IsValid;
+
+        if (result.IsValid)
+        {
+            promoCodeApplied = promoCodeInput.ToUpper().Trim();
+            promoDiscount = result.DiscountAmount;
+        }
+        else
+        {
+            promoCodeApplied = "";
+            promoDiscount = 0;
+        }
         CalculateTotals();
     }
 
@@ -563,18 +704,22 @@
 
     private void CalculateTotals()
     {
-        addonTotal = (hasSerum ? 450 : 0) + (hasTonic ? 350 : 0) + (hasShampoo ? 650 : 0);
+        addonTotal = SalonService.Products
+            .Where(p => selectedProductIds.Contains(p.Id))
+            .Sum(p => p.RetailPrice);
+
         decimal sub = baseServicePrice + addonTotal;
 
         calculatedDiscount = selectedDiscountType switch
         {
             "SENIOR" => Math.Round(sub * 0.20m, 2),
             "VIP" => Math.Round(sub * 0.10m, 2),
-            "PROMO" => Math.Min(200m, sub),
             _ => 0
         };
 
-        netTotalDue = Math.Max(0, sub - calculatedDiscount);
+        decimal totalDeductions = calculatedDiscount + promoDiscount + loyaltyDiscount;
+        netTotalDue = Math.Max(0, sub - totalDeductions);
+
         if (cashTendered < netTotalDue)
         {
             cashTendered = netTotalDue;
@@ -598,14 +743,22 @@
     {
         if (string.IsNullOrWhiteSpace(billingClientName)) return;
 
+        var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
+
         var invoice = new InvoiceRecord
         {
             AppointmentId = selectedApptId,
+            CustomerId = matchedCustomer?.Id,
             ClientName = billingClientName,
-            ServiceName = billingServiceName + (addonTotal > 0 ? " (+ Products)" : ""),
+            ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
             StylistName = billingStylistName,
-            Subtotal = baseServicePrice + addonTotal,
+            Subtotal = baseServicePrice,
+            RetailAddonsTotal = addonTotal,
             Discount = calculatedDiscount,
+            PromoCode = promoApplied ? promoCodeApplied : null,
+            PromoDiscount = promoDiscount,
+            LoyaltyPointsRedeemed = redeemPoints ? 200 : 0,
+            LoyaltyDiscount = loyaltyDiscount,
             Total = netTotalDue,
             AmountPaid = selectedPaymentMethod == "Cash" ? cashTendered : netTotalDue,
             PaymentMethod = selectedPaymentMethod,
@@ -613,7 +766,7 @@
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
 
-        SalonService.AddInvoice(invoice);
+        SalonService.AddInvoice(invoice, purchasedList);
         lastPaidInvoice = invoice;
         successNotification = $"Invoice {invoice.InvoiceNumber} created for {invoice.ClientName} (₱{invoice.Total:N0} via {invoice.PaymentMethod}).";
 

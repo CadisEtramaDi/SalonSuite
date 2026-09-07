@@ -1,35 +1,70 @@
 @page "/portal"
 @page "/admin"
 @inject SalonDataService SalonService
+@inject FirebaseAuthService FirebaseAuth
 @inject NavigationManager Navigation
+@implements IDisposable
 
-<PageTitle>Beauty Hair ERP & CRM | Management Portal</PageTitle>
+<PageTitle>Beauty Hair ERP & CRM | Management Suite</PageTitle>
 
 <div class="portal-layout">
-    <!-- Dark Editorial Sidebar -->
+    <!-- Dark Editorial Admin Sidebar -->
     <aside class="portal-sidebar">
         <div class="portal-brand-block">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
             <span class="portal-brand-name">BEAUTY HAIR</span>
-            <span class="portal-brand-sub" style="color: #F59E0B;"><i class="bi bi-shield-lock-fill"></i> ADMIN ERP & CRM</span>
+            <span class="portal-brand-sub" style="color: #F59E0B;"><i class="bi bi-shield-lock-fill"></i> ENTERPRISE ERP</span>
         </div>
 
-        <div class="portal-group-label">ADMIN MODULES</div>
-        <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => currentTab = "appointments"'>
-            <i class="bi bi-calendar3"></i> Master Schedule
-        </button>
-        <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => currentTab = "services"'>
-            <i class="bi bi-scissors"></i> Services & Catalog
-        </button>
-        <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => currentTab = "team"'>
-            <i class="bi bi-people"></i> Staff & Specialists
-        </button>
-        <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => currentTab = "billing"'>
-            <i class="bi bi-receipt"></i> Financials & Invoices
-        </button>
+        <div class="portal-nav-scroll">
+            <div class="portal-group-label">CORE OPERATIONS</div>
+            <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => currentTab = "appointments"'>
+                <i class="bi bi-calendar3"></i> Master Schedule
+            </button>
+            <button class="portal-nav-btn @(currentTab == "customers" ? "active" : "")" @onclick='() => currentTab = "customers"'>
+                <i class="bi bi-people-fill"></i> Customers & CRM
+            </button>
+            <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => currentTab = "services"'>
+                <i class="bi bi-scissors"></i> Services & Packages
+            </button>
+            <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => currentTab = "team"'>
+                <i class="bi bi-person-badge-fill"></i> Staff & Specialists
+            </button>
+
+            <div class="portal-group-label" style="margin-top: 10px;">INVENTORY & SUPPLY</div>
+            <button class="portal-nav-btn @(currentTab == "inventory" ? "active" : "")" @onclick='() => currentTab = "inventory"'>
+                <i class="bi bi-box-seam"></i> Product Inventory
+                @if (SalonService.Products.Count(p => p.IsLowStock) > 0)
+                {
+                    <span style="background: #EF4444; color: #FFF; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px; margin-left: auto;">
+                        @SalonService.Products.Count(p => p.IsLowStock)
+                    </span>
+                }
+            </button>
+            <button class="portal-nav-btn @(currentTab == "suppliers" ? "active" : "")" @onclick='() => currentTab = "suppliers"'>
+                <i class="bi bi-truck"></i> Suppliers & Vendors
+            </button>
+
+            <div class="portal-group-label" style="margin-top: 10px;">MARKETING & LOYALTY</div>
+            <button class="portal-nav-btn @(currentTab == "promotions" ? "active" : "")" @onclick='() => currentTab = "promotions"'>
+                <i class="bi bi-tag-fill"></i> Promotions & Vouchers
+            </button>
+            <button class="portal-nav-btn @(currentTab == "loyalty" ? "active" : "")" @onclick='() => currentTab = "loyalty"'>
+                <i class="bi bi-award-fill"></i> Loyalty Rewards
+            </button>
+
+            <div class="portal-group-label" style="margin-top: 10px;">FINANCIALS & INSIGHTS</div>
+            <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => currentTab = "billing"'>
+                <i class="bi bi-receipt"></i> Daily Invoices & POS
+            </button>
+            <button class="portal-nav-btn @(currentTab == "reports" ? "active" : "")" @onclick='() => currentTab = "reports"'>
+                <i class="bi bi-bar-chart-line-fill"></i> Analytics & Reports
+            </button>
+        </div>
 
         <div class="portal-user-footer">
             <div>
-                <span class="portal-user-name">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Isabella Reyes")</span>
+                <span class="portal-user-name">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Administrator")</span>
                 <span class="portal-user-role">@(SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Role : "Salon Owner / Admin")</span>
             </div>
             <button class="btn-logout-icon" title="Logout" @onclick="HandleLogout">
@@ -40,59 +75,141 @@
 
     <!-- Main Content Panel -->
     <main class="portal-main-body">
+        <!-- Top Bar -->
         <div class="portal-top-bar">
             <div>
                 <h1 class="portal-page-heading">
-                    @(currentTab == "appointments" ? "Appointments & Schedule" :
-                      currentTab == "services" ? "Services & Treatment Catalog" :
-                      currentTab == "team" ? "Specialists & Staff Roster" : "POS & Invoicing")
+                    @(currentTab switch
+                    {
+                        "appointments" => "Master Appointment Schedule",
+                        "customers" => "Customer Management & CRM",
+                        "services" => "Treatment & Service Catalog",
+                        "team" => "Staff & Specialist Roster",
+                        "inventory" => "Product Inventory & Stock Control",
+                        "suppliers" => "Supplier & Vendor Directory",
+                        "promotions" => "Promotions, Codes & Vouchers",
+                        "loyalty" => "Customer Loyalty Program",
+                        "billing" => "POS Invoices & Financial Ledger",
+                        "reports" => "Analytics & Performance Reports",
+                        _ => "Salon ERP Suite"
+                    })
                 </h1>
-                <p style="color: var(--text-muted); font-size: 14px;">Real-time management for Beauty Hair Salon Studio</p>
+                <p style="color: var(--text-muted); font-size: 14px;">Beauty Hair Luxury Salon ERP &bull; SQL Server Unified Architecture</p>
             </div>
 
-            <div style="display: flex; gap: 12px;">
-                @if (currentTab == "team")
-                {
-                    <button class="btn-primary-dark" @onclick="() => showNewStaffModal = true">
-                        <i class="bi bi-person-plus-fill"></i> Add Staff Member
-                    </button>
-                }
-                else
+            <div style="display: flex; gap: 10px; align-items: center;">
+                @if (currentTab == "appointments")
                 {
                     <button class="btn-primary-dark" @onclick="() => showNewBookingModal = true">
                         <i class="bi bi-plus-lg"></i> New Appointment
                     </button>
                 }
+                else if (currentTab == "customers")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showCustomerModal = true">
+                        <i class="bi bi-person-plus-fill"></i> Add Client
+                    </button>
+                }
+                else if (currentTab == "services")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showServiceModal = true">
+                        <i class="bi bi-plus-circle"></i> Add Service
+                    </button>
+                    <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000;" @onclick="() => showPackageModal = true">
+                        <i class="bi bi-box2-heart-fill"></i> Add Package
+                    </button>
+                }
+                else if (currentTab == "team")
+                {
+                    <button class="btn-primary-dark" @onclick="OpenNewStaffModal">
+                        <i class="bi bi-person-plus-fill"></i> Add Staff & Credentials
+                    </button>
+                }
+                else if (currentTab == "inventory")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showProductModal = true">
+                        <i class="bi bi-box-arrow-in-down"></i> Add Product
+                    </button>
+                }
+                else if (currentTab == "suppliers")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showSupplierModal = true">
+                        <i class="bi bi-building-add"></i> Add Supplier
+                    </button>
+                }
+                else if (currentTab == "promotions")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showPromoModal = true">
+                        <i class="bi bi-ticket-perforated"></i> New Promo Code
+                    </button>
+                }
+                else if (currentTab == "loyalty")
+                {
+                    <button class="btn-primary-dark" @onclick="() => showRewardModal = true">
+                        <i class="bi bi-gift-fill"></i> New Reward Tier
+                    </button>
+                }
+                else if (currentTab == "reports")
+                {
+                    <button class="btn-primary-dark" style="background: #059669;" @onclick="PrintReport">
+                        <i class="bi bi-printer-fill"></i> Print / Export Report
+                    </button>
+                }
             </div>
         </div>
 
-        <!-- KPI Metric Cards -->
+        <!-- Global ERP Quick KPIs -->
         <div class="portal-kpi-grid">
             <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Today's Bookings</span>
-                <div class="portal-kpi-num">@SalonService.Appointments.Count</div>
+                <span class="portal-kpi-label">Today's Invoiced Revenue</span>
+                <div class="portal-kpi-num" style="color: #10B981;">₱@TodayRevenue.ToString("N0")</div>
+                <span style="font-size: 11.5px; color: var(--text-muted);">All-Time: ₱@SalonService.Invoices.Sum(i => i.Total).ToString("N0")</span>
             </div>
             <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Today's Revenue</span>
-                <div class="portal-kpi-num">₱@SalonService.Appointments.Sum(a => a.Price).ToString("N0")</div>
+                <span class="portal-kpi-label">Active CRM Clients</span>
+                <div class="portal-kpi-num">@SalonService.Customers.Count</div>
+                <span style="font-size: 11.5px; color: var(--text-muted);">@SalonService.Customers.Count(c => c.Tier == "Platinum" || c.Tier == "Gold") VIP Members</span>
             </div>
             <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Active Specialists</span>
-                <div class="portal-kpi-num">@SalonService.Team.Count</div>
+                <span class="portal-kpi-label">Low Stock Alerts</span>
+                <div class="portal-kpi-num" style="color: @(SalonService.Products.Count(p => p.IsLowStock) > 0 ? "#EF4444" : "#10B981");">
+                    @SalonService.Products.Count(p => p.IsLowStock) SKU
+                </div>
+                <span style="font-size: 11.5px; color: var(--text-muted);">Total @SalonService.Products.Sum(p => p.StockQuantity) units in stock</span>
             </div>
             <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Client Satisfaction</span>
-                <div class="portal-kpi-num">4.9 / 5.0</div>
+                <span class="portal-kpi-label">Active Promo Codes</span>
+                <div class="portal-kpi-num">@SalonService.Promotions.Count(p => p.IsValidNow)</div>
+                <span style="font-size: 11.5px; color: var(--text-muted);">@SalonService.Promotions.Sum(p => p.UsageCount) total redemptions</span>
             </div>
         </div>
 
-        <!-- Tab Content -->
+        <!-- TAB 1: APPOINTMENT SCHEDULING -->
         @if (currentTab == "appointments")
         {
             <div class="portal-data-card">
                 <div class="portal-card-header">
-                    <h3 class="portal-card-title">Live Schedule</h3>
-                    <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy")</span>
+                    <div>
+                        <h3 class="portal-card-title">Live Master Schedule (@FilteredAppointments.Count())</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy") &bull; Real-time schedule sync</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <select class="booking-input" style="width: 135px; padding: 6px 10px; font-size: 13px;" @bind="apptStatusFilter">
+                            <option value="all">All Statuses</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <select class="booking-input" style="width: 175px; padding: 6px 10px; font-size: 13px;" @bind="apptSortOrder">
+                            <option value="newest">Sort: Newest First (Top)</option>
+                            <option value="time-asc">Sort: Earliest Time</option>
+                            <option value="name-asc">Sort: Client (A to Z)</option>
+                            <option value="name-desc">Sort: Client (Z to A)</option>
+                            <option value="oldest">Sort: Oldest First</option>
+                        </select>
+                        <input type="text" class="booking-input" style="width: 190px; padding: 6px 12px; font-size: 13px;" placeholder="Search client / stylist..." @bind="apptSearchQuery" @bind:event="oninput" />
+                    </div>
                 </div>
 
                 <div style="overflow-x: auto;">
@@ -110,7 +227,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var appt in SalonService.Appointments)
+                            @if (!FilteredAppointments.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No appointments found for the selected filter.</td>
+                                </tr>
+                            }
+                            @foreach (var appt in FilteredAppointments)
                             {
                                 <tr style="border-bottom: 1px solid var(--border-light);">
                                     <td style="padding: 14px; font-weight: 700;">@appt.TimeSlot</td>
@@ -120,19 +243,24 @@
                                     <td style="padding: 14px;">@appt.StylistName</td>
                                     <td style="padding: 14px; font-weight: 700;">₱@appt.Price.ToString("N0")</td>
                                     <td style="padding: 14px;">
-                                        <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">
-                                            @appt.Status
-                                        </span>
+                                        <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
                                     </td>
                                     <td style="padding: 14px; text-align: right;">
-                                        @if (appt.Status == "Confirmed")
-                                        {
-                                            <button style="background: #F3F4F6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
-                                        }
-                                        else if (appt.Status == "In Progress")
-                                        {
-                                            <button style="background: #ECFDF5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
-                                        }
+                                        <div style="display: inline-flex; gap: 4px;">
+                                            @if (appt.Status == "Confirmed")
+                                            {
+                                                <button style="background: #F3F4F6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
+                                            }
+                                            else if (appt.Status == "In Progress")
+                                            {
+                                                <button style="background: #ECFDF5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
+                                            }
+                                            @if (appt.Status != "Cancelled")
+                                            {
+                                                <button style="background: #FEF2F2; color: #DC2626; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Cancel Booking" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Cancelled")'>Cancel</button>
+                                            }
+                                            <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Delete" @onclick="() => SalonService.DeleteAppointment(appt.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -141,84 +269,709 @@
                 </div>
             </div>
         }
-        else if (currentTab == "services")
+
+        <!-- TAB 2: CUSTOMER CRM -->
+        @if (currentTab == "customers")
         {
             <div class="portal-data-card">
                 <div class="portal-card-header">
-                    <h3 class="portal-card-title">Treatment & Ritual Catalog</h3>
+                    <div>
+                        <h3 class="portal-card-title">Client Directory & Loyalty CRM (@SalonService.Customers.Count)</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Profile, tier progression, lifetime spend and visit records</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" class="booking-input" style="width: 240px; padding: 6px 12px; font-size: 13px;" placeholder="Search client by name / phone..." @bind="customerSearchQuery" @bind:event="oninput" />
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-                    @foreach (var svc in SalonService.Services)
-                    {
-                        <div style="border: 1px solid var(--border-light); padding: 18px; border-radius: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                <strong style="font-size: 16px;">@svc.Number - @svc.Name</strong>
-                                <span style="font-weight: 800; color: var(--gold-accent);">@svc.PriceFormatted</span>
-                            </div>
-                            <p style="font-size: 13.5px; color: var(--text-body);">@svc.Description</p>
-                        </div>
-                    }
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 14px;">Client Name</th>
+                                <th style="padding: 12px 14px;">Phone & Email</th>
+                                <th style="padding: 12px 14px;">Loyalty Tier</th>
+                                <th style="padding: 12px 14px;">Points Balance</th>
+                                <th style="padding: 12px 14px;">Lifetime Spend</th>
+                                <th style="padding: 12px 14px;">Visits</th>
+                                <th style="padding: 12px 14px;">Last Visit</th>
+                                <th style="padding: 12px 14px; text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!FilteredCustomers.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No client records found. Click 'Add Client' above to create a profile.</td>
+                                </tr>
+                            }
+                            @foreach (var cust in FilteredCustomers)
+                            {
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <td style="padding: 14px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span style="font-weight: 700;">@cust.FullName</span>
+                                            <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: #4B5563; background: #F3F4F6; padding: 2px 6px; border-radius: 4px; border: 1px solid #E5E7EB;">@cust.ClientCode</span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(cust.Notes))
+                                        {
+                                            <span style="display: block; font-size: 12px; font-weight: normal; color: var(--text-muted); margin-top: 2px;">@cust.Notes</span>
+                                        }
+                                    </td>
+                                    <td style="padding: 14px;">
+                                        <div style="font-weight: 600;">@cust.Phone</div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">@cust.Email</div>
+                                    </td>
+                                    <td style="padding: 14px;">
+                                        <span style="background: @cust.TierBadgeColor; color: #FFFFFF; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">
+                                            @cust.Tier
+                                        </span>
+                                    </td>
+                                    <td style="padding: 14px; font-weight: 700; color: #D97706;">@cust.LoyaltyPoints pts</td>
+                                    <td style="padding: 14px; font-weight: 800;">₱@cust.TotalSpent.ToString("N0")</td>
+                                    <td style="padding: 14px; font-weight: 600;">@cust.VisitsCount visits</td>
+                                    <td style="padding: 14px; color: var(--text-muted); font-size: 13px;">@(cust.LastVisit?.ToString("MMM dd, yyyy") ?? "Never")</td>
+                                    <td style="padding: 14px; text-align: right;">
+                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => EditCustomer(cust)">Edit</button>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeleteCustomer(cust.Id)">Del</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         }
-        else if (currentTab == "team")
+
+        <!-- TAB 3: SERVICES & PACKAGES -->
+        @if (currentTab == "services")
+        {
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+                <!-- Services List -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">Services Catalog (@SalonService.Services.Count)</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        @if (!SalonService.Services.Any())
+                        {
+                            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
+                                <i class="bi bi-scissors" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
+                                No services registered. Click 'Add Service' above to add treatments.
+                            </div>
+                        }
+                        @foreach (var svc in SalonService.Services)
+                        {
+                            <div style="border: 1px solid var(--border-light); padding: 14px 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <strong>@svc.Number - @svc.Name</strong>
+                                        <span style="font-size: 11px; background: #F3F4F6; padding: 2px 6px; border-radius: 3px; font-weight: 600;">@svc.Category</span>
+                                        <span style="font-size: 12px; color: var(--text-muted);"><i class="bi bi-clock"></i> @svc.DurationMinutes mins</span>
+                                    </div>
+                                    <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">@svc.Description</p>
+                                </div>
+                                <div style="text-align: right; display: flex; align-items: center; gap: 12px;">
+                                    <strong style="font-size: 16px; color: var(--gold-accent);">@svc.PriceFormatted</strong>
+                                    <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeleteService(svc.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Packages List -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">Service Packages (@SalonService.Packages.Count)</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        @if (!SalonService.Packages.Any())
+                        {
+                            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
+                                <i class="bi bi-box2-heart" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
+                                No packages registered. Click 'Add Package' above to create bundled offerings.
+                            </div>
+                        }
+                        @foreach (var pkg in SalonService.Packages)
+                        {
+                            <div style="border: 1px solid var(--border-light); padding: 16px; border-radius: 4px; background: @(pkg.IsPopular ? "#FFFDF5" : "#FFFFFF");">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="font-size: 16px;">@pkg.Name Package</strong>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-weight: 800; font-size: 17px; color: var(--gold-accent);">@pkg.PriceFormatted</span>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer;" @onclick="() => SalonService.DeletePackage(pkg.Id)"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </div>
+                                <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-body); line-height: 1.6;">
+                                    @foreach (var feat in pkg.Features)
+                                    {
+                                        <li>@feat</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 4: STAFF & EMPLOYEES -->
+        @if (currentTab == "team")
         {
             <div class="portal-data-card">
                 <div class="portal-card-header">
-                    <h3 class="portal-card-title">Specialists & Staff Roster</h3>
-                    <span style="font-size: 13px; color: var(--text-muted);">Admin Provisioned Staff</span>
+                    <div>
+                        <h3 class="portal-card-title">Specialists, Cashiers & Staff Roster (@SalonService.Team.Count)</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Manage login credentials, portal access, commission rates, and chair assignments</span>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 220px;" 
+                               placeholder="Search staff or email..." @bind="staffSearchQuery" @bind:event="oninput" />
+                    </div>
                 </div>
+
+                @if (!string.IsNullOrEmpty(staffFeedbackMessage))
+                {
+                    <div style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 12px 16px; border-radius: 6px; font-size: 13.5px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="bi bi-check-circle-fill" style="font-size: 16px;"></i>
+                            <span>@staffFeedbackMessage</span>
+                        </div>
+                        <button style="border: none; background: transparent; color: #065F46; cursor: pointer; font-size: 18px; line-height: 1;" @onclick='() => staffFeedbackMessage = ""'>&times;</button>
+                    </div>
+                }
+
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                    @foreach (var member in SalonService.Team)
+                    @if (!FilteredStaffMembers.Any())
                     {
-                        <div style="border: 1px solid var(--border-light); padding: 20px; border-radius: 4px; text-align: center; background: #FFFFFF;">
-                            <img src="@member.ImageUrl" alt="@member.Name" style="width: 84px; height: 84px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid #E5E7EB;" />
-                            <h4 style="font-size: 16px; margin-bottom: 2px;">@member.Name</h4>
-                            <span style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 8px;">@member.Role</span>
-                            <span style="display: inline-block; font-size: 11px; background: #ECFDF5; color: #059669; font-weight: 700; padding: 2px 8px; border-radius: 4px;">ACTIVE STAFF</span>
+                        <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
+                            <i class="bi bi-people" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
+                            No staff members match your filter. Click <strong>'Add Staff & Credentials'</strong> above to provision new accounts.
+                        </div>
+                    }
+                    @foreach (var member in FilteredStaffMembers)
+                    {
+                        bool isCashier = member.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase);
+                        bool isManager = member.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase);
+
+                        <div style="border: 1px solid var(--border-light); padding: 20px; border-radius: 6px; background: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+                                    <img src="@member.ImageUrl" alt="@member.Name" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid @(isCashier ? "#F59E0B" : isManager ? "#8B5CF6" : "#3B82F6");" />
+                                    <div>
+                                        <h4 style="font-size: 16px; margin: 0 0 4px 0; font-weight: 700;">@member.Name</h4>
+                                        <span style="font-size: 12.5px; font-weight: 600; color: @(isCashier ? "#D97706" : isManager ? "#7C3AED" : "#2563EB");">
+                                            @member.Role
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Portal Destination Badge -->
+                                <div style="margin-bottom: 12px;">
+                                    @if (isCashier)
+                                    {
+                                        <span style="font-size: 11px; background: #FEF3C7; color: #92400E; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;">
+                                            <i class="bi bi-receipt-cutoff"></i> Routes to POS & Cashier (/cashier)
+                                        </span>
+                                    }
+                                    else if (isManager)
+                                    {
+                                        <span style="font-size: 11px; background: #F3E8FF; color: #6B21A8; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;">
+                                            <i class="bi bi-shield-lock-fill"></i> Routes to Management ERP (/admin)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size: 11px; background: #EFF6FF; color: #1D4ED8; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;">
+                                            <i class="bi bi-scissors"></i> Routes to Stylist Workspace (/employee)
+                                        </span>
+                                    }
+                                </div>
+
+                                <div style="font-size: 12.5px; color: var(--text-body); display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; background: #F9FAFB; padding: 10px 12px; border-radius: 4px;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <i class="bi bi-envelope-at-fill" style="color: var(--text-muted);"></i>
+                                        <strong style="color: var(--text-dark); word-break: break-all;">@(string.IsNullOrWhiteSpace(member.Email) ? "No login email set" : member.Email)</strong>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(member.Phone))
+                                    {
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <i class="bi bi-telephone-fill" style="color: var(--text-muted);"></i>
+                                            <span>@member.Phone</span>
+                                        </div>
+                                    }
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <i class="bi bi-stars" style="color: var(--gold-accent);"></i>
+                                        <span>@member.Specialization</span>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; background: #FFFFFF; border: 1px solid var(--border-light); padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 14px;">
+                                    <div>
+                                        <span style="color: var(--text-muted); display: block;">Commission Rate</span>
+                                        <strong>@((member.CommissionRate * 100).ToString("N0"))%</strong>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span style="color: var(--text-muted); display: block;">Account Status</span>
+                                        <strong style="color: #059669;"><i class="bi bi-check-circle-fill"></i> Active</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 8px; justify-content: space-between; border-top: 1px solid var(--border-light); padding-top: 12px;">
+                                @if (!string.IsNullOrWhiteSpace(member.Email))
+                                {
+                                    <button style="background: #F3F4F6; color: var(--text-dark); border: 1px solid var(--border-light); padding: 5px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                            @onclick="() => HandleResetStaffPassword(member.Email)">
+                                        <i class="bi bi-key-fill"></i> Reset Password
+                                    </button>
+                                }
+                                <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; margin-left: auto;" 
+                                        @onclick="() => SalonService.DeleteTeamMember(member.Id)">
+                                    <i class="bi bi-trash"></i> Remove
+                                </button>
+                            </div>
                         </div>
                     }
                 </div>
             </div>
         }
-        else if (currentTab == "billing")
+
+        <!-- TAB 5: PRODUCT INVENTORY -->
+        @if (currentTab == "inventory")
         {
             <div class="portal-data-card">
                 <div class="portal-card-header">
-                    <h3 class="portal-card-title">Daily POS Invoices</h3>
+                    <div>
+                        <h3 class="portal-card-title">Product Inventory & Stock Management (@SalonService.Products.Count SKUs)</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Stock levels, retail prices, reorder thresholds, and fast stock in/out</span>
+                    </div>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    @foreach (var appt in SalonService.Appointments)
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 14px;">SKU</th>
+                                <th style="padding: 12px 14px;">Product Name</th>
+                                <th style="padding: 12px 14px;">Category</th>
+                                <th style="padding: 12px 14px;">Cost / Retail</th>
+                                <th style="padding: 12px 14px;">Stock Qty</th>
+                                <th style="padding: 12px 14px;">Reorder Level</th>
+                                <th style="padding: 12px 14px;">Supplier</th>
+                                <th style="padding: 12px 14px; text-align: right;">Quick Adjust</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!SalonService.Products.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No inventory products registered. Click 'Add Product' above to stock items.</td>
+                                </tr>
+                            }
+                            @foreach (var prod in SalonService.Products)
+                            {
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <td style="padding: 14px; font-family: monospace; font-weight: 700;">@prod.SKU</td>
+                                    <td style="padding: 14px; font-weight: 600;">@prod.Name</td>
+                                    <td style="padding: 14px;"><span style="font-size: 12px; background: #F3F4F6; padding: 2px 6px; border-radius: 3px;">@prod.Category</span></td>
+                                    <td style="padding: 14px;">
+                                        <span>₱@prod.CostPrice.ToString("N0") / </span>
+                                        <strong style="color: var(--gold-accent);">₱@prod.RetailPrice.ToString("N0")</strong>
+                                    </td>
+                                    <td style="padding: 14px;">
+                                        <strong style="font-size: 15px;">@prod.StockQuantity @prod.Unit</strong>
+                                        @if (prod.IsLowStock)
+                                        {
+                                            <span style="display: block; font-size: 11px; color: #DC2626; font-weight: 700;">
+                                                <i class="bi bi-exclamation-triangle-fill"></i> LOW STOCK
+                                            </span>
+                                        }
+                                    </td>
+                                    <td style="padding: 14px; color: var(--text-muted);">@prod.ReorderLevel @prod.Unit</td>
+                                    <td style="padding: 14px; font-size: 13px;">@prod.SupplierName</td>
+                                    <td style="padding: 14px; text-align: right;">
+                                        <div style="display: inline-flex; gap: 4px;">
+                                            <button style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 2px 8px; border-radius: 4px; font-weight: 700; cursor: pointer;" title="Stock In (+5)" @onclick="() => SalonService.AdjustProductStock(prod.Id, 5)">+5</button>
+                                            <button style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 4px; font-weight: 700; cursor: pointer;" title="Stock Out (-1)" @onclick="() => SalonService.AdjustProductStock(prod.Id, -1)">-1</button>
+                                            <button style="background: #F3F4F6; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;" @onclick="() => SalonService.DeleteProduct(prod.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 6: SUPPLIERS & VENDORS -->
+        @if (currentTab == "suppliers")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <div>
+                        <h3 class="portal-card-title">Suppliers & Vendor Directory (@SalonService.Suppliers.Count)</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Vendor contacts, payment terms, and supply channels</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    @if (!SalonService.Suppliers.Any())
                     {
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #FAFAFA; border: 1px solid var(--border-light); border-radius: 4px;">
-                            <div>
-                                <strong>Invoice #INV-2026-00@(appt.Id)</strong> &bull; <span>@appt.ClientName</span>
-                                <div style="font-size: 12.5px; color: var(--text-muted);">@appt.ServiceName &bull; @appt.StylistName</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span style="font-size: 16px; font-weight: 800;">₱@appt.Price.ToString("N0")</span>
-                                <span style="display: block; font-size: 11.5px; color: #059669; font-weight: 700;">PAID</span>
-                            </div>
+                        <div style="grid-column: 1 / -1; padding: 32px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
+                            <i class="bi bi-truck" style="font-size: 28px; display: block; margin-bottom: 8px;"></i>
+                            No suppliers registered yet. Click 'Add Supplier' above to create a vendor profile.
                         </div>
                     }
+                    @foreach (var sup in SalonService.Suppliers)
+                    {
+                        <div style="border: 1px solid var(--border-light); padding: 20px; border-radius: 4px; background: #FFFFFF;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <h4 style="font-size: 16px; margin: 0;">@sup.CompanyName</h4>
+                                <span style="font-size: 11px; background: #EFF6FF; color: #2563EB; font-weight: 700; padding: 2px 6px; border-radius: 3px;">@sup.PaymentTerms</span>
+                            </div>
+                            <span style="font-size: 13px; color: var(--gold-accent); font-weight: 600; display: block; margin-bottom: 12px;">@sup.SuppliedCategory</span>
+
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px;">
+                                <div><i class="bi bi-person"></i> @sup.ContactPerson</div>
+                                <div><i class="bi bi-telephone"></i> @sup.Phone</div>
+                                <div><i class="bi bi-envelope"></i> @sup.Email</div>
+                                <div><i class="bi bi-geo-alt"></i> @sup.Address</div>
+                            </div>
+
+                            <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;" @onclick="() => SalonService.DeleteSupplier(sup.Id)">
+                                Remove Supplier
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- TAB 7: PROMOTIONS & VOUCHERS -->
+        @if (currentTab == "promotions")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <div>
+                        <h3 class="portal-card-title">Promotions & Coupon Vouchers (@SalonService.Promotions.Count)</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Configure discount codes, expiry dates, minimum spends and POS auto-validation</span>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 14px;">Promo Code</th>
+                                <th style="padding: 12px 14px;">Campaign Title</th>
+                                <th style="padding: 12px 14px;">Discount Value</th>
+                                <th style="padding: 12px 14px;">Min. Spend</th>
+                                <th style="padding: 12px 14px;">Validity Period</th>
+                                <th style="padding: 12px 14px;">Redemptions</th>
+                                <th style="padding: 12px 14px;">Status</th>
+                                <th style="padding: 12px 14px; text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!SalonService.Promotions.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No active promotional codes. Click 'New Promo Code' above to create one.</td>
+                                </tr>
+                            }
+                            @foreach (var promo in SalonService.Promotions)
+                            {
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <td style="padding: 14px; font-family: monospace; font-size: 15px; font-weight: 800; color: var(--gold-accent);">
+                                        @promo.Code
+                                    </td>
+                                    <td style="padding: 14px; font-weight: 600;">@promo.Title</td>
+                                    <td style="padding: 14px; font-weight: 700;">
+                                        @(promo.DiscountType == "Percentage" ? $"{promo.DiscountValue:N0}% OFF" : $"₱{promo.DiscountValue:N0} OFF")
+                                    </td>
+                                    <td style="padding: 14px; color: var(--text-muted);">₱@promo.MinSpend.ToString("N0")</td>
+                                    <td style="padding: 14px; font-size: 13px; color: var(--text-muted);">
+                                        @promo.StartDate.ToString("MMM dd") &ndash; @promo.EndDate.ToString("MMM dd, yyyy")
+                                    </td>
+                                    <td style="padding: 14px; font-weight: 600;">@promo.UsageCount uses</td>
+                                    <td style="padding: 14px;">
+                                        <span style="font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: @(promo.IsValidNow ? "#ECFDF5" : "#FEF2F2"); color: @(promo.IsValidNow ? "#059669" : "#DC2626");">
+                                            @(promo.IsValidNow ? "ACTIVE" : "EXPIRED / OFF")
+                                        </span>
+                                    </td>
+                                    <td style="padding: 14px; text-align: right;">
+                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 4px;" @onclick="() => promo.IsActive = !promo.IsActive">Toggle</button>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeletePromotion(promo.Id)">Del</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 8: LOYALTY CRM REWARDS -->
+        @if (currentTab == "loyalty")
+        {
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- Reward Catalog -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">Loyalty Points Reward Catalog</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        @if (!SalonService.LoyaltyRewards.Any())
+                        {
+                            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
+                                <i class="bi bi-gift" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
+                                No loyalty reward items configured yet. Click 'New Reward Tier' above to add redeemable perks.
+                            </div>
+                        }
+                        @foreach (var reward in SalonService.LoyaltyRewards)
+                        {
+                            <div style="border: 1px solid var(--border-light); padding: 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 15px;">@reward.Title</strong>
+                                    <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">@reward.Description</p>
+                                </div>
+                                <div style="text-align: right; min-width: 120px; display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                                    <div>
+                                        <span style="font-size: 16px; font-weight: 800; color: #D97706; display: block;">@reward.PointsRequired pts</span>
+                                        <span style="font-size: 12px; color: #059669; font-weight: 700;">(Worth ₱@reward.DiscountValue:N0)</span>
+                                    </div>
+                                    <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeleteLoyaltyReward(reward.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Tier Progression Rules -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <h3 class="portal-card-title">CRM Loyalty Tier Rules</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="border-left: 4px solid #8B5CF6; padding: 12px 16px; background: #FAF5FF; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: #7C3AED;">👑 Platinum Tier (₱25,000+ Lifetime Spend)</strong>
+                                <span style="font-size: 12px; font-weight: 700; background: #EDE9FE; color: #6D28D9; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Platinum") clients</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">15% permanent discount, priority VIP slot booking, free complimentary scalp ritual.</p>
+                        </div>
+                        <div style="border-left: 4px solid #D97706; padding: 12px 16px; background: #FFFBEB; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: #B45309;">⭐ Gold Tier (₱10,000+ Lifetime Spend)</strong>
+                                <span style="font-size: 12px; font-weight: 700; background: #FEF3C7; color: #B45309; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Gold") clients</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">10% permanent discount, birthday month gift, 1.5x points multiplier.</p>
+                        </div>
+                        <div style="border-left: 4px solid #64748B; padding: 12px 16px; background: #F8FAFC; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: #475569;">🥈 Silver Tier (₱3,500+ Lifetime Spend)</strong>
+                                <span style="font-size: 12px; font-weight: 700; background: #E2E8F0; color: #334155; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Silver") clients</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">5% discount on retail products, standard points earning (1 pt per ₱100 spend).</p>
+                        </div>
+                        <div style="border-left: 4px solid #B45309; padding: 12px 16px; background: #FFF7ED; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: #9A3412;">🥉 Bronze Tier (Entry Level)</strong>
+                                <span style="font-size: 12px; font-weight: 700; background: #FFEDD5; color: #9A3412; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Bronze") clients</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Standard points earning on all services & retail products.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 9: BILLING LEDGER -->
+        @if (currentTab == "billing")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <div>
+                        <h3 class="portal-card-title">Completed POS Invoices & Financial Ledger (@FilteredInvoices.Count())</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">Real-time billing transactions, payment tenders, and receipts</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <select class="booking-input" style="width: 140px; padding: 6px 10px; font-size: 13px;" @bind="billingMethodFilter">
+                            <option value="all">All Tenders</option>
+                            <option value="Cash">Cash</option>
+                            <option value="GCash">GCash</option>
+                            <option value="Maya">Maya</option>
+                            <option value="Credit Card">Credit Card</option>
+                        </select>
+                        <input type="text" class="booking-input" style="width: 210px; padding: 6px 12px; font-size: 13px;" placeholder="Search invoice / client / stylist..." @bind="billingSearchQuery" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                <th style="padding: 12px 14px;">Invoice #</th>
+                                <th style="padding: 12px 14px;">Date & Time</th>
+                                <th style="padding: 12px 14px;">Client Name</th>
+                                <th style="padding: 12px 14px;">Service</th>
+                                <th style="padding: 12px 14px;">Specialist</th>
+                                <th style="padding: 12px 14px;">Payment Method</th>
+                                <th style="padding: 12px 14px;">Total Invoiced</th>
+                                <th style="padding: 12px 14px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!FilteredInvoices.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No invoices match your filter criteria.</td>
+                                </tr>
+                            }
+                            @foreach (var inv in FilteredInvoices)
+                            {
+                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                    <td style="padding: 14px; font-weight: 700; font-family: monospace;">@inv.InvoiceNumber</td>
+                                    <td style="padding: 14px; color: var(--text-muted); font-size: 13px;">@inv.Timestamp.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                    <td style="padding: 14px; font-weight: 600;">@inv.ClientName</td>
+                                    <td style="padding: 14px;">@inv.ServiceName</td>
+                                    <td style="padding: 14px;">@inv.StylistName</td>
+                                    <td style="padding: 14px;"><span style="font-size: 12px; background: #F3F4F6; padding: 2px 8px; border-radius: 4px; font-weight: 600;">@inv.PaymentMethod</span></td>
+                                    <td style="padding: 14px; font-weight: 800; color: #10B981;">₱@inv.Total.ToString("N0")</td>
+                                    <td style="padding: 14px;"><span style="font-size: 11px; background: #ECFDF5; color: #065F46; font-weight: 700; padding: 2px 6px; border-radius: 3px;">PAID</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 10: ANALYTICS & REPORTS -->
+        @if (currentTab == "reports")
+        {
+            <div id="report-printable-area">
+                <!-- Report Filters Bar -->
+                <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 16px 20px; border-radius: 4px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">REPORT TIMEFRAME:</span>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "today" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "today" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "today"'>Today</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "week" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "week" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "week"'>This Week</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "month" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "month" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "month"'>This Month</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "all" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "all" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "all"'>All Time</button>
+                    </div>
+                    <span style="font-size: 13px; color: var(--text-muted);">Showing <strong>@ReportInvoices.Count()</strong> transactions &bull; Generated: <strong>@DateTime.Now.ToString("MMM dd, yyyy hh:mm tt")</strong></span>
+                </div>
+
+                <!-- Report Metric Highlights -->
+                <div class="portal-kpi-grid">
+                    <div class="portal-kpi-card">
+                        <span class="portal-kpi-label">Gross Revenue Collections</span>
+                        <div class="portal-kpi-num" style="color: #10B981;">₱@ReportInvoices.Sum(i => i.Total).ToString("N0")</div>
+                        <span style="font-size: 12px; color: var(--text-muted);">@ReportInvoices.Count() completed tickets</span>
+                    </div>
+                    <div class="portal-kpi-card">
+                        <span class="portal-kpi-label">Services Gross Share</span>
+                        <div class="portal-kpi-num">₱@ReportInvoices.Sum(i => i.Subtotal).ToString("N0")</div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Core salon treatments</span>
+                    </div>
+                    <div class="portal-kpi-card">
+                        <span class="portal-kpi-label">Retail Products Share</span>
+                        <div class="portal-kpi-num" style="color: var(--gold-accent);">₱@ReportInvoices.Sum(i => i.RetailAddonsTotal).ToString("N0")</div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Take-home hair care add-ons</span>
+                    </div>
+                    <div class="portal-kpi-card">
+                        <span class="portal-kpi-label">Est. Staff Commissions</span>
+                        <div class="portal-kpi-num" style="color: #2563EB;">₱@ReportInvoices.Sum(i => Math.Round(i.Subtotal * GetStylistCommissionRate(i.StylistName), 0)).ToString("N0")</div>
+                        <span style="font-size: 12px; color: var(--text-muted);">Calculated per stylist commission rate</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+                    <!-- Specialist Performance Table -->
+                    <div class="portal-data-card">
+                        <div class="portal-card-header">
+                            <h3 class="portal-card-title">Specialist Production & Commission Ledger</h3>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
+                                    <th style="padding: 10px 12px;">Specialist</th>
+                                    <th style="padding: 10px 12px;">Rate</th>
+                                    <th style="padding: 10px 12px;">Tickets</th>
+                                    <th style="padding: 10px 12px;">Gross Sales</th>
+                                    <th style="padding: 10px 12px; text-align: right;">Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stylist in SalonService.Team)
+                                {
+                                    var stylistInvoices = ReportInvoices.Where(i => i.StylistName == stylist.Name).ToList();
+                                    decimal gross = stylistInvoices.Sum(i => i.Total);
+                                    decimal commission = Math.Round(stylistInvoices.Sum(i => i.Subtotal) * stylist.CommissionRate, 0);
+                                    <tr style="border-bottom: 1px solid var(--border-light);">
+                                        <td style="padding: 12px; font-weight: 600;">@stylist.Name</td>
+                                        <td style="padding: 12px; font-size: 12px; color: var(--text-muted);">@((stylist.CommissionRate * 100).ToString("N0"))%</td>
+                                        <td style="padding: 12px;">@stylistInvoices.Count</td>
+                                        <td style="padding: 12px; font-weight: 700;">₱@gross.ToString("N0")</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: 800; color: #2563EB;">₱@commission.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Payment Tender Distribution -->
+                    <div class="portal-data-card">
+                        <div class="portal-card-header">
+                            <h3 class="portal-card-title">Payment Method Mix</h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            @foreach (var method in new[] { "Cash", "GCash", "Maya", "Credit Card" })
+                            {
+                                var methodInvoices = ReportInvoices.Where(i => i.PaymentMethod == method).ToList();
+                                decimal methodTotal = methodInvoices.Sum(i => i.Total);
+                                decimal grandTotal = ReportInvoices.Sum(i => i.Total);
+                                int pct = grandTotal > 0 ? (int)Math.Round((methodTotal / grandTotal) * 100, 0) : 0;
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px;">
+                                        <strong>@method (@methodInvoices.Count txns)</strong>
+                                        <span style="font-weight: 700;">₱@methodTotal.ToString("N0") (@pct%)</span>
+                                    </div>
+                                    <div style="height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;">
+                                        <div style="height: 100%; width: @pct%; background: var(--gold-accent);"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         }
     </main>
 </div>
 
-<!-- Modal for New Booking in CRM -->
+<!-- ==========================================================================
+     CRUD MODALS
+     ========================================================================== -->
+
+<!-- Modal: New Appointment -->
 @if (showNewBookingModal)
 {
     <div class="booking-modal-backdrop">
         <div class="booking-modal-card">
             <div class="modal-title-row">
                 <h3 class="modal-h3">New Appointment</h3>
-                <button class="btn-close-modal" @onclick="() => showNewBookingModal = false">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <button class="btn-close-modal" @onclick="() => showNewBookingModal = false"><i class="bi bi-x-lg"></i></button>
             </div>
-
             <div class="booking-form-grid">
                 <div class="form-full">
                     <label class="booking-label">Client Name</label>
@@ -231,16 +984,16 @@
                 <div class="form-group">
                     <label class="booking-label">Service / Package</label>
                     <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnCRMServiceChanged">
-                        <optgroup label="✨ Service Packages">
+                        <optgroup label="✨ All-Inclusive Packages">
                             @foreach (var pkg in SalonService.Packages)
                             {
-                                <option value="@($"{pkg.Name} Package")">@pkg.Name Package</option>
+                                <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
                             }
                         </optgroup>
-                        <optgroup label="✂️ Individual Services">
+                        <optgroup label="✂️ Hairstyles, Cuts & Individual Treatments">
                             @foreach (var svc in SalonService.Services)
                             {
-                                <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name</option>
+                                <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
                             }
                         </optgroup>
                     </select>
@@ -248,7 +1001,7 @@
                 <div class="form-group">
                     <label class="booking-label">Specialist</label>
                     <select class="booking-input" @bind="newAppt.StylistName">
-                        @foreach (var member in SalonService.Team)
+                        @foreach (var member in SalonService.Stylists)
                         {
                             <option value="@member.Name">@member.Name</option>
                         }
@@ -259,51 +1012,439 @@
                     <input type="text" class="booking-input" placeholder="e.g. 02:00 PM" @bind="newAppt.TimeSlot" />
                 </div>
             </div>
-
-            <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="SaveCRMBooking" disabled="@(string.IsNullOrWhiteSpace(newAppt.ClientName))">
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveCRMBooking" disabled="@(string.IsNullOrWhiteSpace(newAppt.ClientName))">
                 Create Appointment
             </button>
         </div>
     </div>
 }
 
-<!-- Modal for Provisioning New Staff Member -->
-@if (showNewStaffModal)
+<!-- Modal: Add/Edit Customer (CRM) -->
+@if (showCustomerModal)
 {
     <div class="booking-modal-backdrop">
         <div class="booking-modal-card">
             <div class="modal-title-row">
-                <h3 class="modal-h3">Provision Staff Member</h3>
-                <button class="btn-close-modal" @onclick="() => showNewStaffModal = false">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+                <h3 class="modal-h3">@(editingCustomer ? "Edit Client Profile" : "Add New Client")</h3>
+                <button class="btn-close-modal" @onclick="() => showCustomerModal = false"><i class="bi bi-x-lg"></i></button>
             </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Full Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Elena Santos" @bind="custForm.FullName" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Mobile Phone</label>
+                    <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="custForm.Phone" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Email Address</label>
+                    <input type="email" class="booking-input" placeholder="client@gmail.com" @bind="custForm.Email" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Stylist Notes / Hair History</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Sensitive scalp, prefers ash blonde..." @bind="custForm.Notes" />
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveCustomer" disabled="@(string.IsNullOrWhiteSpace(custForm.FullName))">
+                Save Client Profile
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: Add Service -->
+@if (showServiceModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Service to Catalog</h3>
+                <button class="btn-close-modal" @onclick="() => showServiceModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Service Title</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Scalp Dermabrasion Spa" @bind="svcForm.Name" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Category</label>
+                    <select class="booking-input" @bind="svcForm.Category">
+                        <option value="Hair">Hair</option>
+                        <option value="Color">Color</option>
+                        <option value="Styling">Styling</option>
+                        <option value="Treatment">Treatment</option>
+                        <option value="Spa">Spa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Base Price (₱)</label>
+                    <input type="number" class="booking-input" @bind="svcForm.Price" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Duration (Minutes)</label>
+                    <input type="number" class="booking-input" @bind="svcForm.DurationMinutes" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Card Image URL</label>
+                    <input type="text" class="booking-input" placeholder="https://images.unsplash.com/..." @bind="svcForm.ImageUrl" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Detailed Description</label>
+                    <textarea class="booking-input" style="height: 60px; resize: vertical;" placeholder="Detailed service description..." @bind="svcForm.Description"></textarea>
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveService" disabled="@(string.IsNullOrWhiteSpace(svcForm.Name))">
+                Save Service
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: Add Service Package -->
+@if (showPackageModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Service Package</h3>
+                <button class="btn-close-modal" @onclick="() => showPackageModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Package Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Bridal Glamour Suite" @bind="pkgForm.Name" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Short Description</label>
+                    <input type="text" class="booking-input" placeholder="Full service luxury experience..." @bind="pkgForm.Description" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Price (₱)</label>
+                    <input type="number" class="booking-input" @bind="pkgForm.Price" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Duration (Minutes)</label>
+                    <input type="number" class="booking-input" @bind="pkgForm.DurationMinutes" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Included Features (comma separated)</label>
+                    <input type="text" class="booking-input" placeholder="Precision Haircut, Full Color Balayage, Deep Moisture..." @bind="pkgFeaturesInput" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" @bind="pkgForm.IsPopular" /> Feature as Popular Package
+                    </label>
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SavePackage" disabled="@(string.IsNullOrWhiteSpace(pkgForm.Name))">
+                Save Package
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: Add Staff Member & Login Credentials -->
+@if (showNewStaffModal)
+{
+    <div class="booking-modal-backdrop" @onclick="() => showNewStaffModal = false">
+        <div class="booking-modal-card" style="max-width: 580px;" @onclick:stopPropagation>
+            <div class="modal-title-row">
+                <div>
+                    <h3 class="modal-h3">Provision Staff & Login Credentials</h3>
+                    <span style="font-size: 12.5px; color: var(--text-muted);">Create staff profile and assign portal login credentials</span>
+                </div>
+                <button class="btn-close-modal" @onclick="() => showNewStaffModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(staffModalError))
+            {
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 10px 14px; border-radius: 4px; font-size: 13px; margin-bottom: 14px;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> @staffModalError
+                </div>
+            }
 
             <div class="booking-form-grid">
                 <div class="form-full">
                     <label class="booking-label">Staff Full Name</label>
-                    <input type="text" class="booking-input" placeholder="e.g. Adrienne Chen" @bind="newStaff.Name" />
+                    <input type="text" class="booking-input" placeholder="e.g. Clara Santos" @bind="newStaff.Name" />
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Position / Role</label>
+                    <label class="booking-label">System Role & Portal Assignment</label>
                     <select class="booking-input" @bind="newStaff.Role">
-                        <option value="Senior Stylist">Senior Stylist</option>
-                        <option value="Color Specialist">Color Specialist</option>
-                        <option value="Creative Director">Creative Director</option>
-                        <option value="Esthetician">Esthetician</option>
-                        <option value="Front Desk Cashier">Front Desk & Cashier</option>
+                        <option value="Senior Stylist">Senior Stylist (Stylist Suite /employee)</option>
+                        <option value="Color Specialist">Color Specialist (Stylist Suite /employee)</option>
+                        <option value="Creative Director">Creative Director (Stylist Suite /employee)</option>
+                        <option value="Junior Stylist">Junior Stylist (Stylist Suite /employee)</option>
+                        <option value="Front Desk Cashier">Front Desk Cashier (POS Register /cashier)</option>
+                        <option value="Salon Manager">Salon Manager (Management ERP /admin)</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Avatar Photo URL</label>
-                    <input type="text" class="booking-input" placeholder="https://..." @bind="newStaff.ImageUrl" />
+                    <label class="booking-label">Contact Phone</label>
+                    <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newStaff.Phone" />
+                </div>
+
+                <div class="form-group">
+                    <label class="booking-label">Specialization / Expertise</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Front Desk POS & Billing" @bind="newStaff.Specialization" />
+                </div>
+
+                <div class="form-group">
+                    <label class="booking-label">Commission Rate (%)</label>
+                    <input type="number" class="booking-input" value="@((int)(newStaff.CommissionRate * 100))" @onchange="@((ChangeEventArgs e) => newStaff.CommissionRate = decimal.Parse(e.Value?.ToString() ?? "25") / 100m)" />
+                </div>
+
+                <!-- Account Credentials Panel -->
+                <div class="form-full" style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 14px; border-radius: 6px; margin-top: 4px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <label style="font-size: 13.5px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer;">
+                            <input type="checkbox" @bind="createLoginAccount" style="width: 16px; height: 16px; accent-color: var(--gold-accent);" />
+                            <span>Create Portal Login Credentials</span>
+                        </label>
+                        <span style="font-size: 11px; background: #DBEAFE; color: #1E40AF; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
+                            <i class="bi bi-shield-check"></i> Firebase & Session
+                        </span>
+                    </div>
+
+                    @if (createLoginAccount)
+                    {
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+                            <div>
+                                <label class="booking-label" style="font-size: 12px;">Login Work Email</label>
+                                <input type="email" class="booking-input" style="font-size: 13px;" placeholder="e.g. clara.cashier@beautyhair.com" @bind="staffEmailInput" />
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <label class="booking-label" style="font-size: 12px; margin: 0;">Initial Password</label>
+                                    <button type="button" style="background: none; border: none; font-size: 11px; color: #2563EB; font-weight: 700; cursor: pointer; padding: 0;" @onclick="GenerateRandomPassword">
+                                        <i class="bi bi-magic"></i> Generate
+                                    </button>
+                                </div>
+                                <div style="position: relative;">
+                                    <input type="@(showStaffPassword ? "text" : "password")" class="booking-input" style="font-size: 13px; padding-right: 36px;" placeholder="•••••••• (min 6 chars)" @bind="staffPasswordInput" />
+                                    <button type="button" @onclick="() => showStaffPassword = !showStaffPassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #9CA3AF; cursor: pointer; font-size: 14px;">
+                                        <i class="bi @(showStaffPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 10px; font-size: 12px; color: #475569; display: flex; align-items: center; gap: 6px; background: #FFFFFF; padding: 8px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+                            <i class="bi bi-info-circle-fill" style="color: #3B82F6;"></i>
+                            <span>
+                                Portal Destination: 
+                                <strong>
+                                    @(newStaff.Role.Contains("Cashier") ? "Front Desk POS (/cashier)" : 
+                                      newStaff.Role.Contains("Manager") ? "Management ERP (/admin)" : 
+                                      "Stylist Suite (/employee)")
+                                </strong>
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <div class="form-full">
+                    <label class="booking-label">Avatar Photo URL (Optional)</label>
+                    <input type="text" class="booking-input" placeholder="https://images.unsplash.com/..." @bind="newStaff.ImageUrl" />
                 </div>
             </div>
 
-            <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="SaveNewStaff" disabled="@(string.IsNullOrWhiteSpace(newStaff.Name))">
-                Add Staff to Roster
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button class="btn-primary-dark" style="flex: 1; justify-content: center; background: #E5E7EB; color: #374151;" @onclick="() => showNewStaffModal = false">
+                    Cancel
+                </button>
+                <button class="btn-primary-dark" style="flex: 2; justify-content: center;" @onclick="SaveNewStaff" disabled="@(string.IsNullOrWhiteSpace(newStaff.Name) || isCreatingStaffAccount)">
+                    @if (isCreatingStaffAccount)
+                    {
+                        <span><i class="bi bi-arrow-repeat spin"></i> Creating account in Firebase...</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-check-lg"></i> Provision Staff & Credentials</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Add Product (Inventory) -->
+@if (showProductModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Inventory SKU</h3>
+                <button class="btn-close-modal" @onclick="() => showProductModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Product Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Kerastase Nutritive Mask" @bind="prodForm.Name" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">SKU Code</label>
+                    <input type="text" class="booking-input" placeholder="SKU-KER-03" @bind="prodForm.SKU" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Category</label>
+                    <select class="booking-input" @bind="prodForm.Category">
+                        <option value="Retail">Retail</option>
+                        <option value="Hair Care">Hair Care</option>
+                        <option value="Color">Color</option>
+                        <option value="Equipment">Equipment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Supplier</label>
+                    <select class="booking-input" @bind="prodForm.SupplierName">
+                        <option value="">-- Direct / In-House --</option>
+                        @foreach (var sup in SalonService.Suppliers)
+                        {
+                            <option value="@sup.CompanyName">@sup.CompanyName</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Cost Price (₱)</label>
+                    <input type="number" class="booking-input" @bind="prodForm.CostPrice" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Retail Price (₱)</label>
+                    <input type="number" class="booking-input" @bind="prodForm.RetailPrice" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Opening Stock Quantity</label>
+                    <input type="number" class="booking-input" @bind="prodForm.StockQuantity" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Reorder Alert Level</label>
+                    <input type="number" class="booking-input" @bind="prodForm.ReorderLevel" />
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveProduct" disabled="@(string.IsNullOrWhiteSpace(prodForm.Name))">
+                Save Product
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: Add Supplier -->
+@if (showSupplierModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Vendor / Supplier</h3>
+                <button class="btn-close-modal" @onclick="() => showSupplierModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Company Name</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Wella Professional PH" @bind="supForm.CompanyName" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Contact Person</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Sarah Jenkins" @bind="supForm.ContactPerson" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Phone Number</label>
+                    <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="supForm.Phone" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Email</label>
+                    <input type="email" class="booking-input" placeholder="orders@supplier.ph" @bind="supForm.Email" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Payment Terms</label>
+                    <select class="booking-input" @bind="supForm.PaymentTerms">
+                        <option value="Net 15">Net 15</option>
+                        <option value="Net 30">Net 30</option>
+                        <option value="Net 60">Net 60</option>
+                        <option value="COD">COD</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveSupplier" disabled="@(string.IsNullOrWhiteSpace(supForm.CompanyName))">
+                Save Supplier
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: New Promo Code -->
+@if (showPromoModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Create Promo Voucher</h3>
+                <button class="btn-close-modal" @onclick="() => showPromoModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-group">
+                    <label class="booking-label">Promo Code</label>
+                    <input type="text" class="booking-input" placeholder="e.g. BEAUTY20" @bind="promoForm.Code" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Discount Type</label>
+                    <select class="booking-input" @bind="promoForm.DiscountType">
+                        <option value="Percentage">Percentage (% OFF)</option>
+                        <option value="Fixed">Fixed Amount (₱ OFF)</option>
+                    </select>
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Campaign Title</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Flash 20% Discount for Weekday Appointments" @bind="promoForm.Title" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Discount Value (@(promoForm.DiscountType == "Percentage" ? "%" : "₱"))</label>
+                    <input type="number" class="booking-input" @bind="promoForm.DiscountValue" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Min. Spend Required (₱)</label>
+                    <input type="number" class="booking-input" @bind="promoForm.MinSpend" />
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SavePromo" disabled="@(string.IsNullOrWhiteSpace(promoForm.Code))">
+                Activate Promo Code
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: New Loyalty Reward -->
+@if (showRewardModal)
+{
+    <div class="booking-modal-backdrop">
+        <div class="booking-modal-card">
+            <div class="modal-title-row">
+                <h3 class="modal-h3">Add Loyalty Reward</h3>
+                <button class="btn-close-modal" @onclick="() => showRewardModal = false"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Reward Title</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Free Glossing Treatment" @bind="rewardForm.Title" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Points Required</label>
+                    <input type="number" class="booking-input" @bind="rewardForm.PointsRequired" />
+                </div>
+                <div class="form-group">
+                    <label class="booking-label">Discount Value (₱)</label>
+                    <input type="number" class="booking-input" @bind="rewardForm.DiscountValue" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Reward Description</label>
+                    <input type="text" class="booking-input" placeholder="e.g. Redeem points for a luxury glossing finish..." @bind="rewardForm.Description" />
+                </div>
+            </div>
+            <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveReward" disabled="@(string.IsNullOrWhiteSpace(rewardForm.Title))">
+                Add Reward to Catalog
             </button>
         </div>
     </div>
@@ -311,9 +1452,27 @@
 
 @code {
     private string currentTab = "appointments";
-    private bool showNewBookingModal = false;
-    private bool showNewStaffModal = false;
+    private string customerSearchQuery = "";
+    private string apptStatusFilter = "all";
+    private string apptSortOrder = "newest";
+    private string apptSearchQuery = "";
+    private string billingMethodFilter = "all";
+    private string billingSearchQuery = "";
+    private string reportPeriod = "today";
 
+    // Modal Visibility States
+    private bool showNewBookingModal = false;
+    private bool showCustomerModal = false;
+    private bool editingCustomer = false;
+    private bool showServiceModal = false;
+    private bool showPackageModal = false;
+    private bool showNewStaffModal = false;
+    private bool showProductModal = false;
+    private bool showSupplierModal = false;
+    private bool showPromoModal = false;
+    private bool showRewardModal = false;
+
+    // Form Models
     private AppointmentRecord newAppt = new()
     {
         ServiceName = "Signature Package",
@@ -324,11 +1483,106 @@
         Status = "Confirmed"
     };
 
+    private CustomerRecord custForm = new();
+    private ServiceOfferItem svcForm = new() { Category = "Hair", Price = 850, DurationMinutes = 45 };
+    private ServicePackageItem pkgForm = new() { Price = 2500, DurationMinutes = 90 };
+    private string pkgFeaturesInput = "";
+
     private TeamMemberItem newStaff = new()
     {
         Role = "Senior Stylist",
+        Specialization = "Precision Haircut & Styling",
+        CommissionRate = 0.25m,
         ImageUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80"
     };
+    private string staffEmailInput = "";
+    private string staffPasswordInput = "SalonPass123!";
+    private bool createLoginAccount = true;
+    private bool showStaffPassword = false;
+    private bool isCreatingStaffAccount = false;
+    private string staffModalError = "";
+    private string staffFeedbackMessage = "";
+    private string staffSearchQuery = "";
+    private ProductItem prodForm = new() { Category = "Retail", CostPrice = 200, RetailPrice = 450, StockQuantity = 10, ReorderLevel = 5, Unit = "Bottle" };
+    private SupplierRecord supForm = new() { SuppliedCategory = "Hair Care & Cosmetics", PaymentTerms = "Net 30" };
+    private PromotionItem promoForm = new() { DiscountType = "Percentage", DiscountValue = 10, MinSpend = 500 };
+    private LoyaltyRewardItem rewardForm = new() { PointsRequired = 200, DiscountValue = 350 };
+
+    protected override void OnInitialized()
+    {
+        SalonService.OnChange += HandleDataChanged;
+    }
+
+    private void HandleDataChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
+    }
+
+    private decimal TodayRevenue => SalonService.Invoices
+        .Where(i => i.Timestamp.Date == DateTime.Today)
+        .Sum(i => i.Total);
+
+    private IEnumerable<CustomerRecord> FilteredCustomers =>
+        string.IsNullOrWhiteSpace(customerSearchQuery)
+            ? SalonService.Customers
+            : SalonService.Customers.Where(c => c.FullName.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                                c.Phone.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                                c.Tier.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<AppointmentRecord> FilteredAppointments
+    {
+        get
+        {
+            var query = SalonService.Appointments.Where(a =>
+                (apptStatusFilter == "all" || a.Status.Equals(apptStatusFilter, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(apptSearchQuery) ||
+                 a.ClientName.Contains(apptSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                 a.StylistName.Contains(apptSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                 a.ServiceName.Contains(apptSearchQuery, StringComparison.OrdinalIgnoreCase)));
+
+            return apptSortOrder switch
+            {
+                "time-asc" => query.OrderBy(a => a.Date)
+                                   .ThenBy(a => SalonDataService.ParseTimeSlotToMinutes(a.TimeSlot))
+                                   .ThenByDescending(a => a.Id),
+                "name-asc" => query.OrderBy(a => a.ClientName)
+                                   .ThenBy(a => a.Date),
+                "name-desc" => query.OrderByDescending(a => a.ClientName)
+                                    .ThenByDescending(a => a.Date),
+                "oldest" => query.OrderBy(a => a.Id),
+                _ => query.OrderByDescending(a => a.Id)
+            };
+        }
+    }
+
+    private IEnumerable<InvoiceRecord> FilteredInvoices =>
+        SalonService.Invoices.Where(i =>
+            (billingMethodFilter == "all" || i.PaymentMethod.Equals(billingMethodFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(billingSearchQuery) ||
+             i.InvoiceNumber.Contains(billingSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+             i.ClientName.Contains(billingSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+             i.ServiceName.Contains(billingSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+             i.StylistName.Contains(billingSearchQuery, StringComparison.OrdinalIgnoreCase)))
+        .OrderByDescending(i => i.Id);
+
+    private IEnumerable<InvoiceRecord> ReportInvoices => reportPeriod switch
+    {
+        "today" => SalonService.Invoices.Where(i => i.Timestamp.Date == DateTime.Today),
+        "week" => SalonService.Invoices.Where(i => i.Timestamp >= DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek)),
+        "month" => SalonService.Invoices.Where(i => i.Timestamp.Month == DateTime.Today.Month && i.Timestamp.Year == DateTime.Today.Year),
+        _ => SalonService.Invoices
+    };
+
+    private decimal GetStylistCommissionRate(string name)
+    {
+        var stylist = SalonService.Team.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        return stylist?.CommissionRate ?? 0.25m;
+    }
 
     private void HandleLogout()
     {
@@ -361,7 +1615,7 @@
         newAppt = new()
         {
             ServiceName = "Signature Package",
-            StylistName = SalonService.Team.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            StylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez",
             Date = DateTime.Today,
             TimeSlot = "02:00 PM",
             Price = 3990,
@@ -369,15 +1623,212 @@
         };
     }
 
-    private void SaveNewStaff()
+    private void EditCustomer(CustomerRecord customer)
     {
-        if (string.IsNullOrWhiteSpace(newStaff.Name)) return;
-        SalonService.AddTeamMember(newStaff);
-        showNewStaffModal = false;
+        custForm = new CustomerRecord
+        {
+            Id = customer.Id,
+            FullName = customer.FullName,
+            Phone = customer.Phone,
+            Email = customer.Email,
+            Notes = customer.Notes,
+            LoyaltyPoints = customer.LoyaltyPoints,
+            Tier = customer.Tier,
+            TotalSpent = customer.TotalSpent,
+            VisitsCount = customer.VisitsCount
+        };
+        editingCustomer = true;
+        showCustomerModal = true;
+    }
+
+    private void SaveCustomer()
+    {
+        if (string.IsNullOrWhiteSpace(custForm.FullName)) return;
+        if (editingCustomer)
+        {
+            SalonService.UpdateCustomer(custForm);
+        }
+        else
+        {
+            SalonService.AddCustomer(custForm);
+        }
+        showCustomerModal = false;
+        custForm = new();
+        editingCustomer = false;
+    }
+
+    private void SaveService()
+    {
+        if (string.IsNullOrWhiteSpace(svcForm.Name)) return;
+        SalonService.AddService(svcForm);
+        showServiceModal = false;
+        svcForm = new() { Category = "Hair", Price = 850, DurationMinutes = 45 };
+    }
+
+    private void SavePackage()
+    {
+        if (string.IsNullOrWhiteSpace(pkgForm.Name)) return;
+        if (!string.IsNullOrWhiteSpace(pkgFeaturesInput))
+        {
+            pkgForm.Features = pkgFeaturesInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        }
+        SalonService.AddPackage(pkgForm);
+        showPackageModal = false;
+        pkgForm = new() { Price = 2500, DurationMinutes = 90 };
+        pkgFeaturesInput = "";
+    }
+
+    private IEnumerable<TeamMemberItem> FilteredStaffMembers =>
+        string.IsNullOrWhiteSpace(staffSearchQuery)
+            ? SalonService.Team
+            : SalonService.Team.Where(t => t.Name.Contains(staffSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                           t.Role.Contains(staffSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                           t.Email.Contains(staffSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                                           t.Specialization.Contains(staffSearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void OpenNewStaffModal()
+    {
+        staffModalError = "";
+        staffEmailInput = "";
+        staffPasswordInput = "SalonPass123!";
+        showStaffPassword = false;
+        createLoginAccount = true;
+        isCreatingStaffAccount = false;
+
         newStaff = new()
         {
             Role = "Senior Stylist",
+            Specialization = "Precision Haircut & Styling",
+            CommissionRate = 0.25m,
             ImageUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=80"
         };
+        showNewStaffModal = true;
+    }
+
+    private void GenerateRandomPassword()
+    {
+        string chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$";
+        var random = new Random();
+        staffPasswordInput = "Salon" + new string(Enumerable.Repeat(chars, 4).Select(s => s[random.Next(s.Length)]).ToArray()) + "!";
+    }
+
+    private async Task SaveNewStaff()
+    {
+        staffModalError = "";
+        if (string.IsNullOrWhiteSpace(newStaff.Name))
+        {
+            staffModalError = "Please enter the staff member's full name.";
+            return;
+        }
+
+        if (createLoginAccount)
+        {
+            if (string.IsNullOrWhiteSpace(staffEmailInput) || !staffEmailInput.Contains("@"))
+            {
+                staffModalError = "Please enter a valid work email address for login.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(staffPasswordInput) || staffPasswordInput.Length < 6)
+            {
+                staffModalError = "Initial password must be at least 6 characters.";
+                return;
+            }
+
+            newStaff.Email = staffEmailInput.Trim();
+
+            if (FirebaseAuth.IsConfigured)
+            {
+                isCreatingStaffAccount = true;
+                var result = await FirebaseAuth.SignUpWithEmailPasswordAsync(newStaff.Email, staffPasswordInput);
+                isCreatingStaffAccount = false;
+
+                if (!result.Success && !result.ErrorMessage!.Contains("EMAIL_EXISTS"))
+                {
+                    staffModalError = result.ErrorMessage;
+                    return;
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(staffEmailInput))
+        {
+            newStaff.Email = staffEmailInput.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(newStaff.ImageUrl))
+        {
+            newStaff.ImageUrl = newStaff.Role.Contains("Cashier")
+                ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop&q=80"
+                : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80";
+        }
+
+        SalonService.AddTeamMember(newStaff);
+        showNewStaffModal = false;
+
+        string targetPortal = newStaff.Role.Contains("Cashier") ? "Cashier POS (/cashier)" :
+                              newStaff.Role.Contains("Manager") ? "Management ERP (/admin)" : "Stylist Suite (/employee)";
+
+        staffFeedbackMessage = $"Staff member '{newStaff.Name}' successfully provisioned! Credentials ready for {newStaff.Email} (Assigned to {targetPortal}).";
+    }
+
+    private async Task HandleResetStaffPassword(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return;
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var res = await FirebaseAuth.SendPasswordResetEmailAsync(email);
+            if (res.Success)
+            {
+                staffFeedbackMessage = $"Password reset email sent to {email}.";
+            }
+            else
+            {
+                staffFeedbackMessage = res.ErrorMessage ?? "Could not send password reset.";
+            }
+        }
+        else
+        {
+            staffFeedbackMessage = $"Password reset request recorded for {email}. (Add Firebase API Key in appsettings.json to deliver live reset emails).";
+        }
+    }
+
+    private void SaveProduct()
+    {
+        if (string.IsNullOrWhiteSpace(prodForm.Name)) return;
+        SalonService.AddProduct(prodForm);
+        showProductModal = false;
+        prodForm = new() { Category = "Retail", CostPrice = 200, RetailPrice = 450, StockQuantity = 10, ReorderLevel = 5, Unit = "Bottle" };
+    }
+
+    private void SaveSupplier()
+    {
+        if (string.IsNullOrWhiteSpace(supForm.CompanyName)) return;
+        SalonService.AddSupplier(supForm);
+        showSupplierModal = false;
+        supForm = new() { SuppliedCategory = "Hair Care & Cosmetics", PaymentTerms = "Net 30" };
+    }
+
+    private void SavePromo()
+    {
+        if (string.IsNullOrWhiteSpace(promoForm.Code)) return;
+        promoForm.Code = promoForm.Code.ToUpper().Trim();
+        SalonService.AddPromotion(promoForm);
+        showPromoModal = false;
+        promoForm = new() { DiscountType = "Percentage", DiscountValue = 10, MinSpend = 500 };
+    }
+
+    private void SaveReward()
+    {
+        if (string.IsNullOrWhiteSpace(rewardForm.Title)) return;
+        SalonService.AddLoyaltyReward(rewardForm);
+        showRewardModal = false;
+        rewardForm = new() { PointsRequired = 200, DiscountValue = 350 };
+    }
+
+    private void PrintReport()
+    {
+        // Triggers browser print preview for reporting
+        Navigation.NavigateTo("javascript:window.print()");
     }
 }

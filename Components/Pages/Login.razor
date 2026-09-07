@@ -14,32 +14,35 @@
                 <i class="bi bi-arrow-left"></i> Back to website
             </a>
 
-            <div class="login-brand-tag">BEAUTY HAIR</div>
-            <span class="login-brand-sub">ERP & CRM</span>
+            <!-- Centered Logo Block -->
+            <div class="login-brand-center-wrap">
+                <img src="images/logo.png" alt="Beauty Hair Logo" class="login-logo-img" />
+                <span class="login-brand-sub">LUXURY BEAUTY & WELLNESS</span>
+            </div>
 
-            <div style="margin-top: 60px;">
-                <span class="section-tag" style="color: #9CA3AF;">SALON MANAGEMENT</span>
-                <h1 class="login-hero-heading">Luxury Beauty Management</h1>
+            <div style="margin-top: 36px; text-align: center;">
+                <span class="section-tag" style="color: #9CA3AF; display: inline-block;">BEAUTY & WELLNESS</span>
+                <h1 class="login-hero-heading">Elevate Your Beauty Experience</h1>
                 <p class="login-hero-desc">
-                    A complete ERP & CRM platform for modern beauty salons — appointments, clients, inventory, loyalty, and growth.
+                    Your personal beauty sanctuary &mdash; book appointments, discover tailored hair and beauty treatments, and track loyalty rewards.
                 </p>
 
                 <div class="login-features-grid">
                     <div class="login-feature-item">
                         <i class="bi bi-check-lg"></i>
-                        <span>10 Modules</span>
+                        <span>Easy Online Booking</span>
                     </div>
                     <div class="login-feature-item">
                         <i class="bi bi-check-lg"></i>
-                        <span>Role-Based Access</span>
+                        <span>Verified Stylists</span>
                     </div>
                     <div class="login-feature-item">
                         <i class="bi bi-check-lg"></i>
-                        <span>Firebase Auth</span>
+                        <span>Loyalty & Rewards</span>
                     </div>
                     <div class="login-feature-item">
                         <i class="bi bi-check-lg"></i>
-                        <span>Loyalty CRM</span>
+                        <span>Seamless Account Access</span>
                     </div>
                 </div>
             </div>
@@ -131,9 +134,7 @@
             {
                 <!-- Universal Sign In -->
                 <div class="login-form-header">
-                    <span class="portal-tag">FIREBASE AUTHENTICATION</span>
-                    <h2 class="login-title">Welcome back</h2>
-                    <p class="login-subtitle">Sign in with your Firebase credentials</p>
+                    <h2 class="login-title" style="text-align:left;">Welcome</h2>
                 </div>
 
                 @if (!string.IsNullOrEmpty(errorMessage))
@@ -153,7 +154,7 @@
                 <form @onsubmit="HandleLogin" @onsubmit:preventDefault>
                     <div class="login-field-group">
                         <label class="login-field-label">Email address</label>
-                        <input type="email" class="login-input-text" placeholder="you@beautyhair.com or client@gmail.com" @bind="emailInput" required />
+                        <input type="email" class="login-input-text" placeholder="you@gmail.com" @bind="emailInput" required />
                     </div>
 
                     <div class="login-field-group">
@@ -264,7 +265,13 @@
             }
         }
 
-        if (emailInput.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+        // 1. Check if email matches a registered Team/Staff member first
+        var staffMember = SalonService.Team.FirstOrDefault(t => t.Email.Equals(emailInput, StringComparison.OrdinalIgnoreCase));
+        if (staffMember != null)
+        {
+            username = staffMember.Name;
+        }
+        else if (emailInput.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
         {
             username = "Francis Arnejo";
         }
@@ -282,6 +289,10 @@
         }
 
         string role = DetermineUserRole(emailInput);
+        if (role != "Customer")
+        {
+            SalonService.EnsureEmployeeExists(username, emailInput, role);
+        }
         SalonService.LoginAs(role, username, emailInput);
 
         string redirectUrl = GetRedirectUrlForRole(role);
@@ -338,6 +349,15 @@
         isAuthenticating = false;
 
         string assignedRole = DetermineUserRole(emailInput);
+        if (assignedRole != "Customer")
+        {
+            SalonService.EnsureEmployeeExists(fullNameInput, emailInput, assignedRole);
+        }
+        else
+        {
+            SalonService.EnsureCustomer(fullNameInput, phoneInput, emailInput);
+        }
+
         SalonService.LoginAs(assignedRole, fullNameInput, emailInput);
         registerSuccess = true;
 
@@ -349,13 +369,29 @@
     private string GetRedirectUrlForRole(string role) => role switch
     {
         "Salon Owner / Admin" or "Salon Manager" => "/admin",
-        "Cashier / Front Desk" => "/cashier",
-        "Stylist / Specialist" or "Staff Member" => "/employee",
-        _ => "/"
+        "Cashier / Front Desk" or "Front Desk Cashier" => "/cashier",
+        "Stylist / Specialist" or "Staff Member" or "Senior Stylist" or "Color Specialist" or "Creative Director" or "Junior Stylist" => "/employee",
+        _ => "/my-account"
     };
 
     private string DetermineUserRole(string email)
     {
+        // 1. Check if email belongs to a team member in the salon roster
+        var member = SalonService.Team.FirstOrDefault(t => t.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        if (member != null)
+        {
+            if (member.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Cashier / Front Desk";
+            }
+            if (member.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Salon Owner / Admin";
+            }
+            return "Stylist / Specialist";
+        }
+
+        // 2. Standard heuristic matching
         if (email.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
             email.Contains("owner", StringComparison.OrdinalIgnoreCase))
         {

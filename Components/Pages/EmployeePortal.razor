@@ -9,20 +9,23 @@
     <!-- Dark Stylist Sidebar -->
     <aside class="portal-sidebar">
         <div class="portal-brand-block">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
             <span class="portal-brand-name">BEAUTY HAIR</span>
             <span class="portal-brand-sub" style="color: #60A5FA;"><i class="bi bi-scissors"></i> STYLIST SUITE</span>
         </div>
 
-        <div class="portal-group-label">MY WORKSPACE</div>
-        <button class="portal-nav-btn @(currentTab == "schedule" ? "active" : "")" @onclick='() => currentTab = "schedule"'>
-            <i class="bi bi-calendar-check"></i> My Chair & Clients
-        </button>
-        <button class="portal-nav-btn @(currentTab == "earnings" ? "active" : "")" @onclick='() => currentTab = "earnings"'>
-            <i class="bi bi-wallet-fill"></i> My Performance & Tips
-        </button>
-        <button class="portal-nav-btn @(currentTab == "rituals" ? "active" : "")" @onclick='() => currentTab = "rituals"'>
-            <i class="bi bi-book"></i> Ritual Guide & Catalog
-        </button>
+        <div class="portal-nav-scroll">
+            <div class="portal-group-label">MY WORKSPACE</div>
+            <button class="portal-nav-btn @(currentTab == "schedule" ? "active" : "")" @onclick='() => currentTab = "schedule"'>
+                <i class="bi bi-calendar-check"></i> My Chair & Clients
+            </button>
+            <button class="portal-nav-btn @(currentTab == "earnings" ? "active" : "")" @onclick='() => currentTab = "earnings"'>
+                <i class="bi bi-wallet-fill"></i> My Performance & Tips
+            </button>
+            <button class="portal-nav-btn @(currentTab == "rituals" ? "active" : "")" @onclick='() => currentTab = "rituals"'>
+                <i class="bi bi-book"></i> Ritual Guide & Catalog
+            </button>
+        </div>
 
         <div class="portal-user-footer">
             <div>
@@ -326,16 +329,20 @@
         }
         else
         {
-            currentStylistName = SalonService.Team.FirstOrDefault()?.Name ?? "Sofia Martinez";
+            currentStylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez";
         }
     }
 
     private List<AppointmentRecord> MyAppointments =>
         SalonService.Appointments.Where(a => a.StylistName.Contains(currentStylistName, StringComparison.OrdinalIgnoreCase) ||
-                                            currentStylistName.Contains(a.StylistName, StringComparison.OrdinalIgnoreCase)).ToList();
+                                            currentStylistName.Contains(a.StylistName, StringComparison.OrdinalIgnoreCase))
+                                 .OrderByDescending(a => a.Id)
+                                 .ToList();
 
     private List<AppointmentRecord> DisplayedAppointments =>
-        filterOnlyMe ? MyAppointments : SalonService.Appointments;
+        (filterOnlyMe ? MyAppointments : SalonService.Appointments)
+        .OrderByDescending(a => a.Id)
+        .ToList();
 
     private void SaveNote(int id, string? notes)
     {

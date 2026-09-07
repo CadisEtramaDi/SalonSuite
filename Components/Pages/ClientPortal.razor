@@ -1,0 +1,509 @@
+@page "/loyalty"
+@page "/rewards"
+@page "/my-account"
+@page "/client-portal"
+@inject SalonDataService SalonService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>VIP Loyalty & Rewards Club | Salon Studio</PageTitle>
+
+<!-- Public Navigation Bar -->
+<header class="public-navbar">
+    <div class="container-custom navbar-inner">
+        <a href="/" class="brand-logo">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="brand-logo-img" />
+            <span style="letter-spacing: -0.03em;">Beauty Hair</span>
+        </a>
+
+        <ul class="nav-menu-links">
+            <li><a href="/" class="nav-link-item">Home</a></li>
+            <li><a href="book" class="nav-link-item">Packages & Services</a></li>
+            <li><a href="loyalty" class="nav-link-item active-nav-link">Loyalty & Rewards</a></li>
+            <li><a href="/#our-work" class="nav-link-item">Portfolio</a></li>
+            <li><a href="/#team" class="nav-link-item">Stylists</a></li>
+        </ul>
+
+        <div class="navbar-actions">
+            <a href="book" class="btn-book-nav">Book Appointment</a>
+            @if (SalonService.CurrentUser.IsLoggedIn)
+            {
+                <button class="btn-staff-nav" @onclick="HandleLogout">Logout (@SalonService.CurrentUser.Name)</button>
+            }
+            else
+            {
+                <a href="login" class="btn-staff-nav">Client Login</a>
+            }
+        </div>
+    </div>
+</header>
+
+<!-- Loyalty Hero Banner -->
+<section class="catalog-hero-section" style="padding: 48px 0 36px 0; background: linear-gradient(135deg, #111827 0%, #1F2937 100%); color: #FFFFFF;">
+    <div class="container-custom">
+        <div style="max-width: 720px;">
+            <div class="badge-gold-pill" style="background: rgba(217, 119, 6, 0.2); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.4); display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; margin-bottom: 14px;">
+                <i class="bi bi-gem"></i> VIP PRIVILEGE PROGRAM
+            </div>
+            <h1 style="font-size: 36px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 12px 0; color: white;">Client Rewards & Loyalty Lounge</h1>
+            <p style="font-size: 15px; color: #9CA3AF; line-height: 1.6; margin: 0 0 24px 0;">
+                Every salon ritual rewards you. Earn <strong>1 Loyalty Point for every ₱100 spent</strong>, unlock elite tier privileges, and redeem points for complimentary treatments and exclusive discounts.
+            </p>
+
+            <!-- Quick Client Lookup Bar -->
+            <div style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 16px 20px; border-radius: 8px;">
+                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #E5E7EB; margin-bottom: 8px;">
+                    <i class="bi bi-search" style="color: #FBBF24;"></i> Check Your Loyalty Balance & Appointments
+                </label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" 
+                           class="booking-input" 
+                           style="flex: 1; min-width: 240px; background: #FFFFFF; color: #111827; border: none; font-size: 14px; padding: 10px 14px;" 
+                           placeholder="Enter your Mobile Phone (e.g. 0917-555-0192) or Full Name..." 
+                           @bind="searchPhoneInput" 
+                           @onkeyup="HandleSearchKeyUp" />
+                    <button class="btn-primary-dark" style="background: #D97706; color: #FFFFFF; border: none; padding: 10px 22px; font-weight: 700;" @onclick="LookupCustomer">
+                        <i class="bi bi-person-check-fill"></i> View My Rewards
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(lookupMessage))
+                {
+                    <div style="margin-top: 8px; font-size: 13px; color: @(activeCustomer != null ? "#34D399" : "#F87171"); font-weight: 600;">
+                        @lookupMessage
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Loyalty Dashboard Content -->
+<main style="padding: 40px 0 60px 0; background: #F9FAFB;">
+    <div class="container-custom">
+        @if (activeCustomer != null)
+        {
+            <!-- Customer Digital VIP Card & Tier Progress Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 28px; margin-bottom: 36px;">
+                <!-- Digital VIP Card -->
+                <div style="background: linear-gradient(135deg, #18181B 0%, #27272A 60%, #3F3F46 100%); border: 1px solid rgba(217, 119, 6, 0.4); border-radius: 12px; padding: 28px; color: #FFFFFF; position: relative; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+                    <!-- Decorative Background Foil -->
+                    <div style="position: absolute; right: -20px; top: -20px; width: 140px; height: 140px; background: radial-gradient(circle, rgba(217,119,6,0.2) 0%, rgba(0,0,0,0) 70%); border-radius: 50%;"></div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="images/logo.png" alt="Logo" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #F59E0B;" />
+                            <div>
+                                <span style="font-size: 14px; font-weight: 800; letter-spacing: -0.02em; display: block;">Beauty Hair</span>
+                                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #A1A1AA;">VIP Privilege Card</span>
+                            </div>
+                        </div>
+                        <span style="background: @activeCustomer.TierBadgeColor; color: #FFFFFF; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                            <i class="bi bi-shield-check"></i> @activeCustomer.Tier Member
+                        </span>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <span style="font-size: 11px; text-transform: uppercase; color: #A1A1AA; letter-spacing: 0.05em; display: block; margin-bottom: 2px;">Cardholder Name</span>
+                        <h2 style="font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: #FFFFFF;">@activeCustomer.FullName</h2>
+                        <span style="font-size: 12px; color: #D4D4D8; font-family: monospace;">@activeCustomer.ClientCode &bull; @activeCustomer.Phone</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(255, 255, 255, 0.12); padding-top: 18px;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: #A1A1AA; display: block;">Loyalty Points</span>
+                            <div style="font-size: 24px; font-weight: 800; color: #FBBF24;">@activeCustomer.LoyaltyPoints <span style="font-size: 13px; font-weight: 600; color: #E4E4E7;">pts</span></div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 11px; text-transform: uppercase; color: #A1A1AA; display: block;">Lifetime Spend</span>
+                            <div style="font-size: 20px; font-weight: 800; color: #FFFFFF;">₱@activeCustomer.TotalSpent.ToString("N0")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tier Progression & Status Perks -->
+                <div class="portal-data-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div>
+                                <span class="section-tag" style="font-size: 11px; margin-bottom: 2px;">MEMBERSHIP STATUS</span>
+                                <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-dark);">@activeCustomer.Tier Tier Progress</h3>
+                            </div>
+                            <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">@activeCustomer.VisitsCount Completed Visits</span>
+                        </div>
+
+                        <!-- Progress Bar to Next Tier -->
+                        @{
+                            var (nextTierName, targetSpend, progressPercent) = GetTierProgress(activeCustomer.TotalSpent);
+                        }
+                        <div style="margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px; font-weight: 600;">
+                                <span>Current: <strong>@activeCustomer.Tier</strong> (₱@activeCustomer.TotalSpent.ToString("N0"))</span>
+                                @if (!string.IsNullOrEmpty(nextTierName))
+                                {
+                                    <span style="color: #D97706;">Next: <strong>@nextTierName</strong> (₱@targetSpend.ToString("N0"))</span>
+                                }
+                                else
+                                {
+                                    <span style="color: #8B5CF6;">Top VIP Tier Achieved! 🏆</span>
+                                }
+                            </div>
+                            <div style="width: 100%; height: 10px; background: #E5E7EB; border-radius: 9999px; overflow: hidden;">
+                                <div style="width: @(progressPercent)%; height: 100%; background: linear-gradient(90deg, #F59E0B, #D97706); border-radius: 9999px; transition: width 0.4s ease;"></div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(nextTierName))
+                            {
+                                <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 4px;">
+                                    Spend <strong>₱@((targetSpend - activeCustomer.TotalSpent).ToString("N0"))</strong> more to automatically unlock @nextTierName VIP status.
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Tier Perks List -->
+                        <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 6px; padding: 12px 14px;">
+                            <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: var(--text-dark); display: block; margin-bottom: 6px;">
+                                Your @activeCustomer.Tier Privileges:
+                            </span>
+                            <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                                @if (activeCustomer.Tier == "Platinum")
+                                {
+                                    <li>Earn 1 Loyalty Point per ₱100 spend</li>
+                                    <li>Priority VIP reservation desk & stylist request</li>
+                                    <li>Complimentary scalp shiatsu with every booking</li>
+                                    <li>15% exclusive discount on all retail hair care products</li>
+                                }
+                                else if (activeCustomer.Tier == "Gold")
+                                {
+                                    <li>Earn 1 Loyalty Point per ₱100 spend</li>
+                                    <li>10% exclusive discount on all retail hair care products</li>
+                                    <li>Birthday month surprise voucher</li>
+                                    <li>Complimentary high-gloss glaze finish</li>
+                                }
+                                else if (activeCustomer.Tier == "Silver")
+                                {
+                                    <li>Earn 1 Loyalty Point per ₱100 spend</li>
+                                    <li>5% discount on select retail products</li>
+                                    <li>Free scalp diagnostic consultation</li>
+                                }
+                                else
+                                {
+                                    <li>Earn 1 Loyalty Point per ₱100 spend</li>
+                                    <li>Instant booking confirmation & reminder SMS</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px; display: flex; gap: 10px;">
+                        <a href="book" class="btn-primary-dark" style="flex: 1; justify-content: center; padding: 9px 14px; font-size: 13.5px;">
+                            <i class="bi bi-calendar-plus"></i> Book Next Appointment
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Appointments & Service History -->
+            <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; margin-bottom: 36px;">
+                <!-- Appointments History -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <div>
+                            <h3 class="portal-card-title">My Appointments (@CustomerAppointments.Count())</h3>
+                            <span style="font-size: 13px; color: var(--text-muted);">Upcoming schedules and past salon rituals</span>
+                        </div>
+                    </div>
+
+                    @if (!CustomerAppointments.Any())
+                    {
+                        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13.5px;">
+                            No appointments found on file. Book your first appointment today!
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                        <th style="padding: 10px 12px;">Date & Time</th>
+                                        <th style="padding: 10px 12px;">Service / Ritual</th>
+                                        <th style="padding: 10px 12px;">Specialist</th>
+                                        <th style="padding: 10px 12px;">Price</th>
+                                        <th style="padding: 10px 12px;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var appt in CustomerAppointments)
+                                    {
+                                        <tr style="border-bottom: 1px solid var(--border-light);">
+                                            <td style="padding: 12px; font-weight: 600;">
+                                                <div>@appt.Date.ToString("MMM dd, yyyy")</div>
+                                                <div style="font-size: 12px; color: var(--text-muted);">@appt.TimeSlot</div>
+                                            </td>
+                                            <td style="padding: 12px; font-weight: 700; color: var(--text-dark);">@appt.ServiceName</td>
+                                            <td style="padding: 12px; color: var(--text-muted);">@appt.StylistName</td>
+                                            <td style="padding: 12px; font-weight: 700;">₱@appt.Price.ToString("N0")</td>
+                                            <td style="padding: 12px;">
+                                                <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <!-- Invoices & Invoiced Receipts -->
+                <div class="portal-data-card">
+                    <div class="portal-card-header">
+                        <div>
+                            <h3 class="portal-card-title">Receipts & Billing (@CustomerInvoices.Count())</h3>
+                            <span style="font-size: 13px; color: var(--text-muted);">Invoiced transactions & loyalty points earned</span>
+                        </div>
+                    </div>
+
+                    @if (!CustomerInvoices.Any())
+                    {
+                        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13.5px;">
+                            No completed billing records yet. Points accrue automatically upon POS payment.
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            @foreach (var inv in CustomerInvoices)
+                            {
+                                <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                                            <span style="font-family: monospace; font-size: 12px; font-weight: 700; color: #111827;">@inv.InvoiceNumber</span>
+                                            <span style="background: #E5E7EB; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 3px;">@inv.PaymentMethod</span>
+                                        </div>
+                                        <span style="font-size: 12.5px; color: var(--text-muted); display: block;">@inv.ServiceName</span>
+                                        <span style="font-size: 11px; color: #9CA3AF;">@inv.Timestamp.ToString("MMM dd, yyyy &bull; hh:mm tt")</span>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 15px; font-weight: 800; color: var(--text-dark);">₱@inv.Total.ToString("N0")</div>
+                                        <span style="font-size: 11px; color: #059669; font-weight: 700;">+@inv.PointsEarned pts earned</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Redeemable Loyalty Rewards Catalog Section -->
+        <div class="portal-data-card" style="margin-bottom: 36px;">
+            <div class="portal-card-header">
+                <div>
+                    <span class="section-tag">REWARDS CATALOG</span>
+                    <h3 class="portal-card-title">Redeemable Vouchers & Salon Privileges</h3>
+                    <span style="font-size: 13px; color: var(--text-muted);">Points can be redeemed directly at the cashier register during checkout</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+                @foreach (var reward in SalonService.LoyaltyRewards.Where(r => r.IsActive))
+                {
+                    bool canAfford = activeCustomer != null && activeCustomer.LoyaltyPoints >= reward.PointsRequired;
+                    <div style="background: #FFFFFF; border: 1px solid @(canAfford ? "#F59E0B" : "var(--border-light)"); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                        @if (canAfford)
+                        {
+                            <span style="position: absolute; top: 12px; right: 12px; background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">
+                                <i class="bi bi-check-circle-fill"></i> Unlocked
+                            </span>
+                        }
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                                <span style="background: #FEF3C7; color: #D97706; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 4px;">
+                                    <i class="bi bi-stars"></i> @reward.PointsRequired PTS
+                                </span>
+                                <span style="font-size: 13px; font-weight: 800; color: #059669;">₱@reward.DiscountValue.ToString("N0") Value</span>
+                            </div>
+                            <h4 style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-dark);">@reward.Title</h4>
+                            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px 0;">@reward.Description</p>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-light); padding-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <span>Redeem in-salon at POS</span>
+                            @if (activeCustomer != null && canAfford)
+                            {
+                                <span style="color: #D97706; font-weight: 700;">Ready to Redeem &bull; Present code to cashier</span>
+                            }
+                            else if (activeCustomer != null)
+                            {
+                                <span style="color: #9CA3AF;">Need @(reward.PointsRequired - activeCustomer.LoyaltyPoints) more pts</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- How Loyalty Works Strip -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 8px; padding: 28px;">
+            <h3 style="font-size: 18px; font-weight: 800; margin: 0 0 20px 0; color: var(--text-dark); text-align: center;">How Salon Loyalty Works</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                <div style="text-align: center;">
+                    <div style="width: 48px; height: 48px; background: #FEF3C7; color: #D97706; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">
+                        <i class="bi bi-calendar2-check"></i>
+                    </div>
+                    <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0;">1. Book & Experience</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                        Book any haircut, dimensional balayage, or head spa ritual online or in salon.
+                    </p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 48px; height: 48px; background: #ECFDF5; color: #059669; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">
+                        <i class="bi bi-coin"></i>
+                    </div>
+                    <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0;">2. Earn Points Instantly</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                        Earn 1 Loyalty Point for every ₱100 spent on services and retail products upon checkout.
+                    </p>
+                </div>
+                <div style="text-align: center;">
+                    <div style="width: 48px; height: 48px; background: #FAF5FF; color: #8B5CF6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 12px auto;">
+                        <i class="bi bi-gift"></i>
+                    </div>
+                    <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0;">3. Redeem Vouchers & Perks</h4>
+                    <p style="font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                        Redeem points for discounts, treatment upgrades, and elevate your VIP status level.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="editorial-footer">
+    <div class="container-custom">
+        <div class="footer-bottom-bar" style="border: none; padding-top: 0;">
+            <span>&copy; 2026 Beauty Hair Studio. All rights reserved.</span>
+            <a href="book" style="color: #FBBF24; text-decoration: none; font-weight: 600;">Book an Appointment &rarr;</a>
+        </div>
+    </div>
+</footer>
+
+@code {
+    private string searchPhoneInput = "";
+    private string lookupMessage = "";
+    private CustomerRecord? activeCustomer;
+
+    protected override void OnInitialized()
+    {
+        SalonService.OnChange += HandleDataChanged;
+        SalonService.EnsureSeedData();
+
+        // 1. If customer is currently logged in, auto-load their profile
+        if (SalonService.CurrentUser.IsLoggedIn)
+        {
+            activeCustomer = SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Email) ??
+                             SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Name);
+            if (activeCustomer != null)
+            {
+                lookupMessage = $"Welcome back, {activeCustomer.FullName}! Your loyalty rewards are active.";
+            }
+        }
+        
+        // 2. If no logged in user, default to the first VIP customer as demonstration
+        if (activeCustomer == null && SalonService.Customers.Any())
+        {
+            activeCustomer = SalonService.Customers.FirstOrDefault(c => c.Tier == "Platinum") ?? 
+                             SalonService.Customers.FirstOrDefault(c => c.Tier == "Gold") ?? 
+                             SalonService.Customers.First();
+            lookupMessage = $"Showing VIP profile for {activeCustomer.FullName}. Enter your phone or name above to search.";
+        }
+    }
+
+    private void HandleDataChanged()
+    {
+        if (activeCustomer != null)
+        {
+            activeCustomer = SalonService.Customers.FirstOrDefault(c => c.Id == activeCustomer.Id) ?? activeCustomer;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
+    }
+
+    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            LookupCustomer();
+        }
+    }
+
+    private void LookupCustomer()
+    {
+        if (string.IsNullOrWhiteSpace(searchPhoneInput))
+        {
+            lookupMessage = "Please enter your mobile phone number, name, or client code.";
+            return;
+        }
+
+        SalonService.EnsureSeedData();
+        var found = SalonService.FindCustomerByPhoneOrName(searchPhoneInput.Trim());
+        if (found != null)
+        {
+            activeCustomer = found;
+            lookupMessage = $"✓ Found loyalty profile for {activeCustomer.FullName} ({activeCustomer.ClientCode})!";
+        }
+        else
+        {
+            lookupMessage = $"No loyalty profile found matching '{searchPhoneInput}'. Book an appointment or register to start earning rewards!";
+        }
+    }
+
+    private IEnumerable<AppointmentRecord> CustomerAppointments =>
+        activeCustomer != null
+            ? SalonService.Appointments.Where(a => (a.CustomerId.HasValue && a.CustomerId.Value == activeCustomer.Id) ||
+                                                   (!string.IsNullOrEmpty(a.ClientPhone) && !string.IsNullOrEmpty(activeCustomer.Phone) && SalonDataService.NormalizePhoneNumber(a.ClientPhone) == SalonDataService.NormalizePhoneNumber(activeCustomer.Phone)) ||
+                                                   a.ClientName.Equals(activeCustomer.FullName, StringComparison.OrdinalIgnoreCase))
+                                       .OrderByDescending(a => a.Date)
+            : Enumerable.Empty<AppointmentRecord>();
+
+    private IEnumerable<InvoiceRecord> CustomerInvoices =>
+        activeCustomer != null
+            ? SalonService.Invoices.Where(i => (i.CustomerId.HasValue && i.CustomerId.Value == activeCustomer.Id) ||
+                                               i.ClientName.Equals(activeCustomer.FullName, StringComparison.OrdinalIgnoreCase))
+                                   .OrderByDescending(i => i.Timestamp)
+            : Enumerable.Empty<InvoiceRecord>();
+
+    private (string NextTier, decimal TargetSpend, int ProgressPercent) GetTierProgress(decimal totalSpent)
+    {
+        if (totalSpent < 3500)
+        {
+            int pct = (int)((totalSpent / 3500m) * 100);
+            return ("Silver", 3500, Math.Min(100, Math.Max(5, pct)));
+        }
+        if (totalSpent < 10000)
+        {
+            decimal range = 10000 - 3500;
+            decimal current = totalSpent - 3500;
+            int pct = (int)((current / range) * 100);
+            return ("Gold", 10000, Math.Min(100, Math.Max(5, pct)));
+        }
+        if (totalSpent < 25000)
+        {
+            decimal range = 25000 - 10000;
+            decimal current = totalSpent - 10000;
+            int pct = (int)((current / range) * 100);
+            return ("Platinum", 25000, Math.Min(100, Math.Max(5, pct)));
+        }
+        return ("", 25000, 100);
+    }
+
+    private void HandleLogout()
+    {
+        SalonService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

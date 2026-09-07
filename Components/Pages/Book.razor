@@ -1,0 +1,716 @@
+@page "/book"
+@page "/services-packages"
+@page "/booking"
+@inject SalonDataService SalonService
+@inject NavigationManager Navigation
+
+<PageTitle>Bespoke Packages & Services | Salon Studio</PageTitle>
+
+<!-- Public Navigation Bar -->
+<header class="public-navbar">
+    <div class="container-custom navbar-inner">
+        <a href="/" class="brand-logo">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="brand-logo-img" />
+            <span style="letter-spacing: -0.03em;">Beauty Hair</span>
+        </a>
+
+        <ul class="nav-menu-links">
+            <li><a href="/" class="nav-link-item">Home</a></li>
+            <li><a href="book#packages-section" class="nav-link-item @(selectedCategory == "Packages" ? "active-nav-link" : "")" @onclick='() => SetCategory("Packages")'>Packages</a></li>
+            <li><a href="book#services-section" class="nav-link-item @(selectedCategory != "Packages" && selectedCategory != "All" ? "active-nav-link" : "")" @onclick='() => SetCategory("All")'>Services</a></li>
+            <li><a href="loyalty" class="nav-link-item">Loyalty & Rewards</a></li>
+            <li><a href="/#our-work" class="nav-link-item">Portfolio</a></li>
+            <li><a href="/#team" class="nav-link-item">Stylists</a></li>
+        </ul>
+
+        <div class="navbar-actions">
+            <button class="btn-book-nav active-btn-nav" @onclick='() => OpenBookingModal("")'>
+                <i class="bi bi-calendar2-check"></i> Book Now
+            </button>
+            <a href="login" class="btn-staff-nav">Login</a>
+        </div>
+    </div>
+</header>
+
+<!-- Catalog Hero Banner -->
+<section class="catalog-hero-section">
+    <div class="container-custom catalog-hero-inner">
+        <div class="catalog-hero-text">
+            <div class="badge-gold-pill">
+                <i class="bi bi-stars"></i> BESPOKE MENU & PACKAGES
+            </div>
+            <h1 class="catalog-page-title">Curated Packages & Hair Care Rituals</h1>
+            <p class="catalog-page-desc">
+                Immerse yourself in precision craftsmanship, high-end organic formulations, and transformative hair artistry. Browse our signature multi-service packages or choose an individualized ritual.
+            </p>
+
+            <div class="catalog-highlights-row">
+                <div class="highlight-chip">
+                    <i class="bi bi-award-fill"></i>
+                    <span>Master Colorists & Stylists</span>
+                </div>
+                <div class="highlight-chip">
+                    <i class="bi bi-gem"></i>
+                    <span>Luxury European Products</span>
+                </div>
+                <div class="highlight-chip">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Instant Online Confirmation</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Filter & Search Bar Section -->
+<section class="catalog-controls-section">
+    <div class="container-custom">
+        <div class="catalog-controls-bar">
+            <!-- Category Tabs -->
+            <div class="catalog-category-tabs">
+                <button class="cat-tab-btn @(selectedCategory == "All" ? "active" : "")" @onclick='() => SetCategory("All")'>
+                    <i class="bi bi-grid-fill"></i> All (@(SalonService.Packages.Count + SalonService.Services.Count))
+                </button>
+                <button class="cat-tab-btn @(selectedCategory == "Packages" ? "active" : "")" @onclick='() => SetCategory("Packages")'>
+                    <i class="bi bi-box2-heart-fill"></i> Packages (@SalonService.Packages.Count)
+                </button>
+                <button class="cat-tab-btn @(selectedCategory == "Hair" ? "active" : "")" @onclick='() => SetCategory("Hair")'>
+                    <i class="bi bi-scissors"></i> Haircut & Blowout
+                </button>
+                <button class="cat-tab-btn @(selectedCategory == "Color" ? "active" : "")" @onclick='() => SetCategory("Color")'>
+                    <i class="bi bi-palette-fill"></i> Color & Balayage
+                </button>
+                <button class="cat-tab-btn @(selectedCategory == "Treatment" ? "active" : "")" @onclick='() => SetCategory("Treatment")'>
+                    <i class="bi bi-droplet-half"></i> Keratin & Treatments
+                </button>
+                <button class="cat-tab-btn @(selectedCategory == "Spa" ? "active" : "")" @onclick='() => SetCategory("Spa")'>
+                    <i class="bi bi-flower1"></i> Head Spa
+                </button>
+            </div>
+
+            <!-- Search & Sort Controls -->
+            <div class="catalog-search-sort-wrap">
+                <div class="search-input-box">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" 
+                           placeholder="Search packages, cuts, balayage..." 
+                           class="catalog-search-input" 
+                           @bind="searchTerm" 
+                           @bind:event="oninput" />
+                    @if (!string.IsNullOrWhiteSpace(searchTerm))
+                    {
+                        <button class="btn-clear-search" @onclick='() => searchTerm = ""'>
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    }
+                </div>
+
+                <div class="sort-select-box">
+                    <select class="catalog-sort-select" @bind="sortBy">
+                        <option value="featured">Featured / Popular</option>
+                        <option value="price-asc">Price: Low to High</option>
+                        <option value="price-desc">Price: High to Low</option>
+                        <option value="duration">Shortest Duration</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Catalog Container -->
+<main class="catalog-main-content">
+    <div class="container-custom">
+
+        <!-- 1. PACKAGES SECTION -->
+        @if (FilteredPackages.Any())
+        {
+            <div class="catalog-section-group" id="packages-section">
+                <div class="section-header-row">
+                    <div>
+                        <span class="section-tag">ALL-INCLUSIVE EXPERIENCES</span>
+                        <h2 class="catalog-section-title">Signature Service Packages</h2>
+                    </div>
+                    <span class="results-count-badge">@FilteredPackages.Count @(FilteredPackages.Count == 1 ? "Package" : "Packages")</span>
+                </div>
+
+                <div class="packages-cards-grid">
+                    @foreach (var pkg in FilteredPackages)
+                    {
+                        <div class="pkg-card-luxury @(pkg.IsPopular ? "popular-card" : "")">
+                            <!-- Card Image Wrap -->
+                            <div class="card-photo-header">
+                                <img src="@pkg.ImageUrl" alt="@pkg.Name Package" class="card-header-img" loading="lazy" />
+                                <div class="card-img-overlay"></div>
+                                
+                                @if (pkg.IsPopular)
+                                {
+                                    <span class="card-badge-popular">
+                                        <i class="bi bi-star-fill"></i> MOST POPULAR
+                                    </span>
+                                }
+
+                                <div class="card-duration-tag">
+                                    <i class="bi bi-clock-history"></i> @pkg.DurationMinutes mins
+                                </div>
+                            </div>
+
+                            <!-- Card Body -->
+                            <div class="pkg-card-body">
+                                <div class="pkg-header-row">
+                                    <div>
+                                        <span class="card-category-sub">ALL-IN-ONE BUNDLE</span>
+                                        <h3 class="pkg-card-title">@pkg.Name Package</h3>
+                                    </div>
+                                    <div class="pkg-price-display">
+                                        <span class="price-val">@pkg.PriceFormatted</span>
+                                    </div>
+                                </div>
+
+                                <p class="pkg-card-desc">
+                                    @pkg.Description
+                                </p>
+
+                                <div class="pkg-divider"></div>
+
+                                <div class="pkg-included-label">
+                                    <i class="bi bi-check2-all"></i> INCLUDED IN THIS PACKAGE:
+                                </div>
+
+                                <ul class="pkg-features-list">
+                                    @foreach (var feat in pkg.Features)
+                                    {
+                                        <li class="pkg-feat-item">
+                                            <span class="feat-icon-check"><i class="bi bi-check"></i></span>
+                                            <span>@feat</span>
+                                        </li>
+                                    }
+                                </ul>
+
+                                <div class="pkg-card-footer">
+                                    <button class="btn-book-card-primary" @onclick='() => OpenBookingModal(pkg.Name)'>
+                                        <span>Book This Package</span>
+                                        <i class="bi bi-arrow-right-short"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- 2. INDIVIDUAL SERVICES SECTION -->
+        @if (FilteredServices.Any())
+        {
+            <div class="catalog-section-group" id="services-section">
+                <div class="section-header-row">
+                    <div>
+                        <span class="section-tag">INDIVIDUAL RITUALS</span>
+                        <h2 class="catalog-section-title">Bespoke Hair & Spa Services</h2>
+                    </div>
+                    <span class="results-count-badge">@FilteredServices.Count @(FilteredServices.Count == 1 ? "Service" : "Services")</span>
+                </div>
+
+                <div class="services-cards-grid-modern">
+                    @foreach (var svc in FilteredServices)
+                    {
+                        <div class="svc-card-luxury">
+                            <!-- Card Image -->
+                            <div class="svc-card-image-wrap">
+                                <img src="@svc.ImageUrl" alt="@svc.Name" class="svc-card-img" loading="lazy" />
+                                <span class="svc-watermark-pill">@svc.Number</span>
+                                <span class="svc-category-badge cat-@svc.Category.ToLower()">@svc.Category</span>
+                            </div>
+
+                            <!-- Card Content -->
+                            <div class="svc-card-content">
+                                <div class="svc-meta-row">
+                                    <span class="svc-duration-pill">
+                                        <i class="bi bi-stopwatch"></i> @svc.DurationMinutes mins
+                                    </span>
+                                    <span class="svc-price-pill">@svc.PriceFormatted</span>
+                                </div>
+
+                                <h3 class="svc-card-title">@svc.Name</h3>
+                                <p class="svc-card-description">@svc.Description</p>
+
+                                <div class="svc-card-footer">
+                                    <button class="btn-book-service" @onclick='() => OpenBookingModal(svc.Name)'>
+                                        <i class="bi bi-calendar-plus"></i>
+                                        <span>Book Service</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Empty State -->
+        @if (!FilteredPackages.Any() && !FilteredServices.Any())
+        {
+            <div class="catalog-empty-state">
+                <div class="empty-icon-circle">
+                    <i class="bi bi-search"></i>
+                </div>
+                <h3 class="empty-title">No offerings found</h3>
+                <p class="empty-desc">We couldn't find any packages or services matching "<strong>@searchTerm</strong>". Try clearing your search or picking another category.</p>
+                <button class="btn-primary-dark" @onclick="ResetFilters">
+                    <i class="bi bi-arrow-clockwise"></i> Reset Filters
+                </button>
+            </div>
+        }
+
+    </div>
+</main>
+
+<!-- Bottom Reassurance Strip -->
+<section class="reassurance-strip">
+    <div class="container-custom">
+        <div class="reassurance-grid">
+            <div class="reassurance-item">
+                <div class="reassurance-icon"><i class="bi bi-clock-history"></i></div>
+                <div>
+                    <h4 class="reassurance-title">Flexible Scheduling</h4>
+                    <p class="reassurance-text">Effortlessly reschedule up to 24 hours prior to appointment.</p>
+                </div>
+            </div>
+            <div class="reassurance-item">
+                <div class="reassurance-icon"><i class="bi bi-sparkles"></i></div>
+                <div>
+                    <h4 class="reassurance-title">Clean & Sanitized</h4>
+                    <p class="reassurance-text">Hospital-grade sterilization for all tools and private stations.</p>
+                </div>
+            </div>
+            <div class="reassurance-item">
+                <div class="reassurance-icon"><i class="bi bi-heart-pulse"></i></div>
+                <div>
+                    <h4 class="reassurance-title">Satisfaction Guaranteed</h4>
+                    <p class="reassurance-text">Tailored consultations to ensure you adore your final look.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Editorial Dark Footer -->
+<footer class="editorial-footer" id="contact">
+    <div class="container-custom">
+        <div class="footer-top-grid">
+            <div class="footer-brand-col">
+                <img src="images/logo.png" alt="Beauty Hair" class="footer-logo-img" />
+                <h3 class="footer-brand-title">Beauty Hair</h3>
+                <p class="footer-brand-desc">
+                    A modern, premium hair salon dedicated to expert treatments, personalized styling, and an elevated client experience.
+                </p>
+                <div class="footer-social-links">
+                    <a href="https://instagram.com" target="_blank" class="social-code-link">IG</a>
+                    <a href="https://facebook.com" target="_blank" class="social-code-link">FB</a>
+                    <a href="https://twitter.com" target="_blank" class="social-code-link">TW</a>
+                    <a href="https://youtube.com" target="_blank" class="social-code-link">YT</a>
+                </div>
+            </div>
+
+            <div class="footer-nav-col">
+                <h4 class="footer-col-heading">NAVIGATION</h4>
+                <ul class="footer-nav-list">
+                    <li><a href="/" class="footer-nav-link">Home</a></li>
+                    <li><a href="book" class="footer-nav-link">Book Appointment</a></li>
+                    <li><a href="/#our-work" class="footer-nav-link">Portfolio</a></li>
+                    <li><a href="/#team" class="footer-nav-link">Meet the Team</a></li>
+                    <li><a href="login" class="footer-nav-link">Client / Staff Login</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-contact-col">
+                <h4 class="footer-col-heading">LOCATION & HOURS</h4>
+                <div class="footer-contact-info">
+                    <span>123 Bonifacio Ave, Taguig City</span>
+                    <span>Metro Manila, Philippines</span>
+                    <span>+63 917 123 4567</span>
+                    <span>Mon – Sat: 8:00 AM – 8:00 PM</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom-bar">
+            <span>&copy; 2026 Salon Studio. All rights reserved.</span>
+            <span>Crafted for Luxury Hair Care</span>
+        </div>
+    </div>
+</footer>
+
+<!-- Interactive Booking Modal Dialog -->
+@if (showBookingModal)
+{
+    <div class="booking-modal-backdrop" @onclick="CloseBookingModalBackdrop">
+        <div class="booking-modal-card modern-booking-card" @onclick:stopPropagation>
+            <div class="modal-title-row">
+                <div>
+                    <span class="booking-modal-eyebrow">RESERVATION DESK</span>
+                    <h3 class="modal-h3">Book Your Appointment</h3>
+                </div>
+                <button class="btn-close-modal" @onclick="() => showBookingModal = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            @if (bookingConfirmed)
+            {
+                <div class="confirmation-success-panel">
+                    <div class="confirm-icon-circle">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <h3 class="confirm-title">Reservation Confirmed!</h3>
+                    <p class="confirm-subtitle">Thank you, <strong>@newAppt.ClientName</strong>. We look forward to seeing you at Salon Studio.</p>
+
+                    <div class="confirm-details-box">
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Service / Package</span>
+                            <span class="c-val">@newAppt.ServiceName</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Specialist</span>
+                            <span class="c-val">@newAppt.StylistName</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Date & Time</span>
+                            <span class="c-val">@newAppt.Date.ToString("MMMM dd, yyyy") at @newAppt.TimeSlot</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Estimated Total</span>
+                            <span class="c-val-gold">₱@newAppt.Price.ToString("N0")</span>
+                        </div>
+                    </div>
+
+                    <div class="confirm-actions-row">
+                        <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="() => showBookingModal = false">
+                            Done
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="booking-form-grid">
+                    <!-- Service / Package Dropdown -->
+                    <div class="form-full">
+                        <label class="booking-label">
+                            <i class="bi bi-stars gold-icon"></i> Selected Offering
+                        </label>
+                        <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnServiceSelectionChanged">
+                            <optgroup label="✨ All-Inclusive Packages">
+                                @foreach (var pkg in SalonService.Packages)
+                                {
+                                    <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0") • @pkg.DurationMinutes mins)</option>
+                                }
+                            </optgroup>
+                            <optgroup label="✂️ Hairstyles, Cuts & Individual Treatments">
+                                @foreach (var svc in SalonService.Services)
+                                {
+                                    <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0") • @svc.DurationMinutes mins)</option>
+                                }
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Specialist Selection -->
+                    <div class="form-group">
+                        <label class="booking-label">
+                            <i class="bi bi-person-badge"></i> Preferred Specialist
+                        </label>
+                        <select class="booking-input" @bind="newAppt.StylistName">
+                            @foreach (var team in SalonService.Stylists)
+                            {
+                                <option value="@team.Name">@team.Name — @team.Role</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Appointment Date -->
+                    <div class="form-group">
+                        <label class="booking-label">
+                            <i class="bi bi-calendar-event"></i> Appointment Date
+                        </label>
+                        <input type="date" 
+                               class="booking-input" 
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" 
+                               @bind="newAppt.Date" />
+                    </div>
+
+                    <!-- Time Slot -->
+                    <div class="form-full">
+                        <label class="booking-label">
+                            <i class="bi bi-clock"></i> Preferred Time Slot
+                        </label>
+                        <div class="time-slots-picker-grid">
+                            @foreach (var slot in availableTimeSlots)
+                            {
+                                <button type="button" 
+                                        class="time-slot-btn @(newAppt.TimeSlot == slot ? "selected" : "")" 
+                                        @onclick="() => newAppt.TimeSlot = slot">
+                                    @slot
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Client Name -->
+                    <div class="form-group">
+                        <label class="booking-label">
+                            <i class="bi bi-person"></i> Full Name <span style="color: #DC2626;">*</span>
+                        </label>
+                        <input type="text" class="booking-input" placeholder="e.g. Maria Santos" @bind="newAppt.ClientName" required />
+                    </div>
+
+                    <!-- Mobile Phone -->
+                    <div class="form-group">
+                        <label class="booking-label">
+                            <i class="bi bi-telephone"></i> Mobile Phone <span style="color: #DC2626;">*</span>
+                        </label>
+                        <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newAppt.ClientPhone" required />
+                    </div>
+
+                    <!-- Email Address -->
+                    <div class="form-full">
+                        <label class="booking-label">
+                            <i class="bi bi-envelope"></i> Email Address
+                        </label>
+                        <input type="email" class="booking-input" placeholder="you@example.com (for appointment receipt)" @bind="newAppt.ClientEmail" />
+                    </div>
+
+                    <!-- Special Notes -->
+                    <div class="form-full">
+                        <label class="booking-label">
+                            <i class="bi bi-chat-left-text"></i> Special Notes / Hair Condition (Optional)
+                        </label>
+                        <textarea class="booking-input" style="height: 68px; resize: vertical;" placeholder="e.g., Sensitive scalp, previous bleach treatment, bridal styling..." @bind="newAppt.Notes"></textarea>
+                    </div>
+                </div>
+
+                <!-- Price Summary Box -->
+                <div class="booking-summary-strip">
+                    <div class="summary-left">
+                        <span class="summary-label">Estimated Service Total</span>
+                        <span class="summary-sub">Pay in salon via Cash, GCash, Maya, or Card</span>
+                    </div>
+                    <div class="summary-price">
+                        ₱@newAppt.Price.ToString("N0")
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="booking-modal-actions">
+                    <button type="button" class="btn-cancel-modal" @onclick="() => showBookingModal = false">Cancel</button>
+                    <button type="button" class="btn-primary-dark" style="flex: 1; justify-content: center;" 
+                            @onclick="ConfirmBooking" 
+                            disabled="@(string.IsNullOrWhiteSpace(newAppt.ClientName) || string.IsNullOrWhiteSpace(newAppt.ClientPhone))">
+                        <i class="bi bi-check2-circle"></i> Complete Booking
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string selectedCategory = "All";
+    private string searchTerm = "";
+    private string sortBy = "featured";
+
+    private bool showBookingModal = false;
+    private bool bookingConfirmed = false;
+    private AppointmentRecord newAppt = new();
+
+    private readonly List<string> availableTimeSlots = new()
+    {
+        "09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM"
+    };
+
+    protected override void OnInitialized()
+    {
+        ParseQueryParameters();
+    }
+
+    private void ParseQueryParameters()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("category", out var catValue))
+        {
+            selectedCategory = catValue.ToString();
+        }
+
+        if (query.TryGetValue("select", out var selectValue) && !string.IsNullOrWhiteSpace(selectValue))
+        {
+            OpenBookingModal(selectValue.ToString());
+        }
+        else if (query.TryGetValue("package", out var pkgValue) && !string.IsNullOrWhiteSpace(pkgValue))
+        {
+            OpenBookingModal(pkgValue.ToString());
+        }
+        else if (query.TryGetValue("service", out var svcValue) && !string.IsNullOrWhiteSpace(svcValue))
+        {
+            OpenBookingModal(svcValue.ToString());
+        }
+    }
+
+    private void SetCategory(string category)
+    {
+        selectedCategory = category;
+    }
+
+    private void ResetFilters()
+    {
+        selectedCategory = "All";
+        searchTerm = "";
+        sortBy = "featured";
+    }
+
+    private List<ServicePackageItem> FilteredPackages
+    {
+        get
+        {
+            if (selectedCategory != "All" && selectedCategory != "Packages")
+            {
+                return new List<ServicePackageItem>();
+            }
+
+            var query = SalonService.Packages.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim();
+                query = query.Where(p =>
+                    p.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    p.Description.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    p.Features.Any(f => f.Contains(term, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return (sortBy switch
+            {
+                "price-asc" => query.OrderBy(p => p.Price),
+                "price-desc" => query.OrderByDescending(p => p.Price),
+                "duration" => query.OrderBy(p => p.DurationMinutes),
+                _ => query.OrderByDescending(p => p.IsPopular).ThenBy(p => p.Id)
+            }).ToList();
+        }
+    }
+
+    private List<ServiceOfferItem> FilteredServices
+    {
+        get
+        {
+            if (selectedCategory == "Packages")
+            {
+                return new List<ServiceOfferItem>();
+            }
+
+            var query = SalonService.Services.Where(s => s.IsActive).AsEnumerable();
+
+            if (selectedCategory != "All")
+            {
+                query = query.Where(s => s.Category.Equals(selectedCategory, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim();
+                query = query.Where(s =>
+                    s.Name.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    s.Description.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    s.Category.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    s.Number.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return (sortBy switch
+            {
+                "price-asc" => query.OrderBy(s => s.Price),
+                "price-desc" => query.OrderByDescending(s => s.Price),
+                "duration" => query.OrderBy(s => s.DurationMinutes),
+                _ => query.OrderBy(s => s.Id)
+            }).ToList();
+        }
+    }
+
+    private void OpenBookingModal(string initialServiceName)
+    {
+        bookingConfirmed = false;
+        var resolvedService = ResolveServiceSelection(initialServiceName);
+        newAppt = new AppointmentRecord
+        {
+            ServiceName = resolvedService,
+            StylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            Date = DateTime.Today.AddDays(1),
+            TimeSlot = "10:30 AM",
+            Price = GetPriceForSelectedService(resolvedService),
+            Status = "Confirmed"
+        };
+        showBookingModal = true;
+    }
+
+    private string ResolveServiceSelection(string? inputName)
+    {
+        if (string.IsNullOrWhiteSpace(inputName))
+        {
+            return "Signature Package";
+        }
+
+        var matchedPkg = SalonService.Packages.FirstOrDefault(p =>
+            p.Name.Equals(inputName, StringComparison.OrdinalIgnoreCase) ||
+            $"{p.Name} Package".Equals(inputName, StringComparison.OrdinalIgnoreCase) ||
+            inputName.Contains(p.Name, StringComparison.OrdinalIgnoreCase));
+        if (matchedPkg != null)
+        {
+            return $"{matchedPkg.Name} Package";
+        }
+
+        var matchedSvc = SalonService.Services.FirstOrDefault(s =>
+            s.Name.Equals(inputName, StringComparison.OrdinalIgnoreCase) ||
+            $"{s.Number} {s.Name}".Equals(inputName, StringComparison.OrdinalIgnoreCase) ||
+            inputName.Contains(s.Name, StringComparison.OrdinalIgnoreCase));
+        if (matchedSvc != null)
+        {
+            return $"{matchedSvc.Number} {matchedSvc.Name}";
+        }
+
+        return "Signature Package";
+    }
+
+    private decimal GetPriceForSelectedService(string serviceName)
+    {
+        var matchedPkg = SalonService.Packages.FirstOrDefault(p =>
+            serviceName.Contains(p.Name, StringComparison.OrdinalIgnoreCase));
+        if (matchedPkg != null) return matchedPkg.Price;
+
+        var matchedSvc = SalonService.Services.FirstOrDefault(s =>
+            serviceName.Contains(s.Name, StringComparison.OrdinalIgnoreCase));
+        if (matchedSvc != null) return matchedSvc.Price;
+
+        return 1990;
+    }
+
+    private void OnServiceSelectionChanged()
+    {
+        newAppt.Price = GetPriceForSelectedService(newAppt.ServiceName);
+    }
+
+    private void CloseBookingModalBackdrop()
+    {
+        showBookingModal = false;
+    }
+
+    private void ConfirmBooking()
+    {
+        if (string.IsNullOrWhiteSpace(newAppt.ClientName) || string.IsNullOrWhiteSpace(newAppt.ClientPhone))
+        {
+            return;
+        }
+
+        SalonService.AddAppointment(newAppt);
+        bookingConfirmed = true;
+    }
+}
