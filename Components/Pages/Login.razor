@@ -3,25 +3,27 @@
 @inject SalonDataService SalonService
 @inject FirebaseAuthService FirebaseAuth
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <PageTitle>@(isRegisterMode ? "Create Customer Account" : "Sign In") | Salon Studio</PageTitle>
 
 <div class="login-split-page">
     <!-- Left Editorial Dark Panel -->
     <div class="login-editorial-panel">
-        <div>
-            <a href="/" class="back-to-web-link">
-                <i class="bi bi-arrow-left"></i> Back to website
-            </a>
+        <a href="/" class="back-to-web-link">
+            <i class="bi bi-arrow-left"></i> Back to website
+        </a>
 
+        <!-- Vertically and Horizontally Centered Content -->
+        <div class="login-editorial-center-body">
             <!-- Centered Logo Block -->
             <div class="login-brand-center-wrap">
                 <img src="images/logo.png" alt="Beauty Hair Logo" class="login-logo-img" />
                 <span class="login-brand-sub">LUXURY BEAUTY & WELLNESS</span>
             </div>
 
-            <div style="margin-top: 36px; text-align: center;">
-                <span class="section-tag" style="color: #9CA3AF; display: inline-block;">BEAUTY & WELLNESS</span>
+            <div class="login-editorial-content-block">
+                <span class="section-tag" style="color: var(--gold-accent); display: inline-block; margin-bottom: 10px;">BEAUTY & WELLNESS</span>
                 <h1 class="login-hero-heading">Elevate Your Beauty Experience</h1>
                 <p class="login-hero-desc">
                     Your personal beauty sanctuary &mdash; book appointments, discover tailored hair and beauty treatments, and track loyalty rewards.
@@ -122,8 +124,23 @@
                     </button>
                 </form>
 
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+
+                <!-- Google One-Click Registration at bottom -->
+                <button type="button" class="btn-google-signin" @onclick="HandleGoogleSignIn" disabled="@isAuthenticating">
+                    <svg class="google-icon-svg" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Sign up with Google</span>
+                </button>
+
                 <div style="margin-top: 14px; padding: 10px 12px; background: #F3F4F6; border-radius: 4px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-                    <i class="bi bi-info-circle"></i> <strong>Employee & Cashier Registration:</strong> Use your staff email (e.g. <code>cashier@@...</code>, <code>stylist@@...</code>, <code>manager@@...</code>, or <code>@@beautyhair.com</code>) to automatically activate CRM portal permissions.
+                    <i class="bi bi-info-circle"></i> <strong>Staff & Cashier Access:</strong> Log in with your registered salon email to automatically route to your role's terminal.
                 </div>
 
                 <div class="create-acc-row" style="margin-top: 16px;">
@@ -135,6 +152,7 @@
                 <!-- Universal Sign In -->
                 <div class="login-form-header">
                     <h2 class="login-title" style="text-align:left;">Welcome</h2>
+                    <p class="login-subtitle">Sign in to your salon workspace or client account</p>
                 </div>
 
                 @if (!string.IsNullOrEmpty(errorMessage))
@@ -178,7 +196,7 @@
                     <button type="submit" class="btn-signin-full" disabled="@isAuthenticating">
                         @if (isAuthenticating)
                         {
-                            <span><i class="bi bi-arrow-repeat spin"></i> Verifying with Firebase...</span>
+                            <span><i class="bi bi-arrow-repeat spin"></i> Verifying credentials...</span>
                         }
                         else
                         {
@@ -186,6 +204,21 @@
                         }
                     </button>
                 </form>
+
+                <div class="login-divider">
+                    <span>or</span>
+                </div>
+
+                <!-- Google One-Click Sign In at bottom -->
+                <button type="button" class="btn-google-signin" @onclick="HandleGoogleSignIn" disabled="@isAuthenticating">
+                    <svg class="google-icon-svg" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                </button>
 
                 <div class="create-acc-row">
                     Don't have an account? <strong style="color: var(--text-dark); cursor: pointer; text-decoration: underline;" @onclick="() => SwitchMode(true)">Create Account</strong>
@@ -223,6 +256,61 @@
         errorMessage = "";
         registerSuccess = false;
         isAuthenticating = false;
+    }
+
+    private async Task HandleGoogleSignIn()
+    {
+        errorMessage = "";
+        isAuthenticating = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<GoogleAuthPayload>("salonFirebaseAuth.signInWithGoogle");
+            if (result == null || !result.Success || string.IsNullOrWhiteSpace(result.Email))
+            {
+                errorMessage = result?.ErrorMessage ?? "Google Sign-In was cancelled or failed.";
+                isAuthenticating = false;
+                return;
+            }
+
+            // Verify Google token with Firebase backend if configured
+            if (!string.IsNullOrWhiteSpace(result.IdToken) && FirebaseAuth.IsConfigured)
+            {
+                await FirebaseAuth.SignInWithGoogleIdTokenAsync(result.IdToken);
+            }
+
+            string email = result.Email.Trim().ToLowerInvariant();
+            string displayName = !string.IsNullOrWhiteSpace(result.DisplayName) ? result.DisplayName : email.Split('@')[0];
+            
+            if (email.Equals("francisarnejo67@gmail.com", StringComparison.OrdinalIgnoreCase) || 
+                email.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+            {
+                displayName = "Francis Arnejo (Owner)";
+            }
+
+            string role = DetermineUserRole(email);
+
+            if (role != "Customer")
+            {
+                SalonService.EnsureEmployeeExists(displayName, email, role);
+            }
+            else
+            {
+                SalonService.EnsureCustomer(displayName, result.PhoneNumber ?? "", email);
+            }
+
+            SalonService.LoginAs(role, displayName, email);
+            isAuthenticating = false;
+
+            string redirectUrl = GetRedirectUrlForRole(role);
+            Navigation.NavigateTo(redirectUrl);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Google sign in error: {ex.Message}";
+            isAuthenticating = false;
+        }
     }
 
     private async Task HandleLogin()
@@ -271,9 +359,10 @@
         {
             username = staffMember.Name;
         }
-        else if (emailInput.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+        else if (emailInput.Equals("francisarnejo67@gmail.com", StringComparison.OrdinalIgnoreCase) ||
+                 emailInput.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
         {
-            username = "Francis Arnejo";
+            username = "Francis Arnejo (Owner)";
         }
         else if (emailInput.Equals("admin@gmail.com", StringComparison.OrdinalIgnoreCase))
         {
@@ -376,7 +465,14 @@
 
     private string DetermineUserRole(string email)
     {
-        // 1. Check if email belongs to a team member in the salon roster
+        // 1. Explicit owner & admin check
+        if (email.Equals("francisarnejo67@gmail.com", StringComparison.OrdinalIgnoreCase) ||
+            email.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Salon Owner / Admin";
+        }
+
+        // 2. Check if email belongs to a team member in the salon roster
         var member = SalonService.Team.FirstOrDefault(t => t.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
         if (member != null)
         {
@@ -391,7 +487,7 @@
             return "Stylist / Specialist";
         }
 
-        // 2. Standard heuristic matching
+        // 3. Standard heuristic matching
         if (email.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
             email.Contains("owner", StringComparison.OrdinalIgnoreCase))
         {

@@ -4,6 +4,8 @@
 @inject SalonDataService SalonService
 @inject NavigationManager Navigation
 
+@implements IDisposable
+
 <PageTitle>Bespoke Packages & Services | Salon Studio</PageTitle>
 
 <!-- Public Navigation Bar -->
@@ -27,7 +29,42 @@
             <button class="btn-book-nav active-btn-nav" @onclick='() => OpenBookingModal("")'>
                 <i class="bi bi-calendar2-check"></i> Book Now
             </button>
-            <a href="login" class="btn-staff-nav">Login</a>
+            @if (SalonService.CurrentUser.IsLoggedIn)
+            {
+                @if (SalonService.CurrentUser.Role.Contains("Admin") || SalonService.CurrentUser.Role.Contains("Manager") || SalonService.CurrentUser.Role.Contains("Owner"))
+                {
+                    <a href="admin" class="btn-staff-nav" style="background: var(--gold-accent); color: #000; font-weight: 700;">
+                        <i class="bi bi-shield-lock-fill"></i> Admin ERP
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Cashier"))
+                {
+                    <a href="cashier" class="btn-staff-nav" style="background: #FBBF24; color: #000; font-weight: 700;">
+                        <i class="bi bi-receipt"></i> Cashier POS
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Stylist"))
+                {
+                    <a href="employee" class="btn-staff-nav" style="background: #3B82F6; color: #FFF; font-weight: 700;">
+                        <i class="bi bi-scissors"></i> Stylist Suite
+                    </a>
+                }
+                else
+                {
+                    <a href="client-portal" class="btn-staff-nav" style="background: #10B981; color: #FFF; font-weight: 700;">
+                        <i class="bi bi-stars"></i> VIP Loyalty
+                    </a>
+                }
+                <button class="btn-staff-nav" @onclick="HandleLogout" title="Sign Out">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            }
+            else
+            {
+                <a href="login" class="btn-staff-nav">
+                    <i class="bi bi-person-circle"></i> Login
+                </a>
+            }
         </div>
     </div>
 </header>
@@ -531,6 +568,7 @@
 
     protected override void OnInitialized()
     {
+        SalonService.OnChange += HandleDataChanged;
         ParseQueryParameters();
     }
 
@@ -712,5 +750,21 @@
 
         SalonService.AddAppointment(newAppt);
         bookingConfirmed = true;
+    }
+
+    private void HandleDataChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLogout()
+    {
+        SalonService.Logout();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
     }
 }

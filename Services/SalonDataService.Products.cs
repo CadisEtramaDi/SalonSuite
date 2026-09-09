@@ -15,7 +15,7 @@ public partial class SalonDataService
     {
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, SKU, Name, Category, CostPrice, RetailPrice, StockQuantity, ReorderLevel, SupplierId, SupplierName, Unit FROM dbo.Products ORDER BY Id ASC", conn);
+            using var cmd = new SqlCommand("SELECT Id, SKU, Name, Category, CostPrice, RetailPrice, StockQuantity, ReorderLevel, SupplierId, SupplierName, Unit FROM dbo.Products ORDER BY Id DESC", conn);
             using var reader = cmd.ExecuteReader();
             var list = new List<ProductItem>();
             while (reader.Read())
@@ -64,7 +64,7 @@ public partial class SalonDataService
         );
 
         product.Id = dbId > 0 ? dbId : (Products.Count > 0 ? Products.Max(p => p.Id) + 1 : 1);
-        Products.Add(product);
+        Products.Insert(0, product);
         NotifyStateChanged();
     }
 

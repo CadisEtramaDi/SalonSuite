@@ -25,14 +25,38 @@
         </ul>
 
         <div class="navbar-actions">
-            <a href="book" class="btn-book-nav">Book Appointment</a>
+            <a href="book" class="btn-book-nav">
+                <i class="bi bi-calendar2-check"></i> Book Appointment
+            </a>
             @if (SalonService.CurrentUser.IsLoggedIn)
             {
-                <button class="btn-staff-nav" @onclick="HandleLogout">Logout (@SalonService.CurrentUser.Name)</button>
+                @if (SalonService.CurrentUser.Role.Contains("Admin") || SalonService.CurrentUser.Role.Contains("Manager") || SalonService.CurrentUser.Role.Contains("Owner"))
+                {
+                    <a href="admin" class="btn-staff-nav" style="background: var(--gold-accent); color: #000; font-weight: 700;">
+                        <i class="bi bi-shield-lock-fill"></i> Admin ERP
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Cashier"))
+                {
+                    <a href="cashier" class="btn-staff-nav" style="background: #FBBF24; color: #000; font-weight: 700;">
+                        <i class="bi bi-receipt"></i> Cashier POS
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Stylist"))
+                {
+                    <a href="employee" class="btn-staff-nav" style="background: #3B82F6; color: #FFF; font-weight: 700;">
+                        <i class="bi bi-scissors"></i> Stylist Suite
+                    </a>
+                }
+                <button class="btn-staff-nav" @onclick="HandleLogout" title="Sign Out">
+                    <i class="bi bi-box-arrow-right"></i> Logout (@SalonService.CurrentUser.Name.Split(' ').FirstOrDefault())
+                </button>
             }
             else
             {
-                <a href="login" class="btn-staff-nav">Client Login</a>
+                <a href="login" class="btn-staff-nav">
+                    <i class="bi bi-person-circle"></i> Client Login
+                </a>
             }
         </div>
     </div>

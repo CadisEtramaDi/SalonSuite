@@ -3,6 +3,7 @@
 @inject SalonDataService SalonService
 @inject FirebaseAuthService FirebaseAuth
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>Beauty Hair ERP & CRM | Management Suite</PageTitle>
@@ -10,29 +11,33 @@
 <div class="portal-layout">
     <!-- Dark Editorial Admin Sidebar -->
     <aside class="portal-sidebar">
-        <div class="portal-brand-block">
-            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
-            <span class="portal-brand-name">BEAUTY HAIR</span>
-            <span class="portal-brand-sub" style="color: #F59E0B;"><i class="bi bi-shield-lock-fill"></i> ENTERPRISE ERP</span>
+        <div class="portal-brand-block" style="display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; border-bottom: 1px solid var(--border-dark); margin-bottom: 12px;">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 0; border: 1.5px solid var(--gold-accent); flex-shrink: 0;" />
+            <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2;">
+                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em; white-space: nowrap;">BEAUTY HAIR</span>
+                <span style="font-size: 10px; font-weight: 700; color: #F59E0B; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin-top: 2px;">
+                    <i class="bi bi-shield-lock-fill"></i> ENTERPRISE ERP
+                </span>
+            </div>
         </div>
 
         <div class="portal-nav-scroll">
             <div class="portal-group-label">CORE OPERATIONS</div>
-            <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => currentTab = "appointments"'>
+            <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
                 <i class="bi bi-calendar3"></i> Master Schedule
             </button>
-            <button class="portal-nav-btn @(currentTab == "customers" ? "active" : "")" @onclick='() => currentTab = "customers"'>
+            <button class="portal-nav-btn @(currentTab == "customers" ? "active" : "")" @onclick='() => SwitchTab("customers")'>
                 <i class="bi bi-people-fill"></i> Customers & CRM
             </button>
-            <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => currentTab = "services"'>
+            <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => SwitchTab("services")'>
                 <i class="bi bi-scissors"></i> Services & Packages
             </button>
-            <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => currentTab = "team"'>
+            <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => SwitchTab("team")'>
                 <i class="bi bi-person-badge-fill"></i> Staff & Specialists
             </button>
 
             <div class="portal-group-label" style="margin-top: 10px;">INVENTORY & SUPPLY</div>
-            <button class="portal-nav-btn @(currentTab == "inventory" ? "active" : "")" @onclick='() => currentTab = "inventory"'>
+            <button class="portal-nav-btn @(currentTab == "inventory" ? "active" : "")" @onclick='() => SwitchTab("inventory")'>
                 <i class="bi bi-box-seam"></i> Product Inventory
                 @if (SalonService.Products.Count(p => p.IsLowStock) > 0)
                 {
@@ -41,23 +46,23 @@
                     </span>
                 }
             </button>
-            <button class="portal-nav-btn @(currentTab == "suppliers" ? "active" : "")" @onclick='() => currentTab = "suppliers"'>
+            <button class="portal-nav-btn @(currentTab == "suppliers" ? "active" : "")" @onclick='() => SwitchTab("suppliers")'>
                 <i class="bi bi-truck"></i> Suppliers & Vendors
             </button>
 
             <div class="portal-group-label" style="margin-top: 10px;">MARKETING & LOYALTY</div>
-            <button class="portal-nav-btn @(currentTab == "promotions" ? "active" : "")" @onclick='() => currentTab = "promotions"'>
+            <button class="portal-nav-btn @(currentTab == "promotions" ? "active" : "")" @onclick='() => SwitchTab("promotions")'>
                 <i class="bi bi-tag-fill"></i> Promotions & Vouchers
             </button>
-            <button class="portal-nav-btn @(currentTab == "loyalty" ? "active" : "")" @onclick='() => currentTab = "loyalty"'>
+            <button class="portal-nav-btn @(currentTab == "loyalty" ? "active" : "")" @onclick='() => SwitchTab("loyalty")'>
                 <i class="bi bi-award-fill"></i> Loyalty Rewards
             </button>
 
             <div class="portal-group-label" style="margin-top: 10px;">FINANCIALS & INSIGHTS</div>
-            <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => currentTab = "billing"'>
+            <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => SwitchTab("billing")'>
                 <i class="bi bi-receipt"></i> Daily Invoices & POS
             </button>
-            <button class="portal-nav-btn @(currentTab == "reports" ? "active" : "")" @onclick='() => currentTab = "reports"'>
+            <button class="portal-nav-btn @(currentTab == "reports" ? "active" : "")" @onclick='() => SwitchTab("reports")'>
                 <i class="bi bi-bar-chart-line-fill"></i> Analytics & Reports
             </button>
         </div>
@@ -97,7 +102,14 @@
                 <p style="color: var(--text-muted); font-size: 14px;">Beauty Hair Luxury Salon ERP &bull; SQL Server Unified Architecture</p>
             </div>
 
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <a href="/" class="btn-portal-secondary" title="View Public Website">
+                    <i class="bi bi-globe"></i> Website
+                </a>
+                <a href="/cashier" class="btn-portal-secondary" title="Open Cashier POS Register">
+                    <i class="bi bi-receipt"></i> POS Cashier
+                </a>
+
                 @if (currentTab == "appointments")
                 {
                     <button class="btn-primary-dark" @onclick="() => showNewBookingModal = true">
@@ -346,35 +358,88 @@
         <!-- TAB 3: SERVICES & PACKAGES -->
         @if (currentTab == "services")
         {
-            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
-                <!-- Services List -->
-                <div class="portal-data-card">
+            <div style="display: flex; flex-direction: column; gap: 28px;">
+                <!-- 1. Services Catalog Card Grid -->
+                <div class="portal-data-card" style="margin-bottom: 0;">
                     <div class="portal-card-header">
-                        <h3 class="portal-card-title">Services Catalog (@SalonService.Services.Count)</h3>
+                        <div>
+                            <h3 class="portal-card-title">Services Catalog (@FilteredAdminServices.Count())</h3>
+                            <span style="font-size: 13px; color: var(--text-muted);">Master treatments, ritual descriptions, duration & tier pricing</span>
+                        </div>
+
+                        <!-- Filter Controls -->
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 180px;"
+                                   placeholder="Search service..." @bind="serviceSearchQuery" @bind:event="oninput" />
+
+                            <select class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 150px;" @bind="serviceCategoryFilter">
+                                <option value="all">All Categories</option>
+                                <option value="Hair">Hair</option>
+                                <option value="Styling">Styling</option>
+                                <option value="Color">Color</option>
+                                <option value="Treatment">Treatment</option>
+                                <option value="Spa">Spa</option>
+                            </select>
+
+                            <button class="btn-primary-dark" style="font-size: 13px; padding: 7px 14px;" @onclick="() => showServiceModal = true">
+                                <i class="bi bi-plus-circle"></i> Add Service
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        @if (!SalonService.Services.Any())
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+                        @if (!FilteredAdminServices.Any())
                         {
-                            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
-                                <i class="bi bi-scissors" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
-                                No services registered. Click 'Add Service' above to add treatments.
+                            <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
+                                <i class="bi bi-scissors" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
+                                No services found for this filter. Click <strong>'Add Service'</strong> above to create new treatments.
                             </div>
                         }
-                        @foreach (var svc in SalonService.Services)
+                        @foreach (var svc in FilteredAdminServices)
                         {
-                            <div style="border: 1px solid var(--border-light); padding: 14px 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            string imgUrl = !string.IsNullOrWhiteSpace(svc.ImageUrl) 
+                                ? svc.ImageUrl 
+                                : SalonDataService.GetServiceImageUrl(svc.Name, svc.Category);
+
+                            <div style="border: 1px solid var(--border-light); border-radius: 8px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;">
                                 <div>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <strong>@svc.Number - @svc.Name</strong>
-                                        <span style="font-size: 11px; background: #F3F4F6; padding: 2px 6px; border-radius: 3px; font-weight: 600;">@svc.Category</span>
-                                        <span style="font-size: 12px; color: var(--text-muted);"><i class="bi bi-clock"></i> @svc.DurationMinutes mins</span>
+                                    <!-- Service Photo with Overlays -->
+                                    <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
+                                        <img src="@imgUrl" alt="@svc.Name" style="width: 100%; height: 100%; object-fit: cover;" />
+                                        
+                                        <!-- Category Tag Badge -->
+                                        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.75); color: #FFF; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px); text-transform: uppercase;">
+                                            @svc.Category
+                                        </span>
+
+                                        <!-- Duration Badge -->
+                                        <span style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.92); color: var(--text-dark); font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                                            <i class="bi bi-clock"></i> @svc.DurationMinutes mins
+                                        </span>
                                     </div>
-                                    <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">@svc.Description</p>
+
+                                    <!-- Service Info -->
+                                    <div style="padding: 14px;">
+                                        <div style="font-size: 11px; font-weight: 800; color: var(--gold-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+                                            SERVICE #@svc.Number
+                                        </div>
+                                        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-dark); line-height: 1.3;">
+                                            @svc.Name
+                                        </h4>
+                                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                            @svc.Description
+                                        </p>
+                                    </div>
                                 </div>
-                                <div style="text-align: right; display: flex; align-items: center; gap: 12px;">
-                                    <strong style="font-size: 16px; color: var(--gold-accent);">@svc.PriceFormatted</strong>
-                                    <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeleteService(svc.Id)">
-                                        <i class="bi bi-trash"></i>
+
+                                <!-- Card Footer -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 14px; background: #F9FAFB;">
+                                    <strong style="font-size: 16px; font-weight: 800; color: var(--gold-accent);">
+                                        @svc.PriceFormatted
+                                    </strong>
+                                    <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                            @onclick="() => SalonService.DeleteService(svc.Id)">
+                                        <i class="bi bi-trash"></i> Delete
                                     </button>
                                 </div>
                             </div>
@@ -382,35 +447,97 @@
                     </div>
                 </div>
 
-                <!-- Packages List -->
-                <div class="portal-data-card">
+                <!-- 2. Service Packages Card Grid -->
+                <div class="portal-data-card" style="margin-bottom: 0;">
                     <div class="portal-card-header">
-                        <h3 class="portal-card-title">Service Packages (@SalonService.Packages.Count)</h3>
+                        <div>
+                            <h3 class="portal-card-title">Service Packages & Bundles (@SalonService.Packages.Count)</h3>
+                            <span style="font-size: 13px; color: var(--text-muted);">Curated multi-ritual packages, bridal suites, and signature combinations</span>
+                        </div>
+
+                        <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000; font-size: 13px; padding: 7px 14px;" @onclick="() => showPackageModal = true">
+                            <i class="bi bi-box2-heart-fill"></i> Add Package
+                        </button>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
                         @if (!SalonService.Packages.Any())
                         {
-                            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 4px; border: 1px dashed var(--border-light);">
-                                <i class="bi bi-box2-heart" style="font-size: 24px; display: block; margin-bottom: 6px;"></i>
-                                No packages registered. Click 'Add Package' above to create bundled offerings.
+                            <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
+                                <i class="bi bi-box2-heart" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
+                                No packages registered. Click <strong>'Add Package'</strong> above to create bundled offerings.
                             </div>
                         }
                         @foreach (var pkg in SalonService.Packages)
                         {
-                            <div style="border: 1px solid var(--border-light); padding: 16px; border-radius: 4px; background: @(pkg.IsPopular ? "#FFFDF5" : "#FFFFFF");">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <strong style="font-size: 16px;">@pkg.Name Package</strong>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-weight: 800; font-size: 17px; color: var(--gold-accent);">@pkg.PriceFormatted</span>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer;" @onclick="() => SalonService.DeletePackage(pkg.Id)"><i class="bi bi-trash"></i></button>
+                            string pkgImg = !string.IsNullOrWhiteSpace(pkg.ImageUrl) 
+                                ? pkg.ImageUrl 
+                                : pkg.Name.Contains("Signature", StringComparison.OrdinalIgnoreCase) 
+                                    ? "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&auto=format&fit=crop&q=80" 
+                                    : pkg.Name.Contains("Ultimate", StringComparison.OrdinalIgnoreCase) 
+                                        ? "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80" 
+                                        : "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80";
+
+                            <div style="border: 2px solid @(pkg.IsPopular ? "var(--gold-accent)" : "var(--border-light)"); border-radius: 8px; background: @(pkg.IsPopular ? "#FFFDF5" : "#FFFFFF"); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                <div>
+                                    <!-- Package Header Image -->
+                                    <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
+                                        <img src="@pkgImg" alt="@pkg.Name" style="width: 100%; height: 100%; object-fit: cover;" />
+                                        
+                                        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #F59E0B; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px;">
+                                            <i class="bi bi-stars"></i> BUNDLE PACKAGE
+                                        </span>
+
+                                        @if (pkg.IsPopular)
+                                        {
+                                            <span style="position: absolute; top: 10px; right: 10px; background: var(--gold-accent); color: #000; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="bi bi-fire"></i> MOST POPULAR
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Package Details -->
+                                    <div style="padding: 16px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                                            <h4 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-dark);">
+                                                @pkg.Name Package
+                                            </h4>
+                                            <span style="font-weight: 800; font-size: 19px; color: var(--gold-accent);">
+                                                @pkg.PriceFormatted
+                                            </span>
+                                        </div>
+
+                                        @if (!string.IsNullOrWhiteSpace(pkg.Description))
+                                        {
+                                            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px 0;">@pkg.Description</p>
+                                        }
+
+                                        <!-- Features List -->
+                                        <div style="margin-top: 10px; border-top: 1px dashed var(--border-light); padding-top: 10px;">
+                                            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Included Treatments:</span>
+                                            <ul style="margin: 0; padding-left: 0; list-style: none; font-size: 12.5px; color: var(--text-body); display: flex; flex-direction: column; gap: 6px;">
+                                                @foreach (var feat in pkg.Features)
+                                                {
+                                                    <li style="display: flex; align-items: center; gap: 8px;">
+                                                        <i class="bi bi-check-circle-fill" style="color: #10B981; font-size: 13px; flex-shrink: 0;"></i>
+                                                        <span>@feat</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
-                                <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-body); line-height: 1.6;">
-                                    @foreach (var feat in pkg.Features)
-                                    {
-                                        <li>@feat</li>
-                                    }
-                                </ul>
+
+                                <!-- Card Footer -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 16px; background: #F9FAFB;">
+                                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">
+                                        <i class="bi bi-clock"></i> ~@pkg.DurationMinutes mins session
+                                    </span>
+                                    <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                            @onclick="() => SalonService.DeletePackage(pkg.Id)">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </div>
                             </div>
                         }
                     </div>
@@ -573,7 +700,7 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No inventory products registered. Click 'Add Product' above to stock items.</td>
                                 </tr>
                             }
-                            @foreach (var prod in SalonService.Products)
+                            @foreach (var prod in SalonService.Products.OrderByDescending(p => p.Id))
                             {
                                 <tr style="border-bottom: 1px solid var(--border-light);">
                                     <td style="padding: 14px; font-family: monospace; font-weight: 700;">@prod.SKU</td>
@@ -706,7 +833,7 @@
                                         </span>
                                     </td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 4px;" @onclick="() => promo.IsActive = !promo.IsActive">Toggle</button>
+                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 4px;" @onclick="() => { promo.IsActive = !promo.IsActive; SalonService.UpdatePromotion(promo); }">Toggle</button>
                                         <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeletePromotion(promo.Id)">Del</button>
                                     </td>
                                 </tr>
@@ -860,19 +987,27 @@
         {
             <div id="report-printable-area">
                 <!-- Report Filters Bar -->
-                <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 16px 20px; border-radius: 4px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 16px 20px; border-radius: 6px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">REPORT TIMEFRAME:</span>
-                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "today" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "today" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "today"'>Today</button>
-                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "week" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "week" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "week"'>This Week</button>
-                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "month" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "month" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "month"'>This Month</button>
-                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; background: @(reportPeriod == "all" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "all" ? "#FFF" : "var(--text-dark)");" @onclick='() => reportPeriod = "all"'>All Time</button>
+                        <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">TIMEFRAME:</span>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; background: @(reportPeriod == "today" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "today" ? "#FFF" : "var(--text-dark)");" @onclick='() => SetReportPeriod("today")'>Today</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; background: @(reportPeriod == "week" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "week" ? "#FFF" : "var(--text-dark)");" @onclick='() => SetReportPeriod("week")'>This Week</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; background: @(reportPeriod == "month" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "month" ? "#FFF" : "var(--text-dark)");" @onclick='() => SetReportPeriod("month")'>This Month</button>
+                        <button style="border: none; padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; background: @(reportPeriod == "all" ? "#1E293B" : "#F3F4F6"); color: @(reportPeriod == "all" ? "#FFF" : "var(--text-dark)");" @onclick='() => SetReportPeriod("all")'>All Time</button>
                     </div>
-                    <span style="font-size: 13px; color: var(--text-muted);">Showing <strong>@ReportInvoices.Count()</strong> transactions &bull; Generated: <strong>@DateTime.Now.ToString("MMM dd, yyyy hh:mm tt")</strong></span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 12.5px; color: var(--text-muted);">Showing <strong>@ReportInvoices.Count()</strong> receipts &bull; <strong>@DateTime.Now.ToString("MMM dd, yyyy")</strong></span>
+                        <button class="btn-portal-secondary" style="font-size: 12.5px; padding: 5px 12px;" @onclick="RenderAllChartsAsync" title="Refresh Charts">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                        <button class="btn-primary-dark" style="font-size: 12.5px; padding: 5px 14px; background: #059669;" @onclick="PrintReport">
+                            <i class="bi bi-printer-fill"></i> Print / PDF Export
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Report Metric Highlights -->
-                <div class="portal-kpi-grid">
+                <div class="portal-kpi-grid" style="margin-bottom: 24px;">
                     <div class="portal-kpi-card">
                         <span class="portal-kpi-label">Gross Revenue Collections</span>
                         <div class="portal-kpi-num" style="color: #10B981;">₱@ReportInvoices.Sum(i => i.Total).ToString("N0")</div>
@@ -895,20 +1030,92 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
-                    <!-- Specialist Performance Table -->
-                    <div class="portal-data-card">
-                        <div class="portal-card-header">
+                <!-- ROW 1 OF GRAPHS: Revenue Trend & Category Breakdown -->
+                <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Graph 1: Revenue Trajectory (Interactive Area/Line Chart) -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
+                            <div>
+                                <h3 class="portal-card-title">📈 Revenue Velocity & Sales Trend</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Real-time revenue tracking across services and retail products</span>
+                            </div>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="revenueTrendCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Graph 2: Treatment & Service Mix (Donut Chart) -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
+                            <div>
+                                <h3 class="portal-card-title">🍩 Service & Category Mix</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Revenue split by treatment type</span>
+                            </div>
+                        </div>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="categoryDonutCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 2 OF GRAPHS: Specialist Production & Peak Booking Demand -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Graph 3: Specialist Performance & Commission (Bar Chart) -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
+                            <div>
+                                <h3 class="portal-card-title">✂️ Specialist Production Leaderboard</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Gross service sales generated vs commission payout per specialist</span>
+                            </div>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="specialistBarCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Graph 4: Peak Booking Hours & Floor Demand (Bar Chart) -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
+                            <div>
+                                <h3 class="portal-card-title">⏰ Peak Floor Hours & Booking Density</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Client appointment distribution by time slot</span>
+                            </div>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="peakHoursCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 3 OF GRAPHS: Loyalty Tiers, Payment Mix & Detailed Commission Ledger -->
+                <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 24px;">
+                    <!-- Graph 5: VIP Loyalty Tier Distribution (Donut Chart) -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
+                            <div>
+                                <h3 class="portal-card-title">💎 VIP Loyalty Tier Split</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Registered customer loyalty segmentation</span>
+                            </div>
+                        </div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="vipTierCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Specialist Production & Payment Mix Ledger -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header" style="margin-bottom: 12px;">
                             <h3 class="portal-card-title">Specialist Production & Commission Ledger</h3>
                         </div>
-                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
                             <thead>
-                                <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
-                                    <th style="padding: 10px 12px;">Specialist</th>
-                                    <th style="padding: 10px 12px;">Rate</th>
-                                    <th style="padding: 10px 12px;">Tickets</th>
-                                    <th style="padding: 10px 12px;">Gross Sales</th>
-                                    <th style="padding: 10px 12px; text-align: right;">Commission</th>
+                                <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                    <th style="padding: 8px 10px;">Specialist</th>
+                                    <th style="padding: 8px 10px;">Rate</th>
+                                    <th style="padding: 8px 10px;">Tickets</th>
+                                    <th style="padding: 8px 10px;">Gross Sales</th>
+                                    <th style="padding: 8px 10px; text-align: right;">Commission</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -918,40 +1125,15 @@
                                     decimal gross = stylistInvoices.Sum(i => i.Total);
                                     decimal commission = Math.Round(stylistInvoices.Sum(i => i.Subtotal) * stylist.CommissionRate, 0);
                                     <tr style="border-bottom: 1px solid var(--border-light);">
-                                        <td style="padding: 12px; font-weight: 600;">@stylist.Name</td>
-                                        <td style="padding: 12px; font-size: 12px; color: var(--text-muted);">@((stylist.CommissionRate * 100).ToString("N0"))%</td>
-                                        <td style="padding: 12px;">@stylistInvoices.Count</td>
-                                        <td style="padding: 12px; font-weight: 700;">₱@gross.ToString("N0")</td>
-                                        <td style="padding: 12px; text-align: right; font-weight: 800; color: #2563EB;">₱@commission.ToString("N0")</td>
+                                        <td style="padding: 10px; font-weight: 600;">@stylist.Name</td>
+                                        <td style="padding: 10px; font-size: 12px; color: var(--text-muted);">@((stylist.CommissionRate * 100).ToString("N0"))%</td>
+                                        <td style="padding: 10px;">@stylistInvoices.Count</td>
+                                        <td style="padding: 10px; font-weight: 700;">₱@gross.ToString("N0")</td>
+                                        <td style="padding: 10px; text-align: right; font-weight: 800; color: #2563EB;">₱@commission.ToString("N0")</td>
                                     </tr>
                                 }
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- Payment Tender Distribution -->
-                    <div class="portal-data-card">
-                        <div class="portal-card-header">
-                            <h3 class="portal-card-title">Payment Method Mix</h3>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            @foreach (var method in new[] { "Cash", "GCash", "Maya", "Credit Card" })
-                            {
-                                var methodInvoices = ReportInvoices.Where(i => i.PaymentMethod == method).ToList();
-                                decimal methodTotal = methodInvoices.Sum(i => i.Total);
-                                decimal grandTotal = ReportInvoices.Sum(i => i.Total);
-                                int pct = grandTotal > 0 ? (int)Math.Round((methodTotal / grandTotal) * 100, 0) : 0;
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 4px;">
-                                        <strong>@method (@methodInvoices.Count txns)</strong>
-                                        <span style="font-weight: 700;">₱@methodTotal.ToString("N0") (@pct%)</span>
-                                    </div>
-                                    <div style="height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden;">
-                                        <div style="height: 100%; width: @pct%; background: var(--gold-accent);"></div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1126,6 +1308,10 @@
                 <div class="form-group">
                     <label class="booking-label">Duration (Minutes)</label>
                     <input type="number" class="booking-input" @bind="pkgForm.DurationMinutes" />
+                </div>
+                <div class="form-full">
+                    <label class="booking-label">Cover Photo URL (Optional)</label>
+                    <input type="text" class="booking-input" placeholder="https://images.unsplash.com/..." @bind="pkgForm.ImageUrl" />
                 </div>
                 <div class="form-full">
                     <label class="booking-label">Included Features (comma separated)</label>
@@ -1453,6 +1639,8 @@
 @code {
     private string currentTab = "appointments";
     private string customerSearchQuery = "";
+    private string serviceSearchQuery = "";
+    private string serviceCategoryFilter = "all";
     private string apptStatusFilter = "all";
     private string apptSortOrder = "newest";
     private string apptSearchQuery = "";
@@ -1533,6 +1721,14 @@
             : SalonService.Customers.Where(c => c.FullName.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase) ||
                                                 c.Phone.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase) ||
                                                 c.Tier.Contains(customerSearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<ServiceOfferItem> FilteredAdminServices =>
+        SalonService.Services.Where(s =>
+            (serviceCategoryFilter == "all" || s.Category.Equals(serviceCategoryFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(serviceSearchQuery) ||
+             s.Name.Contains(serviceSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+             s.Description.Contains(serviceSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+             s.Number.Contains(serviceSearchQuery, StringComparison.OrdinalIgnoreCase)));
 
     private IEnumerable<AppointmentRecord> FilteredAppointments
     {
@@ -1830,5 +2026,177 @@
     {
         // Triggers browser print preview for reporting
         Navigation.NavigateTo("javascript:window.print()");
+    }
+
+    private async Task SwitchTab(string tab)
+    {
+        currentTab = tab;
+        if (tab == "reports")
+        {
+            await Task.Delay(120);
+            await RenderAllChartsAsync();
+        }
+    }
+
+    private async Task SetReportPeriod(string period)
+    {
+        reportPeriod = period;
+        await Task.Delay(80);
+        await RenderAllChartsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && currentTab == "reports")
+        {
+            await Task.Delay(150);
+            await RenderAllChartsAsync();
+        }
+    }
+
+    private async Task RenderAllChartsAsync()
+    {
+        try
+        {
+            var invoices = ReportInvoices.ToList();
+
+            // 1. Revenue Velocity / Sales Trend Data
+            var revLabels = new List<string>();
+            var revServices = new List<decimal>();
+            var revRetail = new List<decimal>();
+            var revTotal = new List<decimal>();
+
+            if (reportPeriod == "today")
+            {
+                var timeSlots = new[] { "09 AM", "11 AM", "01 PM", "03 PM", "05 PM", "07 PM" };
+                foreach (var slot in timeSlots)
+                {
+                    revLabels.Add(slot);
+                    var matching = invoices.Where(i => i.Timestamp.ToString("hh tt").StartsWith(slot.Split(' ')[0], StringComparison.OrdinalIgnoreCase)).ToList();
+                    decimal sTotal = matching.Sum(i => i.Subtotal);
+                    decimal rTotal = matching.Sum(i => i.RetailAddonsTotal);
+                    revServices.Add(sTotal);
+                    revRetail.Add(rTotal);
+                    revTotal.Add(sTotal + rTotal);
+                }
+                if (revTotal.Sum() == 0 && invoices.Count > 0)
+                {
+                    revLabels.Clear(); revServices.Clear(); revRetail.Clear(); revTotal.Clear();
+                    foreach (var inv in invoices)
+                    {
+                        revLabels.Add(inv.Timestamp.ToString("hh:mm tt"));
+                        revServices.Add(inv.Subtotal);
+                        revRetail.Add(inv.RetailAddonsTotal);
+                        revTotal.Add(inv.Total);
+                    }
+                }
+            }
+            else if (reportPeriod == "week")
+            {
+                for (int d = 6; d >= 0; d--)
+                {
+                    var day = DateTime.Today.AddDays(-d);
+                    revLabels.Add(day.ToString("ddd (MMM dd)"));
+                    var matching = invoices.Where(i => i.Timestamp.Date == day.Date).ToList();
+                    decimal sTotal = matching.Sum(i => i.Subtotal);
+                    decimal rTotal = matching.Sum(i => i.RetailAddonsTotal);
+                    revServices.Add(sTotal);
+                    revRetail.Add(rTotal);
+                    revTotal.Add(sTotal + rTotal);
+                }
+            }
+            else
+            {
+                var grouped = invoices
+                    .GroupBy(i => i.Timestamp.Date)
+                    .OrderBy(g => g.Key)
+                    .ToList();
+
+                if (grouped.Count > 0)
+                {
+                    foreach (var g in grouped)
+                    {
+                        revLabels.Add(g.Key.ToString("MMM dd"));
+                        decimal sTotal = g.Sum(i => i.Subtotal);
+                        decimal rTotal = g.Sum(i => i.RetailAddonsTotal);
+                        revServices.Add(sTotal);
+                        revRetail.Add(rTotal);
+                        revTotal.Add(sTotal + rTotal);
+                    }
+                }
+                else
+                {
+                    for (int d = 6; d >= 0; d--)
+                    {
+                        var day = DateTime.Today.AddDays(-d);
+                        revLabels.Add(day.ToString("MMM dd"));
+                        revServices.Add(0);
+                        revRetail.Add(0);
+                        revTotal.Add(0);
+                    }
+                }
+            }
+
+            await JSRuntime.InvokeVoidAsync("SalonCharts.renderRevenueTrend", "revenueTrendCanvas", revLabels, revServices, revRetail, revTotal);
+
+            // 2. Category Donut Chart
+            decimal hairSales = invoices.Where(i => i.ServiceName.Contains("Haircut", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Blowdry", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Cut", StringComparison.OrdinalIgnoreCase)).Sum(i => i.Subtotal);
+            decimal colorSales = invoices.Where(i => i.ServiceName.Contains("Balayage", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Color", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Gloss", StringComparison.OrdinalIgnoreCase)).Sum(i => i.Subtotal);
+            decimal spaSales = invoices.Where(i => i.ServiceName.Contains("Spa", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Treatment", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Scalp", StringComparison.OrdinalIgnoreCase) || i.ServiceName.Contains("Keratin", StringComparison.OrdinalIgnoreCase)).Sum(i => i.Subtotal);
+            decimal retailSales = invoices.Sum(i => i.RetailAddonsTotal);
+            decimal otherServices = Math.Max(0, invoices.Sum(i => i.Subtotal) - (hairSales + colorSales + spaSales));
+
+            var catLabels = new List<string> { "Haircut & Styling", "Color & Balayage", "Spa & Rituals", "Retail Add-ons" };
+            var catData = new List<decimal> { hairSales, colorSales, spaSales, retailSales };
+            if (otherServices > 0)
+            {
+                catLabels.Add("Other Services");
+                catData.Add(otherServices);
+            }
+            if (catData.Sum() == 0)
+            {
+                catData = new List<decimal> { 3500, 7500, 4200, 1800 }; // Balanced preview baseline
+            }
+            var catColors = new List<string> { "#1E293B", "#D97706", "#10B981", "#8B5CF6", "#3B82F6" };
+
+            await JSRuntime.InvokeVoidAsync("SalonCharts.renderCategoryDonut", "categoryDonutCanvas", catLabels, catData, catColors);
+
+            // 3. Specialist Production Bar Chart
+            var specLabels = new List<string>();
+            var specSales = new List<decimal>();
+            var specComm = new List<decimal>();
+            foreach (var stylist in SalonService.Team)
+            {
+                specLabels.Add(stylist.Name);
+                var stylistInvs = invoices.Where(i => i.StylistName == stylist.Name).ToList();
+                decimal g = stylistInvs.Sum(i => i.Total);
+                decimal c = Math.Round(stylistInvs.Sum(i => i.Subtotal) * stylist.CommissionRate, 0);
+                specSales.Add(g);
+                specComm.Add(c);
+            }
+            await JSRuntime.InvokeVoidAsync("SalonCharts.renderSpecialistBar", "specialistBarCanvas", specLabels, specSales, specComm);
+
+            // 4. Peak Hours Bar Chart
+            var hourSlots = new[] { "09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM" };
+            var hourCounts = new List<int>();
+            foreach (var slot in hourSlots)
+            {
+                int count = SalonService.Appointments.Count(a => a.TimeSlot.Contains(slot.Split(' ')[0], StringComparison.OrdinalIgnoreCase) || a.TimeSlot == slot);
+                hourCounts.Add(count);
+            }
+            await JSRuntime.InvokeVoidAsync("SalonCharts.renderPeakHoursBar", "peakHoursCanvas", hourSlots, hourCounts);
+
+            // 5. VIP Tier Donut Chart
+            var tierLabels = new[] { "Platinum VIP", "Gold Member", "Silver Member", "Bronze" };
+            var tierCounts = new[]
+            {
+                SalonService.Customers.Count(c => c.Tier.Equals("Platinum", StringComparison.OrdinalIgnoreCase)),
+                SalonService.Customers.Count(c => c.Tier.Equals("Gold", StringComparison.OrdinalIgnoreCase)),
+                SalonService.Customers.Count(c => c.Tier.Equals("Silver", StringComparison.OrdinalIgnoreCase)),
+                SalonService.Customers.Count(c => c.Tier.Equals("Bronze", StringComparison.OrdinalIgnoreCase))
+            };
+            await JSRuntime.InvokeVoidAsync("SalonCharts.renderVipTierDonut", "vipTierCanvas", tierLabels, tierCounts);
+        }
+        catch { }
     }
 }

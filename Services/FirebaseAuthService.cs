@@ -233,4 +233,63 @@ public class FirebaseAuthService
         "WEAK_PASSWORD : Password should be at least 6 characters" => "Password must be at least 6 characters.",
         _ => !string.IsNullOrWhiteSpace(firebaseErrorCode) ? $"Authentication error: {firebaseErrorCode}" : "Authentication failed. Please check your credentials."
     };
+
+    public async Task<FirebaseAuthResult> SignInWithGoogleIdTokenAsync(string idToken)
+    {
+        if (!IsConfigured || string.IsNullOrWhiteSpace(idToken))
+        {
+            return new FirebaseAuthResult { Success = true };
+        }
+
+        try
+        {
+            var url = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={_apiKey}";
+            var payload = new
+            {
+                postBody = $"id_token={idToken}&providerId=google.com",
+                requestUri = "http://localhost",
+                returnSecureToken = true
+            };
+            var response = await _httpClient.PostAsJsonAsync(url, payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var successData = await response.Content.ReadFromJsonAsync<FirebaseSuccessResponse>();
+                return new FirebaseAuthResult
+                {
+                    Success = true,
+                    IdToken = successData?.IdToken,
+                    RefreshToken = successData?.RefreshToken,
+                    LocalId = successData?.LocalId,
+                    Email = successData?.Email
+                };
+            }
+
+            var errorData = await response.Content.ReadFromJsonAsync<FirebaseErrorResponse>();
+            return new FirebaseAuthResult
+            {
+                Success = false,
+                ErrorMessage = FormatFirebaseError(errorData?.Error?.Message)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FirebaseAuthResult
+            {
+                Success = false,
+                ErrorMessage = $"Google verification error: {ex.Message}"
+            };
+        }
+    }
+}
+
+public class GoogleAuthPayload
+{
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? Email { get; set; }
+    public string? DisplayName { get; set; }
+    public string? PhotoUrl { get; set; }
+    public string? IdToken { get; set; }
+    public string? Uid { get; set; }
+    public string? PhoneNumber { get; set; }
 }

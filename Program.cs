@@ -3,7 +3,7 @@ using SalonSuite.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services to the container (Unified SalonSuite Architecture)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

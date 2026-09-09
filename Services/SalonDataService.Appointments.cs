@@ -106,6 +106,19 @@ public partial class SalonDataService
         }
     }
 
+    public void ReassignAppointmentStylist(int id, string newStylist)
+    {
+        var appt = Appointments.FirstOrDefault(a => a.Id == id);
+        if (appt != null && !string.IsNullOrWhiteSpace(newStylist))
+        {
+            appt.StylistName = newStylist;
+            ExecuteSqlNonQuery("UPDATE dbo.Appointments SET StylistName = @StylistName WHERE Id = @Id;",
+                new SqlParameter("@Id", id),
+                new SqlParameter("@StylistName", newStylist));
+            NotifyStateChanged();
+        }
+    }
+
     public void DeleteAppointment(int id)
     {
         Appointments.RemoveAll(a => a.Id == id);

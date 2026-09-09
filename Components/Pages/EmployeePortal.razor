@@ -8,10 +8,14 @@
 <div class="portal-layout">
     <!-- Dark Stylist Sidebar -->
     <aside class="portal-sidebar">
-        <div class="portal-brand-block">
-            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
-            <span class="portal-brand-name">BEAUTY HAIR</span>
-            <span class="portal-brand-sub" style="color: #60A5FA;"><i class="bi bi-scissors"></i> STYLIST SUITE</span>
+        <div class="portal-brand-block" style="display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; border-bottom: 1px solid var(--border-dark); margin-bottom: 12px;">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 0; border: 1.5px solid var(--gold-accent); flex-shrink: 0;" />
+            <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2;">
+                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em; white-space: nowrap;">BEAUTY HAIR</span>
+                <span style="font-size: 10px; font-weight: 700; color: #60A5FA; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin-top: 2px;">
+                    <i class="bi bi-scissors"></i> STYLIST SUITE
+                </span>
+            </div>
         </div>
 
         <div class="portal-nav-scroll">
@@ -50,7 +54,10 @@
                 <p style="color: var(--text-muted); font-size: 14px;">Here is your personal client schedule and chair workflow for today.</p>
             </div>
 
-            <div style="display: flex; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <a href="/" class="btn-portal-secondary" title="View Public Website">
+                    <i class="bi bi-globe"></i> Website
+                </a>
                 <button class="btn-primary-dark" @onclick="() => showWalkinModal = true">
                     <i class="bi bi-plus-lg"></i> Quick Add to My Chair
                 </button>

@@ -22,90 +22,150 @@
         </ul>
 
         <div class="navbar-actions">
-            <a href="book" class="btn-book-nav">Book Appointment</a>
-            <a href="login" class="btn-staff-nav">Login</a>
+            <a href="book" class="btn-book-nav">
+                <i class="bi bi-calendar2-check"></i> Book Appointment
+            </a>
+            @if (SalonService.CurrentUser.IsLoggedIn)
+            {
+                @if (SalonService.CurrentUser.Role.Contains("Admin") || SalonService.CurrentUser.Role.Contains("Manager") || SalonService.CurrentUser.Role.Contains("Owner"))
+                {
+                    <a href="admin" class="btn-staff-nav" style="background: var(--gold-accent); color: #000; font-weight: 700;">
+                        <i class="bi bi-shield-lock-fill"></i> Admin ERP
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Cashier"))
+                {
+                    <a href="cashier" class="btn-staff-nav" style="background: #FBBF24; color: #000; font-weight: 700;">
+                        <i class="bi bi-receipt"></i> Cashier POS
+                    </a>
+                }
+                else if (SalonService.CurrentUser.Role.Contains("Stylist"))
+                {
+                    <a href="employee" class="btn-staff-nav" style="background: #3B82F6; color: #FFF; font-weight: 700;">
+                        <i class="bi bi-scissors"></i> Stylist Suite
+                    </a>
+                }
+                else
+                {
+                    <a href="client-portal" class="btn-staff-nav" style="background: #10B981; color: #FFF; font-weight: 700;">
+                        <i class="bi bi-stars"></i> VIP Loyalty
+                    </a>
+                }
+                <button class="btn-staff-nav" @onclick="HandleLogout" title="Sign Out">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            }
+            else
+            {
+                <a href="login" class="btn-staff-nav">
+                    <i class="bi bi-person-circle"></i> Login
+                </a>
+            }
         </div>
     </div>
 </header>
 
-<!-- Hero Section -->
-<section class="hero-section">
-    <div class="container-custom hero-grid">
-        <div class="hero-text-col">
-            <h1 class="hero-title">Styling</h1>
-            <p class="hero-desc">
-                Experience professional hair care in a serene, minimalist environment. Our expert stylists deliver exceptional results tailored to you.
-            </p>
-            <div class="hero-cta-group">
-                <a href="book" class="btn-primary-dark">
-                    <span>Book Appointment</span>
-                    <i class="bi bi-arrow-right"></i>
-                </a>
-                <a href="book" class="btn-link-arrow">View All Packages & Services &rarr;</a>
+<!-- Hero Section (Full-Bleed Cinematic Background Slideshow) -->
+<section class="hero-section hero-full-slideshow" 
+         @onmouseenter="() => isHovered = true" 
+         @onmouseleave="() => isHovered = false">
+    
+    <!-- Background Slideshow Track -->
+    <div class="hero-bg-slides-track">
+        @for (int i = 0; i < heroSlides.Count; i++)
+        {
+            var slide = heroSlides[i];
+            bool isActive = (i == currentSlideIndex);
+            <div class="hero-bg-slide-item @(isActive ? "active" : "")">
+                <img src="@slide.ImageUrl" alt="@slide.Title" class="hero-bg-slide-img" />
             </div>
+        }
+    </div>
 
-            <div class="hero-stats-row">
-                <div class="stat-item-col">
-                    <span class="stat-huge">15+</span>
-                    <span class="stat-label-muted">Years</span>
-                </div>
-                <div class="stat-item-col">
-                    <span class="stat-huge">8K+</span>
-                    <span class="stat-label-muted">Clients</span>
-                </div>
-                <div class="stat-item-col">
-                    <span class="stat-huge">4.9</span>
-                    <span class="stat-label-muted">Rating</span>
-                </div>
+    <!-- Atmospheric Vignette & Gradient Overlay -->
+    <div class="hero-bg-gradient-overlay"></div>
+
+    <!-- Floating Navigation Arrows -->
+    <button type="button" class="hero-slider-arrow prev-arrow hero-full-arrow" @onclick="PrevSlide" aria-label="Previous Slide">
+        <i class="bi bi-chevron-left"></i>
+    </button>
+    <button type="button" class="hero-slider-arrow next-arrow hero-full-arrow" @onclick="NextSlide" aria-label="Next Slide">
+        <i class="bi bi-chevron-right"></i>
+    </button>
+
+    <!-- Hero Content Overlay Container -->
+    <div class="container-custom hero-full-content">
+        <!-- Top Indicators Bar -->
+        <div class="hero-full-top-bar">
+            <span class="hero-exclusive-badge">
+                <i class="bi bi-stars"></i> COUTURE HAIR SANCTUARY & SPA
+            </span>
+
+            <!-- Top Indicator Dots & Progress Bar -->
+            <div class="hero-slide-indicators hero-full-indicators">
+                @for (int i = 0; i < heroSlides.Count; i++)
+                {
+                    int dotIndex = i;
+                    <button type="button" class="hero-dot @(dotIndex == currentSlideIndex ? "active" : "")" 
+                            @onclick="() => GoToSlide(dotIndex)" 
+                            aria-label="@($"Go to slide {dotIndex + 1}")">
+                        <span class="hero-dot-progress"></span>
+                    </button>
+                }
             </div>
         </div>
 
-        <div class="hero-image-col">
-            <div class="hero-slideshow-container" 
-                 @onmouseenter="() => isHovered = true" 
-                 @onmouseleave="() => isHovered = false">
-                
-                <!-- Slides Track -->
-                <div class="hero-slides-track">
-                    @for (int i = 0; i < heroSlides.Count; i++)
-                    {
-                        var slide = heroSlides[i];
-                        bool isActive = (i == currentSlideIndex);
-                        <div class="hero-slide-item @(isActive ? "active" : "")">
-                            <img src="@slide.ImageUrl" alt="@slide.Title" class="hero-slide-img" />
-                            <div class="hero-slide-gradient-overlay"></div>
-                            
-                            <!-- Slide Badge & Caption -->
-                            <div class="hero-slide-caption">
-                                <span class="hero-slide-tag">
-                                    <i class="bi bi-stars"></i> RITUAL 0@(i + 1) / 0@(heroSlides.Count)
-                                </span>
-                                <h3 class="hero-slide-title">@slide.Title</h3>
-                                <p class="hero-slide-desc">@slide.Tagline</p>
-                            </div>
-                        </div>
-                    }
+        <div class="hero-full-grid">
+            <!-- Left Hero Main Copy -->
+            <div class="hero-text-col hero-text-full">
+                <h1 class="hero-title hero-title-light">Styling</h1>
+                <p class="hero-desc hero-desc-light">
+                    Experience professional hair care in a serene, minimalist environment. Our expert stylists deliver exceptional results tailored to you.
+                </p>
+
+                <div class="hero-cta-group">
+                    <a href="book" class="btn-primary-gold">
+                        <span>Book Appointment</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <a href="#services" class="btn-link-white">View All Packages & Services &rarr;</a>
                 </div>
 
-                <!-- Navigation Arrow Buttons -->
-                <button type="button" class="hero-slider-arrow prev-arrow" @onclick="PrevSlide" aria-label="Previous Slide">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <button type="button" class="hero-slider-arrow next-arrow" @onclick="NextSlide" aria-label="Next Slide">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
+                <div class="hero-stats-row hero-stats-light">
+                    <div class="stat-item-col">
+                        <span class="stat-huge stat-huge-light">15+</span>
+                        <span class="stat-label-muted stat-label-light">Years</span>
+                    </div>
+                    <div class="stat-item-col">
+                        <span class="stat-huge stat-huge-light">8K+</span>
+                        <span class="stat-label-muted stat-label-light">Clients</span>
+                    </div>
+                    <div class="stat-item-col">
+                        <span class="stat-huge stat-huge-light">4.9</span>
+                        <span class="stat-label-muted stat-label-light">Rating</span>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Indicator Dots & Progress Bars -->
-                <div class="hero-slide-indicators">
-                    @for (int i = 0; i < heroSlides.Count; i++)
-                    {
-                        int dotIndex = i;
-                        <button type="button" class="hero-dot @(dotIndex == currentSlideIndex ? "active" : "")" 
-                                @onclick="() => GoToSlide(dotIndex)" 
-                                aria-label="@($"Go to slide {dotIndex + 1}")">
-                            <span class="hero-dot-progress"></span>
-                        </button>
-                    }
+            <!-- Right Active Ritual Floating Glass Card -->
+            <div class="hero-ritual-col">
+                <div class="hero-ritual-floating-card">
+                    <div class="hero-ritual-badge-row">
+                        <span class="hero-slide-tag">
+                            <i class="bi bi-stars"></i> RITUAL 0@(currentSlideIndex + 1) / 0@(heroSlides.Count)
+                        </span>
+                        <span class="hero-ritual-badge-sub">FEATURED RITUAL</span>
+                    </div>
+
+                    <h3 class="hero-ritual-card-title">@heroSlides[currentSlideIndex].Title</h3>
+                    <p class="hero-ritual-card-desc">@heroSlides[currentSlideIndex].Tagline</p>
+
+                    <div class="hero-ritual-card-footer">
+                        <a href="@($"book?select={Uri.EscapeDataString(heroSlides[currentSlideIndex].Title)}")" class="btn-ritual-reserve">
+                            <span>Reserve This Look</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -499,7 +559,19 @@
 
     protected override void OnInitialized()
     {
+        SalonService.OnChange += HandleDataChanged;
         StartAutoSlideTimer();
+    }
+
+    private void HandleDataChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLogout()
+    {
+        SalonService.Logout();
+        StateHasChanged();
     }
 
     private void StartAutoSlideTimer()
@@ -538,6 +610,7 @@
 
     public void Dispose()
     {
+        SalonService.OnChange -= HandleDataChanged;
         autoSlideTimer?.Dispose();
     }
 
