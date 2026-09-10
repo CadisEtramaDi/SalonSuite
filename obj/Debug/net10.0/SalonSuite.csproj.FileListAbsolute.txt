@@ -7,6 +7,8 @@ C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\Microsoft.SqlServer.Server.dl
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Configuration.ConfigurationManager.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\runtimes\win-x64\native\Microsoft.Data.SqlClient.SNI.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\runtimes\win\lib\net8.0\Microsoft.Data.SqlClient.dll
+C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.ClientModel.dll
+C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Memory.Data.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\appsettings.Development.json
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\appsettings.json
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\SalonSuite.staticwebassets.runtime.json
@@ -69,7 +71,6 @@ C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\NuGet.ProjectModel.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\NuGet.Protocol.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\NuGet.Versioning.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\Pomelo.EntityFrameworkCore.MySql.dll
-C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.ClientModel.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.CodeDom.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Composition.AttributedModel.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Composition.Convention.dll
@@ -77,7 +78,6 @@ C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Composition.Hosting.dl
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Composition.Runtime.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Composition.TypedParts.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll
-C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Memory.Data.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Reflection.MetadataLoadContext.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Runtime.Caching.dll
 C:\Users\Francis John\SalonSuite\bin\Debug\net10.0\System.Security.Cryptography.ProtectedData.dll
@@ -262,9 +262,12 @@ C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\rjimswa.dswa.cache.json
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\rjsmrazor.dswa.cache.json
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\scopedcss\bundle\SalonSuite.styles.css
+C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\o8qb76x0we-{0}-maxz6k0tci-maxz6k0tci.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\obksxd9u7i-{0}-b9sayid5wm-b9sayid5wm.gz
+C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\5255i6rg42-{0}-un0ea4wb4j-un0ea4wb4j.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\q0jwxowwuk-{0}-61n19gt1b8-61n19gt1b8.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\4r8s1g6uxr-{0}-vfqe29w86e-vfqe29w86e.gz
+C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\9sef4lijqw-{0}-b2ofywjghk-b2ofywjghk.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\lv2cmzo8z3-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\y2egov0dni-{0}-bqjiyaj88i-bqjiyaj88i.gz
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\5ypcnz2odq-{0}-c2jlpeoesf-c2jlpeoesf.gz
@@ -338,5 +341,3 @@ C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\refint\SalonSuite.dll
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\SalonSuite.pdb
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\SalonSuite.genruntimeconfig.cache
 C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\ref\SalonSuite.dll
-C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\o8qb76x0we-{0}-pamzhlw3v1-pamzhlw3v1.gz
-C:\Users\Francis John\SalonSuite\obj\Debug\net10.0\compressed\9sef4lijqw-{0}-b2ofywjghk-b2ofywjghk.gz

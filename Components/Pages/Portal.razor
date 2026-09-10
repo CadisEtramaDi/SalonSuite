@@ -32,6 +32,17 @@
             <button class="portal-nav-btn @(currentTab == "services" ? "active" : "")" @onclick='() => SwitchTab("services")'>
                 <i class="bi bi-scissors"></i> Services & Packages
             </button>
+            @if (currentTab == "services")
+            {
+                <div style="display: flex; flex-direction: column; gap: 2px; padding-left: 16px; margin-top: -3px; margin-bottom: 6px;">
+                    <button class="portal-nav-btn @(serviceSubTab == "services" ? "active" : "")" style="font-size: 12px; padding: 6px 10px; background: @(serviceSubTab == "services" ? "rgba(245, 158, 11, 0.18)" : "transparent"); color: @(serviceSubTab == "services" ? "var(--gold-accent)" : "#9CA3AF");" @onclick='() => serviceSubTab = "services"'>
+                        <i class="bi bi-scissors" style="font-size: 11px;"></i> Services Catalog (@SalonService.Services.Count)
+                    </button>
+                    <button class="portal-nav-btn @(serviceSubTab == "packages" ? "active" : "")" style="font-size: 12px; padding: 6px 10px; background: @(serviceSubTab == "packages" ? "rgba(245, 158, 11, 0.18)" : "transparent"); color: @(serviceSubTab == "packages" ? "var(--gold-accent)" : "#9CA3AF");" @onclick='() => serviceSubTab = "packages"'>
+                        <i class="bi bi-box2-heart-fill" style="font-size: 11px;"></i> Packages & Bundles (@SalonService.Packages.Count)
+                    </button>
+                </div>
+            }
             <button class="portal-nav-btn @(currentTab == "team" ? "active" : "")" @onclick='() => SwitchTab("team")'>
                 <i class="bi bi-person-badge-fill"></i> Staff & Specialists
             </button>
@@ -88,7 +99,12 @@
                     {
                         "appointments" => "Master Appointment Schedule",
                         "customers" => "Customer Management & CRM",
-                        "services" => "Treatment & Service Catalog",
+                        "services" => serviceSubTab switch
+                        {
+                            "packages" => "Services Packages & Bundles",
+                            "services" => "Services Catalog",
+                            _ => "Treatment Services & Bundled Packages"
+                        },
                         "team" => "Staff & Specialist Roster",
                         "inventory" => "Product Inventory & Stock Control",
                         "suppliers" => "Supplier & Vendor Directory",
@@ -124,12 +140,18 @@
                 }
                 else if (currentTab == "services")
                 {
-                    <button class="btn-primary-dark" @onclick="() => showServiceModal = true">
-                        <i class="bi bi-plus-circle"></i> Add Service
-                    </button>
-                    <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000;" @onclick="() => showPackageModal = true">
-                        <i class="bi bi-box2-heart-fill"></i> Add Package
-                    </button>
+                    @if (serviceSubTab == "services" || serviceSubTab == "all")
+                    {
+                        <button class="btn-primary-dark" @onclick="() => showServiceModal = true">
+                            <i class="bi bi-plus-circle"></i> Add Service
+                        </button>
+                    }
+                    @if (serviceSubTab == "packages" || serviceSubTab == "all")
+                    {
+                        <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000;" @onclick="() => showPackageModal = true">
+                            <i class="bi bi-box2-heart-fill"></i> Add Package
+                        </button>
+                    }
                 }
                 else if (currentTab == "team")
                 {
@@ -171,30 +193,41 @@
         </div>
 
         <!-- Global ERP Quick KPIs -->
-        <div class="portal-kpi-grid">
-            <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Today's Invoiced Revenue</span>
-                <div class="portal-kpi-num" style="color: #10B981;">₱@TodayRevenue.ToString("N0")</div>
-                <span style="font-size: 11.5px; color: var(--text-muted);">All-Time: ₱@SalonService.Invoices.Sum(i => i.Total).ToString("N0")</span>
-            </div>
-            <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Active CRM Clients</span>
-                <div class="portal-kpi-num">@SalonService.Customers.Count</div>
-                <span style="font-size: 11.5px; color: var(--text-muted);">@SalonService.Customers.Count(c => c.Tier == "Platinum" || c.Tier == "Gold") VIP Members</span>
-            </div>
-            <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Low Stock Alerts</span>
-                <div class="portal-kpi-num" style="color: @(SalonService.Products.Count(p => p.IsLowStock) > 0 ? "#EF4444" : "#10B981");">
-                    @SalonService.Products.Count(p => p.IsLowStock) SKU
+        @if (currentTab != "customers" && currentTab != "services" && currentTab != "team" && currentTab != "inventory" && currentTab != "suppliers")
+        {
+            <div class="portal-kpi-grid">
+                <div class="portal-kpi-card">
+                    <div>
+                        <span class="portal-kpi-label">Today's Invoiced Revenue</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 2px;">All-Time: ₱@SalonService.Invoices.Sum(i => i.Total).ToString("N0")</span>
+                    </div>
+                    <div class="portal-kpi-num" style="color: #10B981;">₱@TodayRevenue.ToString("N0")</div>
                 </div>
-                <span style="font-size: 11.5px; color: var(--text-muted);">Total @SalonService.Products.Sum(p => p.StockQuantity) units in stock</span>
+                <div class="portal-kpi-card">
+                    <div>
+                        <span class="portal-kpi-label">Active CRM Clients</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 2px;">@SalonService.Customers.Count(c => c.Tier == "Platinum" || c.Tier == "Gold") VIP Members</span>
+                    </div>
+                    <div class="portal-kpi-num">@SalonService.Customers.Count</div>
+                </div>
+                <div class="portal-kpi-card">
+                    <div>
+                        <span class="portal-kpi-label">Low Stock Alerts</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 2px;">Total @SalonService.Products.Sum(p => p.StockQuantity) units in stock</span>
+                    </div>
+                    <div class="portal-kpi-num" style="color: @(SalonService.Products.Count(p => p.IsLowStock) > 0 ? "#EF4444" : "#10B981");">
+                        @SalonService.Products.Count(p => p.IsLowStock) SKU
+                    </div>
+                </div>
+                <div class="portal-kpi-card">
+                    <div>
+                        <span class="portal-kpi-label">Active Promo Codes</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 2px;">@SalonService.Promotions.Sum(p => p.UsageCount) total redemptions</span>
+                    </div>
+                    <div class="portal-kpi-num">@SalonService.Promotions.Count(p => p.IsValidNow)</div>
+                </div>
             </div>
-            <div class="portal-kpi-card">
-                <span class="portal-kpi-label">Active Promo Codes</span>
-                <div class="portal-kpi-num">@SalonService.Promotions.Count(p => p.IsValidNow)</div>
-                <span style="font-size: 11.5px; color: var(--text-muted);">@SalonService.Promotions.Sum(p => p.UsageCount) total redemptions</span>
-            </div>
-        </div>
+        }
 
         <!-- TAB 1: APPOINTMENT SCHEDULING -->
         @if (currentTab == "appointments")
@@ -245,15 +278,15 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No appointments found for the selected filter.</td>
                                 </tr>
                             }
-                            @foreach (var appt in FilteredAppointments)
+                            @foreach (var appt in PagedAppointments)
                             {
-                                <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <td style="padding: 14px; font-weight: 700;">@appt.TimeSlot</td>
-                                    <td style="padding: 14px; font-weight: 600;">@appt.ClientName</td>
-                                    <td style="padding: 14px; color: var(--text-muted);">@appt.ClientPhone</td>
-                                    <td style="padding: 14px;">@appt.ServiceName</td>
-                                    <td style="padding: 14px;">@appt.StylistName</td>
-                                    <td style="padding: 14px; font-weight: 700;">₱@appt.Price.ToString("N0")</td>
+                                <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@appt.TimeSlot</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@appt.ClientName</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 500;">@appt.ClientPhone</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 500;">@appt.ServiceName</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 500;">@appt.StylistName</td>
+                                    <td style="padding: 14px; font-weight: 800; color: #111827;">₱@appt.Price.ToString("N0")</td>
                                     <td style="padding: 14px;">
                                         <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
                                     </td>
@@ -261,23 +294,47 @@
                                         <div style="display: inline-flex; gap: 4px;">
                                             @if (appt.Status == "Confirmed")
                                             {
-                                                <button style="background: #F3F4F6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
+                                                <button style="background: #F3F4F6; color: #111827; border: 1px solid #E5E7EB; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
                                             }
                                             else if (appt.Status == "In Progress")
                                             {
-                                                <button style="background: #ECFDF5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
+                                                <button style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
                                             }
                                             @if (appt.Status != "Cancelled")
                                             {
-                                                <button style="background: #FEF2F2; color: #DC2626; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Cancel Booking" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Cancelled")'>Cancel</button>
+                                                <button style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Cancel Booking" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Cancelled")'>Cancel</button>
                                             }
-                                            <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Delete" @onclick="() => SalonService.DeleteAppointment(appt.Id)"><i class="bi bi-trash"></i></button>
+                                            <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #4B5563; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Delete" @onclick="() => SalonService.DeleteAppointment(appt.Id)"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="portal-pagination-bar">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(FilteredAppointments.Any() ? ((CurrentSafePage(apptPage, ApptTotalPages) - 1) * apptPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(apptPage, ApptTotalPages) * apptPageSize, FilteredAppointments.Count()))</strong> of <strong>@FilteredAppointments.Count()</strong> appointments
+                    </div>
+                    @if (ApptTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(apptPage, ApptTotalPages) <= 1)" @onclick="() => apptPage = CurrentSafePage(apptPage, ApptTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= ApptTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(apptPage, ApptTotalPages) == pageNum ? "active" : "")" @onclick="() => apptPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(apptPage, ApptTotalPages) >= ApptTotalPages)" @onclick="() => apptPage = CurrentSafePage(apptPage, ApptTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -317,40 +374,64 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No client records found. Click 'Add Client' above to create a profile.</td>
                                 </tr>
                             }
-                            @foreach (var cust in FilteredCustomers)
+                            @foreach (var cust in PagedCustomers)
                             {
-                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
                                     <td style="padding: 14px;">
                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span style="font-weight: 700;">@cust.FullName</span>
-                                            <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: #4B5563; background: #F3F4F6; padding: 2px 6px; border-radius: 4px; border: 1px solid #E5E7EB;">@cust.ClientCode</span>
+                                            <span style="font-weight: 700; color: #111827;">@cust.FullName</span>
+                                            <span style="font-size: 11px; font-family: monospace; font-weight: 700; color: #111827; background: #F3F4F6; padding: 2px 6px; border-radius: 4px; border: 1px solid #E5E7EB;">@cust.ClientCode</span>
                                         </div>
                                         @if (!string.IsNullOrEmpty(cust.Notes))
                                         {
-                                            <span style="display: block; font-size: 12px; font-weight: normal; color: var(--text-muted); margin-top: 2px;">@cust.Notes</span>
+                                             <span style="display: block; font-size: 12px; font-weight: normal; color: #4B5563; margin-top: 2px;">@cust.Notes</span>
                                         }
                                     </td>
                                     <td style="padding: 14px;">
-                                        <div style="font-weight: 600;">@cust.Phone</div>
-                                        <div style="font-size: 12px; color: var(--text-muted);">@cust.Email</div>
+                                        <div style="font-weight: 600; color: #111827;">@cust.Phone</div>
+                                        <div style="font-size: 12px; color: #4B5563;">@cust.Email</div>
                                     </td>
                                     <td style="padding: 14px;">
-                                        <span style="background: @cust.TierBadgeColor; color: #FFFFFF; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">
+                                        <span style="font-size: 13.5px; font-weight: 800; color: @cust.TierBadgeColor; background: transparent;">
                                             @cust.Tier
                                         </span>
                                     </td>
-                                    <td style="padding: 14px; font-weight: 700; color: #D97706;">@cust.LoyaltyPoints pts</td>
-                                    <td style="padding: 14px; font-weight: 800;">₱@cust.TotalSpent.ToString("N0")</td>
-                                    <td style="padding: 14px; font-weight: 600;">@cust.VisitsCount visits</td>
-                                    <td style="padding: 14px; color: var(--text-muted); font-size: 13px;">@(cust.LastVisit?.ToString("MMM dd, yyyy") ?? "Never")</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@cust.LoyaltyPoints pts</td>
+                                    <td style="padding: 14px; font-weight: 800; color: #111827;">₱@cust.TotalSpent.ToString("N0")</td>
+                                    <td style="padding: 14px; font-weight: 600; color: #111827;">@cust.VisitsCount visits</td>
+                                    <td style="padding: 14px; color: #111827; font-size: 13px;">@(cust.LastVisit?.ToString("MMM dd, yyyy") ?? "Never")</td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => EditCustomer(cust)">Edit</button>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeleteCustomer(cust.Id)">Del</button>
+                                        <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #111827; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => EditCustomer(cust)">Edit</button>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeleteCustomer(cust.Id)">Del</button>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="portal-pagination-bar">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(FilteredCustomers.Any() ? ((CurrentSafePage(custPage, CustTotalPages) - 1) * custPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(custPage, CustTotalPages) * custPageSize, FilteredCustomers.Count()))</strong> of <strong>@FilteredCustomers.Count()</strong> clients
+                    </div>
+                    @if (CustTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(custPage, CustTotalPages) <= 1)" @onclick="() => custPage = CurrentSafePage(custPage, CustTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= CustTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(custPage, CustTotalPages) == pageNum ? "active" : "")" @onclick="() => custPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(custPage, CustTotalPages) >= CustTotalPages)" @onclick="() => custPage = CurrentSafePage(custPage, CustTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -358,190 +439,266 @@
         <!-- TAB 3: SERVICES & PACKAGES -->
         @if (currentTab == "services")
         {
-            <div style="display: flex; flex-direction: column; gap: 28px;">
-                <!-- 1. Services Catalog Card Grid -->
-                <div class="portal-data-card" style="margin-bottom: 0;">
-                    <div class="portal-card-header">
-                        <div>
-                            <h3 class="portal-card-title">Services Catalog (@FilteredAdminServices.Count())</h3>
-                            <span style="font-size: 13px; color: var(--text-muted);">Master treatments, ritual descriptions, duration & tier pricing</span>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Sub-tab Navigation Pill Switcher -->
+                <div style="display: flex; gap: 8px; background: #F3F4F6; padding: 5px; border-radius: 8px; width: fit-content; border: 1px solid var(--border-light); flex-wrap: wrap;">
+                    <button style="border: none; padding: 8px 18px; border-radius: 6px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; background: @(serviceSubTab == "services" ? "#1E293B" : "transparent"); color: @(serviceSubTab == "services" ? "#FFFFFF" : "var(--text-muted)"); box-shadow: @(serviceSubTab == "services" ? "0 2px 5px rgba(0,0,0,0.12)" : "none");"
+                            @onclick='() => serviceSubTab = "services"'>
+                        <i class="bi bi-scissors"></i> Services Catalog
+                        <span style="background: @(serviceSubTab == "services" ? "rgba(255,255,255,0.2)" : "#E5E7EB"); color: @(serviceSubTab == "services" ? "#FFFFFF" : "#4B5563"); padding: 2px 7px; border-radius: 10px; font-size: 11px;">
+                            @SalonService.Services.Count
+                        </span>
+                    </button>
+                    <button style="border: none; padding: 8px 18px; border-radius: 6px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; background: @(serviceSubTab == "packages" ? "#1E293B" : "transparent"); color: @(serviceSubTab == "packages" ? "#FFFFFF" : "var(--text-muted)"); box-shadow: @(serviceSubTab == "packages" ? "0 2px 5px rgba(0,0,0,0.12)" : "none");"
+                            @onclick='() => serviceSubTab = "packages"'>
+                        <i class="bi bi-box2-heart-fill"></i> Services Packages & Bundles
+                        <span style="background: @(serviceSubTab == "packages" ? "rgba(255,255,255,0.2)" : "#E5E7EB"); color: @(serviceSubTab == "packages" ? "#FFFFFF" : "#4B5563"); padding: 2px 7px; border-radius: 10px; font-size: 11px;">
+                            @SalonService.Packages.Count
+                        </span>
+                    </button>
+                    <button style="border: none; padding: 8px 18px; border-radius: 6px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; background: @(serviceSubTab == "all" ? "#1E293B" : "transparent"); color: @(serviceSubTab == "all" ? "#FFFFFF" : "var(--text-muted)"); box-shadow: @(serviceSubTab == "all" ? "0 2px 5px rgba(0,0,0,0.12)" : "none");"
+                            @onclick='() => serviceSubTab = "all"'>
+                        <i class="bi bi-grid-fill"></i> View All
+                    </button>
+                </div>
+
+                @if (serviceSubTab == "services" || serviceSubTab == "all")
+                {
+                    <!-- 1. Services Catalog Card Grid -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header">
+                            <div>
+                                <h3 class="portal-card-title">Services Catalog (@FilteredAdminServices.Count())</h3>
+                                <span style="font-size: 13px; color: var(--text-muted);">Master treatments, ritual descriptions, duration & tier pricing</span>
+                            </div>
+
+                            <!-- Filter Controls -->
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <input type="text" class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 180px;"
+                                       placeholder="Search service..." @bind="serviceSearchQuery" @bind:event="oninput" />
+
+                                <select class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 150px;" @bind="serviceCategoryFilter">
+                                    <option value="all">All Categories</option>
+                                    <option value="Hair">Hair</option>
+                                    <option value="Styling">Styling</option>
+                                    <option value="Color">Color</option>
+                                    <option value="Treatment">Treatment</option>
+                                    <option value="Spa">Spa</option>
+                                </select>
+
+                                <button class="btn-primary-dark" style="font-size: 13px; padding: 7px 14px;" @onclick="() => showServiceModal = true">
+                                    <i class="bi bi-plus-circle"></i> Add Service
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Filter Controls -->
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="text" class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 180px;"
-                                   placeholder="Search service..." @bind="serviceSearchQuery" @bind:event="oninput" />
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
+                            @if (!FilteredAdminServices.Any())
+                            {
+                                <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
+                                    <i class="bi bi-scissors" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
+                                    No services found for this filter. Click <strong>'Add Service'</strong> above to create new treatments.
+                                </div>
+                            }
+                            @foreach (var svc in PagedAdminServices)
+                            {
+                                string imgUrl = !string.IsNullOrWhiteSpace(svc.ImageUrl) 
+                                    ? svc.ImageUrl 
+                                    : SalonDataService.GetServiceImageUrl(svc.Name, svc.Category);
 
-                            <select class="booking-input" style="font-size: 13px; padding: 6px 12px; width: 150px;" @bind="serviceCategoryFilter">
-                                <option value="all">All Categories</option>
-                                <option value="Hair">Hair</option>
-                                <option value="Styling">Styling</option>
-                                <option value="Color">Color</option>
-                                <option value="Treatment">Treatment</option>
-                                <option value="Spa">Spa</option>
-                            </select>
+                                <div style="border: 1px solid var(--border-light); border-radius: 8px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;">
+                                    <div>
+                                        <!-- Service Photo with Overlays -->
+                                        <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
+                                            <img src="@imgUrl" alt="@svc.Name" style="width: 100%; height: 100%; object-fit: cover;" />
+                                            
+                                            <!-- Category Tag Badge -->
+                                            <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.75); color: #FFF; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px); text-transform: uppercase;">
+                                                @svc.Category
+                                            </span>
 
-                            <button class="btn-primary-dark" style="font-size: 13px; padding: 7px 14px;" @onclick="() => showServiceModal = true">
-                                <i class="bi bi-plus-circle"></i> Add Service
+                                            <!-- Duration Badge -->
+                                            <span style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.92); color: var(--text-dark); font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+                                                <i class="bi bi-clock"></i> @svc.DurationMinutes mins
+                                            </span>
+                                        </div>
+
+                                        <!-- Service Info -->
+                                        <div style="padding: 14px;">
+                                            <div style="font-size: 11px; font-weight: 800; color: var(--gold-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+                                                SERVICE #@svc.Number
+                                            </div>
+                                            <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-dark); line-height: 1.3;">
+                                                @svc.Name
+                                            </h4>
+                                            <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                @svc.Description
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Card Footer -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 14px; background: #F9FAFB;">
+                                        <strong style="font-size: 16px; font-weight: 800; color: var(--gold-accent);">
+                                            @svc.PriceFormatted
+                                        </strong>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                                @onclick="() => SalonService.DeleteService(svc.Id)">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="portal-pagination-bar" style="margin-top: 16px; border-radius: 6px; border: 1px solid var(--border-light);">
+                            <div class="portal-pagination-info">
+                                Showing <strong>@(FilteredAdminServices.Any() ? ((CurrentSafePage(svcPage, SvcTotalPages) - 1) * svcPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(svcPage, SvcTotalPages) * svcPageSize, FilteredAdminServices.Count()))</strong> of <strong>@FilteredAdminServices.Count()</strong> services
+                            </div>
+                            @if (SvcTotalPages > 1)
+                            {
+                                <div class="portal-pagination-controls">
+                                    <button class="portal-page-btn" disabled="@(CurrentSafePage(svcPage, SvcTotalPages) <= 1)" @onclick="() => svcPage = CurrentSafePage(svcPage, SvcTotalPages) - 1">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    @for (int p = 1; p <= SvcTotalPages; p++)
+                                    {
+                                        int pageNum = p;
+                                        <button class="portal-page-btn @(CurrentSafePage(svcPage, SvcTotalPages) == pageNum ? "active" : "")" @onclick="() => svcPage = pageNum">
+                                            @pageNum
+                                        </button>
+                                    }
+                                    <button class="portal-page-btn" disabled="@(CurrentSafePage(svcPage, SvcTotalPages) >= SvcTotalPages)" @onclick="() => svcPage = CurrentSafePage(svcPage, SvcTotalPages) + 1">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (serviceSubTab == "packages" || serviceSubTab == "all")
+                {
+                    <!-- 2. Service Packages Card Grid -->
+                    <div class="portal-data-card" style="margin-bottom: 0;">
+                        <div class="portal-card-header">
+                            <div>
+                                <h3 class="portal-card-title">Service Packages & Bundles (@SalonService.Packages.Count)</h3>
+                                <span style="font-size: 13px; color: var(--text-muted);">Curated multi-ritual packages, bridal suites, and signature combinations</span>
+                            </div>
+
+                            <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000; font-size: 13px; padding: 7px 14px;" @onclick="() => showPackageModal = true">
+                                <i class="bi bi-box2-heart-fill"></i> Add Package
                             </button>
                         </div>
-                    </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px;">
-                        @if (!FilteredAdminServices.Any())
-                        {
-                            <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
-                                <i class="bi bi-scissors" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
-                                No services found for this filter. Click <strong>'Add Service'</strong> above to create new treatments.
-                            </div>
-                        }
-                        @foreach (var svc in FilteredAdminServices)
-                        {
-                            string imgUrl = !string.IsNullOrWhiteSpace(svc.ImageUrl) 
-                                ? svc.ImageUrl 
-                                : SalonDataService.GetServiceImageUrl(svc.Name, svc.Category);
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
+                            @if (!SalonService.Packages.Any())
+                            {
+                                <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
+                                    <i class="bi bi-box2-heart" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
+                                    No packages registered. Click <strong>'Add Package'</strong> above to create bundled offerings.
+                                </div>
+                            }
+                            @foreach (var pkg in PagedPackages)
+                            {
+                                string pkgImg = !string.IsNullOrWhiteSpace(pkg.ImageUrl) 
+                                    ? pkg.ImageUrl 
+                                    : pkg.Name.Contains("Signature", StringComparison.OrdinalIgnoreCase) 
+                                        ? "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&auto=format&fit=crop&q=80" 
+                                        : pkg.Name.Contains("Ultimate", StringComparison.OrdinalIgnoreCase) 
+                                            ? "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80" 
+                                            : "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80";
 
-                            <div style="border: 1px solid var(--border-light); border-radius: 8px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;">
-                                <div>
-                                    <!-- Service Photo with Overlays -->
-                                    <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
-                                        <img src="@imgUrl" alt="@svc.Name" style="width: 100%; height: 100%; object-fit: cover;" />
-                                        
-                                        <!-- Category Tag Badge -->
-                                        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.75); color: #FFF; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px); text-transform: uppercase;">
-                                            @svc.Category
-                                        </span>
+                                <div style="border: 2px solid @(pkg.IsPopular ? "var(--gold-accent)" : "var(--border-light)"); border-radius: 8px; background: @(pkg.IsPopular ? "#FFFDF5" : "#FFFFFF"); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                                    <div>
+                                        <!-- Package Header Image -->
+                                        <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
+                                            <img src="@pkgImg" alt="@pkg.Name" style="width: 100%; height: 100%; object-fit: cover;" />
+                                            
+                                            <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #F59E0B; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px;">
+                                                <i class="bi bi-stars"></i> BUNDLE PACKAGE
+                                            </span>
 
-                                        <!-- Duration Badge -->
-                                        <span style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.92); color: var(--text-dark); font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
-                                            <i class="bi bi-clock"></i> @svc.DurationMinutes mins
-                                        </span>
-                                    </div>
-
-                                    <!-- Service Info -->
-                                    <div style="padding: 14px;">
-                                        <div style="font-size: 11px; font-weight: 800; color: var(--gold-accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-                                            SERVICE #@svc.Number
+                                            @if (pkg.IsPopular)
+                                            {
+                                                <span style="position: absolute; top: 10px; right: 10px; background: var(--gold-accent); color: #000; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <i class="bi bi-fire"></i> MOST POPULAR
+                                                </span>
+                                            }
                                         </div>
-                                        <h4 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-dark); line-height: 1.3;">
-                                            @svc.Name
-                                        </h4>
-                                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                            @svc.Description
-                                        </p>
+
+                                        <!-- Package Details -->
+                                        <div style="padding: 16px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                                                <h4 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-dark);">
+                                                    @pkg.Name Package
+                                                </h4>
+                                                <span style="font-weight: 800; font-size: 19px; color: var(--gold-accent);">
+                                                    @pkg.PriceFormatted
+                                                </span>
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(pkg.Description))
+                                            {
+                                                <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px 0;">@pkg.Description</p>
+                                            }
+
+                                            <!-- Features List -->
+                                            <div style="margin-top: 10px; border-top: 1px dashed var(--border-light); padding-top: 10px;">
+                                                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Included Treatments:</span>
+                                                <ul style="margin: 0; padding-left: 0; list-style: none; font-size: 12.5px; color: var(--text-body); display: flex; flex-direction: column; gap: 6px;">
+                                                    @foreach (var feat in pkg.Features)
+                                                    {
+                                                        <li style="display: flex; align-items: center; gap: 8px;">
+                                                            <i class="bi bi-check-circle-fill" style="color: #10B981; font-size: 13px; flex-shrink: 0;"></i>
+                                                            <span>@feat</span>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Card Footer -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 16px; background: #F9FAFB;">
+                                        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">
+                                            <i class="bi bi-clock"></i> ~@pkg.DurationMinutes mins session
+                                        </span>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                                @onclick="() => SalonService.DeletePackage(pkg.Id)">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
                                     </div>
                                 </div>
-
-                                <!-- Card Footer -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 14px; background: #F9FAFB;">
-                                    <strong style="font-size: 16px; font-weight: 800; color: var(--gold-accent);">
-                                        @svc.PriceFormatted
-                                    </strong>
-                                    <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
-                                            @onclick="() => SalonService.DeleteService(svc.Id)">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <!-- 2. Service Packages Card Grid -->
-                <div class="portal-data-card" style="margin-bottom: 0;">
-                    <div class="portal-card-header">
-                        <div>
-                            <h3 class="portal-card-title">Service Packages & Bundles (@SalonService.Packages.Count)</h3>
-                            <span style="font-size: 13px; color: var(--text-muted);">Curated multi-ritual packages, bridal suites, and signature combinations</span>
+                            }
                         </div>
 
-                        <button class="btn-primary-dark" style="background: var(--gold-accent); color: #000; font-size: 13px; padding: 7px 14px;" @onclick="() => showPackageModal = true">
-                            <i class="bi bi-box2-heart-fill"></i> Add Package
-                        </button>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
-                        @if (!SalonService.Packages.Any())
-                        {
-                            <div style="grid-column: 1 / -1; padding: 36px; text-align: center; color: var(--text-muted); background: #F9FAFB; border-radius: 6px; border: 1px dashed var(--border-light);">
-                                <i class="bi bi-box2-heart" style="font-size: 32px; display: block; margin-bottom: 8px; color: #9CA3AF;"></i>
-                                No packages registered. Click <strong>'Add Package'</strong> above to create bundled offerings.
+                        <div class="portal-pagination-bar" style="margin-top: 16px; border-radius: 6px; border: 1px solid var(--border-light);">
+                            <div class="portal-pagination-info">
+                                Showing <strong>@(SalonService.Packages.Any() ? ((CurrentSafePage(pkgPage, PkgTotalPages) - 1) * pkgPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(pkgPage, PkgTotalPages) * pkgPageSize, SalonService.Packages.Count))</strong> of <strong>@SalonService.Packages.Count</strong> packages
                             </div>
-                        }
-                        @foreach (var pkg in SalonService.Packages)
-                        {
-                            string pkgImg = !string.IsNullOrWhiteSpace(pkg.ImageUrl) 
-                                ? pkg.ImageUrl 
-                                : pkg.Name.Contains("Signature", StringComparison.OrdinalIgnoreCase) 
-                                    ? "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&auto=format&fit=crop&q=80" 
-                                    : pkg.Name.Contains("Ultimate", StringComparison.OrdinalIgnoreCase) 
-                                        ? "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80" 
-                                        : "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80";
-
-                            <div style="border: 2px solid @(pkg.IsPopular ? "var(--gold-accent)" : "var(--border-light)"); border-radius: 8px; background: @(pkg.IsPopular ? "#FFFDF5" : "#FFFFFF"); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                                <div>
-                                    <!-- Package Header Image -->
-                                    <div style="position: relative; height: 150px; overflow: hidden; background: #1E293B;">
-                                        <img src="@pkgImg" alt="@pkg.Name" style="width: 100%; height: 100%; object-fit: cover;" />
-                                        
-                                        <span style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: #F59E0B; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px;">
-                                            <i class="bi bi-stars"></i> BUNDLE PACKAGE
-                                        </span>
-
-                                        @if (pkg.IsPopular)
-                                        {
-                                            <span style="position: absolute; top: 10px; right: 10px; background: var(--gold-accent); color: #000; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
-                                                <i class="bi bi-fire"></i> MOST POPULAR
-                                            </span>
-                                        }
-                                    </div>
-
-                                    <!-- Package Details -->
-                                    <div style="padding: 16px;">
-                                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
-                                            <h4 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-dark);">
-                                                @pkg.Name Package
-                                            </h4>
-                                            <span style="font-weight: 800; font-size: 19px; color: var(--gold-accent);">
-                                                @pkg.PriceFormatted
-                                            </span>
-                                        </div>
-
-                                        @if (!string.IsNullOrWhiteSpace(pkg.Description))
-                                        {
-                                            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px 0;">@pkg.Description</p>
-                                        }
-
-                                        <!-- Features List -->
-                                        <div style="margin-top: 10px; border-top: 1px dashed var(--border-light); padding-top: 10px;">
-                                            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Included Treatments:</span>
-                                            <ul style="margin: 0; padding-left: 0; list-style: none; font-size: 12.5px; color: var(--text-body); display: flex; flex-direction: column; gap: 6px;">
-                                                @foreach (var feat in pkg.Features)
-                                                {
-                                                    <li style="display: flex; align-items: center; gap: 8px;">
-                                                        <i class="bi bi-check-circle-fill" style="color: #10B981; font-size: 13px; flex-shrink: 0;"></i>
-                                                        <span>@feat</span>
-                                                    </li>
-                                                }
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Card Footer -->
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding: 10px 16px; background: #F9FAFB;">
-                                    <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">
-                                        <i class="bi bi-clock"></i> ~@pkg.DurationMinutes mins session
-                                    </span>
-                                    <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
-                                            @onclick="() => SalonService.DeletePackage(pkg.Id)">
-                                        <i class="bi bi-trash"></i> Delete
+                            @if (PkgTotalPages > 1)
+                            {
+                                <div class="portal-pagination-controls">
+                                    <button class="portal-page-btn" disabled="@(CurrentSafePage(pkgPage, PkgTotalPages) <= 1)" @onclick="() => pkgPage = CurrentSafePage(pkgPage, PkgTotalPages) - 1">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    @for (int p = 1; p <= PkgTotalPages; p++)
+                                    {
+                                        int pageNum = p;
+                                        <button class="portal-page-btn @(CurrentSafePage(pkgPage, PkgTotalPages) == pageNum ? "active" : "")" @onclick="() => pkgPage = pageNum">
+                                            @pageNum
+                                        </button>
+                                    }
+                                    <button class="portal-page-btn" disabled="@(CurrentSafePage(pkgPage, PkgTotalPages) >= PkgTotalPages)" @onclick="() => pkgPage = CurrentSafePage(pkgPage, PkgTotalPages) + 1">
+                                        <i class="bi bi-chevron-right"></i>
                                     </button>
                                 </div>
-                            </div>
-                        }
+                            }
+                        </div>
                     </div>
-                </div>
+                }
             </div>
         }
 
@@ -580,7 +737,7 @@
                             No staff members match your filter. Click <strong>'Add Staff & Credentials'</strong> above to provision new accounts.
                         </div>
                     }
-                    @foreach (var member in FilteredStaffMembers)
+                    @foreach (var member in PagedStaffMembers)
                     {
                         bool isCashier = member.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase);
                         bool isManager = member.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase);
@@ -665,6 +822,30 @@
                         </div>
                     }
                 </div>
+
+                <div class="portal-pagination-bar" style="margin-top: 20px; border-radius: 6px; border: 1px solid var(--border-light);">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(FilteredStaffMembers.Any() ? ((CurrentSafePage(staffPage, StaffTotalPages) - 1) * staffPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(staffPage, StaffTotalPages) * staffPageSize, FilteredStaffMembers.Count()))</strong> of <strong>@FilteredStaffMembers.Count()</strong> staff members
+                    </div>
+                    @if (StaffTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(staffPage, StaffTotalPages) <= 1)" @onclick="() => staffPage = CurrentSafePage(staffPage, StaffTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= StaffTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(staffPage, StaffTotalPages) == pageNum ? "active" : "")" @onclick="() => staffPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(staffPage, StaffTotalPages) >= StaffTotalPages)" @onclick="() => staffPage = CurrentSafePage(staffPage, StaffTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
+                </div>
             </div>
         }
 
@@ -700,18 +881,17 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No inventory products registered. Click 'Add Product' above to stock items.</td>
                                 </tr>
                             }
-                            @foreach (var prod in SalonService.Products.OrderByDescending(p => p.Id))
+                            @foreach (var prod in PagedProducts)
                             {
-                                <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <td style="padding: 14px; font-family: monospace; font-weight: 700;">@prod.SKU</td>
-                                    <td style="padding: 14px; font-weight: 600;">@prod.Name</td>
-                                    <td style="padding: 14px;"><span style="font-size: 12px; background: #F3F4F6; padding: 2px 6px; border-radius: 3px;">@prod.Category</span></td>
-                                    <td style="padding: 14px;">
-                                        <span>₱@prod.CostPrice.ToString("N0") / </span>
-                                        <strong style="color: var(--gold-accent);">₱@prod.RetailPrice.ToString("N0")</strong>
+                                <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
+                                    <td style="padding: 14px; font-family: monospace; font-weight: 700; color: #111827;">@prod.SKU</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@prod.Name</td>
+                                    <td style="padding: 14px; font-weight: 600; color: #111827;">@prod.Category</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">
+                                        ₱@prod.CostPrice.ToString("N0") / ₱@prod.RetailPrice.ToString("N0")
                                     </td>
                                     <td style="padding: 14px;">
-                                        <strong style="font-size: 15px;">@prod.StockQuantity @prod.Unit</strong>
+                                        <strong style="font-size: 15px; color: #111827;">@prod.StockQuantity @prod.Unit</strong>
                                         @if (prod.IsLowStock)
                                         {
                                             <span style="display: block; font-size: 11px; color: #DC2626; font-weight: 700;">
@@ -719,19 +899,43 @@
                                             </span>
                                         }
                                     </td>
-                                    <td style="padding: 14px; color: var(--text-muted);">@prod.ReorderLevel @prod.Unit</td>
-                                    <td style="padding: 14px; font-size: 13px;">@prod.SupplierName</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 600;">@prod.ReorderLevel @prod.Unit</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 600;">@prod.SupplierName</td>
                                     <td style="padding: 14px; text-align: right;">
                                         <div style="display: inline-flex; gap: 4px;">
                                             <button style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 2px 8px; border-radius: 4px; font-weight: 700; cursor: pointer;" title="Stock In (+5)" @onclick="() => SalonService.AdjustProductStock(prod.Id, 5)">+5</button>
                                             <button style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 2px 8px; border-radius: 4px; font-weight: 700; cursor: pointer;" title="Stock Out (-1)" @onclick="() => SalonService.AdjustProductStock(prod.Id, -1)">-1</button>
-                                            <button style="background: #F3F4F6; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;" @onclick="() => SalonService.DeleteProduct(prod.Id)"><i class="bi bi-trash"></i></button>
+                                            <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #4B5563; padding: 2px 6px; border-radius: 4px; cursor: pointer;" @onclick="() => SalonService.DeleteProduct(prod.Id)"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="portal-pagination-bar">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(SalonService.Products.Any() ? ((CurrentSafePage(prodPage, ProdTotalPages) - 1) * prodPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(prodPage, ProdTotalPages) * prodPageSize, SalonService.Products.Count))</strong> of <strong>@SalonService.Products.Count</strong> SKUs
+                    </div>
+                    @if (ProdTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(prodPage, ProdTotalPages) <= 1)" @onclick="() => prodPage = CurrentSafePage(prodPage, ProdTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= ProdTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(prodPage, ProdTotalPages) == pageNum ? "active" : "")" @onclick="() => prodPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(prodPage, ProdTotalPages) >= ProdTotalPages)" @onclick="() => prodPage = CurrentSafePage(prodPage, ProdTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -755,7 +959,7 @@
                             No suppliers registered yet. Click 'Add Supplier' above to create a vendor profile.
                         </div>
                     }
-                    @foreach (var sup in SalonService.Suppliers)
+                    @foreach (var sup in PagedSuppliers)
                     {
                         <div style="border: 1px solid var(--border-light); padding: 20px; border-radius: 4px; background: #FFFFFF;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -773,6 +977,30 @@
 
                             <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;" @onclick="() => SalonService.DeleteSupplier(sup.Id)">
                                 Remove Supplier
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <div class="portal-pagination-bar" style="margin-top: 20px; border-radius: 6px; border: 1px solid var(--border-light);">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(SalonService.Suppliers.Any() ? ((CurrentSafePage(supPage, SupTotalPages) - 1) * supPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(supPage, SupTotalPages) * supPageSize, SalonService.Suppliers.Count))</strong> of <strong>@SalonService.Suppliers.Count</strong> suppliers
+                    </div>
+                    @if (SupTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(supPage, SupTotalPages) <= 1)" @onclick="() => supPage = CurrentSafePage(supPage, SupTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= SupTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(supPage, SupTotalPages) == pageNum ? "active" : "")" @onclick="() => supPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(supPage, SupTotalPages) >= SupTotalPages)" @onclick="() => supPage = CurrentSafePage(supPage, SupTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
                             </button>
                         </div>
                     }
@@ -812,34 +1040,58 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No active promotional codes. Click 'New Promo Code' above to create one.</td>
                                 </tr>
                             }
-                            @foreach (var promo in SalonService.Promotions)
+                            @foreach (var promo in PagedPromotions)
                             {
-                                <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <td style="padding: 14px; font-family: monospace; font-size: 15px; font-weight: 800; color: var(--gold-accent);">
+                                <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
+                                    <td style="padding: 14px; font-family: monospace; font-size: 15px; font-weight: 800; color: #111827;">
                                         @promo.Code
                                     </td>
-                                    <td style="padding: 14px; font-weight: 600;">@promo.Title</td>
-                                    <td style="padding: 14px; font-weight: 700;">
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@promo.Title</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">
                                         @(promo.DiscountType == "Percentage" ? $"{promo.DiscountValue:N0}% OFF" : $"₱{promo.DiscountValue:N0} OFF")
                                     </td>
-                                    <td style="padding: 14px; color: var(--text-muted);">₱@promo.MinSpend.ToString("N0")</td>
-                                    <td style="padding: 14px; font-size: 13px; color: var(--text-muted);">
+                                    <td style="padding: 14px; color: #111827; font-weight: 600;">₱@promo.MinSpend.ToString("N0")</td>
+                                    <td style="padding: 14px; font-size: 13px; color: #111827; font-weight: 500;">
                                         @promo.StartDate.ToString("MMM dd") &ndash; @promo.EndDate.ToString("MMM dd, yyyy")
                                     </td>
-                                    <td style="padding: 14px; font-weight: 600;">@promo.UsageCount uses</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@promo.UsageCount uses</td>
                                     <td style="padding: 14px;">
-                                        <span style="font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: @(promo.IsValidNow ? "#ECFDF5" : "#FEF2F2"); color: @(promo.IsValidNow ? "#059669" : "#DC2626");">
+                                        <span style="font-size: 13px; font-weight: 800; color: @(promo.IsValidNow ? "#10B981" : "#EF4444");">
                                             @(promo.IsValidNow ? "ACTIVE" : "EXPIRED / OFF")
                                         </span>
                                     </td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 4px;" @onclick="() => { promo.IsActive = !promo.IsActive; SalonService.UpdatePromotion(promo); }">Toggle</button>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" @onclick="() => SalonService.DeletePromotion(promo.Id)">Del</button>
+                                        <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #111827; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => { promo.IsActive = !promo.IsActive; SalonService.UpdatePromotion(promo); }">Toggle</button>
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeletePromotion(promo.Id)">Del</button>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="portal-pagination-bar">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(SalonService.Promotions.Any() ? ((CurrentSafePage(promoPage, PromoTotalPages) - 1) * promoPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(promoPage, PromoTotalPages) * promoPageSize, SalonService.Promotions.Count))</strong> of <strong>@SalonService.Promotions.Count</strong> promotions
+                    </div>
+                    @if (PromoTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(promoPage, PromoTotalPages) <= 1)" @onclick="() => promoPage = CurrentSafePage(promoPage, PromoTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= PromoTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(promoPage, PromoTotalPages) == pageNum ? "active" : "")" @onclick="() => promoPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(promoPage, PromoTotalPages) >= PromoTotalPages)" @onclick="() => promoPage = CurrentSafePage(promoPage, PromoTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -861,7 +1113,7 @@
                                 No loyalty reward items configured yet. Click 'New Reward Tier' above to add redeemable perks.
                             </div>
                         }
-                        @foreach (var reward in SalonService.LoyaltyRewards)
+                        @foreach (var reward in PagedLoyaltyRewards)
                         {
                             <div style="border: 1px solid var(--border-light); padding: 16px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
                                 <div>
@@ -880,6 +1132,30 @@
                             </div>
                         }
                     </div>
+
+                    <div class="portal-pagination-bar" style="margin-top: 12px; border-radius: 4px; border: 1px solid var(--border-light);">
+                        <div class="portal-pagination-info">
+                            Showing <strong>@(SalonService.LoyaltyRewards.Any() ? ((CurrentSafePage(rewardPage, RewardTotalPages) - 1) * rewardPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(rewardPage, RewardTotalPages) * rewardPageSize, SalonService.LoyaltyRewards.Count))</strong> of <strong>@SalonService.LoyaltyRewards.Count</strong> rewards
+                        </div>
+                        @if (RewardTotalPages > 1)
+                        {
+                            <div class="portal-pagination-controls">
+                                <button class="portal-page-btn" disabled="@(CurrentSafePage(rewardPage, RewardTotalPages) <= 1)" @onclick="() => rewardPage = CurrentSafePage(rewardPage, RewardTotalPages) - 1">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                                @for (int p = 1; p <= RewardTotalPages; p++)
+                                {
+                                    int pageNum = p;
+                                    <button class="portal-page-btn @(CurrentSafePage(rewardPage, RewardTotalPages) == pageNum ? "active" : "")" @onclick="() => rewardPage = pageNum">
+                                        @pageNum
+                                    </button>
+                                }
+                                <button class="portal-page-btn" disabled="@(CurrentSafePage(rewardPage, RewardTotalPages) >= RewardTotalPages)" @onclick="() => rewardPage = CurrentSafePage(rewardPage, RewardTotalPages) + 1">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
                 </div>
 
                 <!-- Tier Progression Rules -->
@@ -890,28 +1166,28 @@
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div style="border-left: 4px solid #8B5CF6; padding: 12px 16px; background: #FAF5FF; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="color: #7C3AED;">👑 Platinum Tier (₱25,000+ Lifetime Spend)</strong>
+                                <strong style="color: #7C3AED;"><i class="bi bi-award-fill"></i> Platinum Tier (₱25,000+ Lifetime Spend)</strong>
                                 <span style="font-size: 12px; font-weight: 700; background: #EDE9FE; color: #6D28D9; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Platinum") clients</span>
                             </div>
                             <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">15% permanent discount, priority VIP slot booking, free complimentary scalp ritual.</p>
                         </div>
                         <div style="border-left: 4px solid #D97706; padding: 12px 16px; background: #FFFBEB; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="color: #B45309;">⭐ Gold Tier (₱10,000+ Lifetime Spend)</strong>
+                                <strong style="color: #B45309;"><i class="bi bi-star-fill"></i> Gold Tier (₱10,000+ Lifetime Spend)</strong>
                                 <span style="font-size: 12px; font-weight: 700; background: #FEF3C7; color: #B45309; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Gold") clients</span>
                             </div>
                             <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">10% permanent discount, birthday month gift, 1.5x points multiplier.</p>
                         </div>
                         <div style="border-left: 4px solid #64748B; padding: 12px 16px; background: #F8FAFC; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="color: #475569;">🥈 Silver Tier (₱3,500+ Lifetime Spend)</strong>
+                                <strong style="color: #475569;"><i class="bi bi-shield-fill"></i> Silver Tier (₱3,500+ Lifetime Spend)</strong>
                                 <span style="font-size: 12px; font-weight: 700; background: #E2E8F0; color: #334155; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Silver") clients</span>
                             </div>
                             <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">5% discount on retail products, standard points earning (1 pt per ₱100 spend).</p>
                         </div>
                         <div style="border-left: 4px solid #B45309; padding: 12px 16px; background: #FFF7ED; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="color: #9A3412;">🥉 Bronze Tier (Entry Level)</strong>
+                                <strong style="color: #9A3412;"><i class="bi bi-circle-fill"></i> Bronze Tier (Entry Level)</strong>
                                 <span style="font-size: 12px; font-weight: 700; background: #FFEDD5; color: #9A3412; padding: 2px 8px; border-radius: 10px;">@SalonService.Customers.Count(c => c.Tier == "Bronze") clients</span>
                             </div>
                             <p style="font-size: 13px; color: var(--text-muted); margin: 4px 0 0 0;">Standard points earning on all services & retail products.</p>
@@ -963,21 +1239,45 @@
                                     <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">No invoices match your filter criteria.</td>
                                 </tr>
                             }
-                            @foreach (var inv in FilteredInvoices)
+                            @foreach (var inv in PagedInvoices)
                             {
-                                <tr style="border-bottom: 1px solid var(--border-light);">
-                                    <td style="padding: 14px; font-weight: 700; font-family: monospace;">@inv.InvoiceNumber</td>
-                                    <td style="padding: 14px; color: var(--text-muted); font-size: 13px;">@inv.Timestamp.ToString("MMM dd, yyyy hh:mm tt")</td>
-                                    <td style="padding: 14px; font-weight: 600;">@inv.ClientName</td>
-                                    <td style="padding: 14px;">@inv.ServiceName</td>
-                                    <td style="padding: 14px;">@inv.StylistName</td>
-                                    <td style="padding: 14px;"><span style="font-size: 12px; background: #F3F4F6; padding: 2px 8px; border-radius: 4px; font-weight: 600;">@inv.PaymentMethod</span></td>
-                                    <td style="padding: 14px; font-weight: 800; color: #10B981;">₱@inv.Total.ToString("N0")</td>
-                                    <td style="padding: 14px;"><span style="font-size: 11px; background: #ECFDF5; color: #065F46; font-weight: 700; padding: 2px 6px; border-radius: 3px;">PAID</span></td>
+                                <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
+                                    <td style="padding: 14px; font-weight: 700; font-family: monospace; color: #111827;">@inv.InvoiceNumber</td>
+                                    <td style="padding: 14px; color: #111827; font-size: 13px; font-weight: 500;">@inv.Timestamp.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@inv.ClientName</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 600;">@inv.ServiceName</td>
+                                    <td style="padding: 14px; color: #111827; font-weight: 600;">@inv.StylistName</td>
+                                    <td style="padding: 14px; font-weight: 600; color: #111827;">@inv.PaymentMethod</td>
+                                    <td style="padding: 14px; font-weight: 800; color: #111827;">₱@inv.Total.ToString("N0")</td>
+                                    <td style="padding: 14px;"><span style="font-size: 13px; color: #10B981; font-weight: 800;">PAID</span></td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <div class="portal-pagination-bar">
+                    <div class="portal-pagination-info">
+                        Showing <strong>@(FilteredInvoices.Any() ? ((CurrentSafePage(billPage, BillTotalPages) - 1) * billPageSize) + 1 : 0)</strong> to <strong>@(Math.Min(CurrentSafePage(billPage, BillTotalPages) * billPageSize, FilteredInvoices.Count()))</strong> of <strong>@FilteredInvoices.Count()</strong> invoices
+                    </div>
+                    @if (BillTotalPages > 1)
+                    {
+                        <div class="portal-pagination-controls">
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(billPage, BillTotalPages) <= 1)" @onclick="() => billPage = CurrentSafePage(billPage, BillTotalPages) - 1">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            @for (int p = 1; p <= BillTotalPages; p++)
+                            {
+                                int pageNum = p;
+                                <button class="portal-page-btn @(CurrentSafePage(billPage, BillTotalPages) == pageNum ? "active" : "")" @onclick="() => billPage = pageNum">
+                                    @pageNum
+                                </button>
+                            }
+                            <button class="portal-page-btn" disabled="@(CurrentSafePage(billPage, BillTotalPages) >= BillTotalPages)" @onclick="() => billPage = CurrentSafePage(billPage, BillTotalPages) + 1">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -1009,24 +1309,32 @@
                 <!-- Report Metric Highlights -->
                 <div class="portal-kpi-grid" style="margin-bottom: 24px;">
                     <div class="portal-kpi-card">
-                        <span class="portal-kpi-label">Gross Revenue Collections</span>
+                        <div>
+                            <span class="portal-kpi-label">Gross Revenue Collections</span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px;">@ReportInvoices.Count() completed tickets</span>
+                        </div>
                         <div class="portal-kpi-num" style="color: #10B981;">₱@ReportInvoices.Sum(i => i.Total).ToString("N0")</div>
-                        <span style="font-size: 12px; color: var(--text-muted);">@ReportInvoices.Count() completed tickets</span>
                     </div>
                     <div class="portal-kpi-card">
-                        <span class="portal-kpi-label">Services Gross Share</span>
+                        <div>
+                            <span class="portal-kpi-label">Services Gross Share</span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px;">Core salon treatments</span>
+                        </div>
                         <div class="portal-kpi-num">₱@ReportInvoices.Sum(i => i.Subtotal).ToString("N0")</div>
-                        <span style="font-size: 12px; color: var(--text-muted);">Core salon treatments</span>
                     </div>
                     <div class="portal-kpi-card">
-                        <span class="portal-kpi-label">Retail Products Share</span>
+                        <div>
+                            <span class="portal-kpi-label">Retail Products Share</span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px;">Take-home hair care add-ons</span>
+                        </div>
                         <div class="portal-kpi-num" style="color: var(--gold-accent);">₱@ReportInvoices.Sum(i => i.RetailAddonsTotal).ToString("N0")</div>
-                        <span style="font-size: 12px; color: var(--text-muted);">Take-home hair care add-ons</span>
                     </div>
                     <div class="portal-kpi-card">
-                        <span class="portal-kpi-label">Est. Staff Commissions</span>
+                        <div>
+                            <span class="portal-kpi-label">Est. Staff Commissions</span>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px;">Calculated per stylist commission rate</span>
+                        </div>
                         <div class="portal-kpi-num" style="color: #2563EB;">₱@ReportInvoices.Sum(i => Math.Round(i.Subtotal * GetStylistCommissionRate(i.StylistName), 0)).ToString("N0")</div>
-                        <span style="font-size: 12px; color: var(--text-muted);">Calculated per stylist commission rate</span>
                     </div>
                 </div>
 
@@ -1036,7 +1344,7 @@
                     <div class="portal-data-card" style="margin-bottom: 0;">
                         <div class="portal-card-header" style="margin-bottom: 12px;">
                             <div>
-                                <h3 class="portal-card-title">📈 Revenue Velocity & Sales Trend</h3>
+                                <h3 class="portal-card-title"><i class="bi bi-graph-up-arrow" style="margin-right: 6px;"></i> Revenue Velocity & Sales Trend</h3>
                                 <span style="font-size: 12px; color: var(--text-muted);">Real-time revenue tracking across services and retail products</span>
                             </div>
                         </div>
@@ -1049,7 +1357,7 @@
                     <div class="portal-data-card" style="margin-bottom: 0;">
                         <div class="portal-card-header" style="margin-bottom: 12px;">
                             <div>
-                                <h3 class="portal-card-title">🍩 Service & Category Mix</h3>
+                                <h3 class="portal-card-title"><i class="bi bi-pie-chart-fill" style="margin-right: 6px;"></i> Service & Category Mix</h3>
                                 <span style="font-size: 12px; color: var(--text-muted);">Revenue split by treatment type</span>
                             </div>
                         </div>
@@ -1059,81 +1367,57 @@
                     </div>
                 </div>
 
-                <!-- ROW 2 OF GRAPHS: Specialist Production & Peak Booking Demand -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <!-- ROW 2 OF GRAPHS: Specialist Production & Commission Ledger -->
+                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px;">
                     <!-- Graph 3: Specialist Performance & Commission (Bar Chart) -->
                     <div class="portal-data-card" style="margin-bottom: 0;">
                         <div class="portal-card-header" style="margin-bottom: 12px;">
                             <div>
-                                <h3 class="portal-card-title">✂️ Specialist Production Leaderboard</h3>
+                                <h3 class="portal-card-title"><i class="bi bi-scissors" style="margin-right: 6px;"></i> Specialist Production Leaderboard</h3>
                                 <span style="font-size: 12px; color: var(--text-muted);">Gross service sales generated vs commission payout per specialist</span>
                             </div>
                         </div>
-                        <div style="height: 280px; position: relative;">
+                        <div style="height: 290px; position: relative;">
                             <canvas id="specialistBarCanvas"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Graph 4: Peak Booking Hours & Floor Demand (Bar Chart) -->
-                    <div class="portal-data-card" style="margin-bottom: 0;">
-                        <div class="portal-card-header" style="margin-bottom: 12px;">
-                            <div>
-                                <h3 class="portal-card-title">⏰ Peak Floor Hours & Booking Density</h3>
-                                <span style="font-size: 12px; color: var(--text-muted);">Client appointment distribution by time slot</span>
-                            </div>
-                        </div>
-                        <div style="height: 280px; position: relative;">
-                            <canvas id="peakHoursCanvas"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ROW 3 OF GRAPHS: Loyalty Tiers, Payment Mix & Detailed Commission Ledger -->
-                <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 24px;">
-                    <!-- Graph 5: VIP Loyalty Tier Distribution (Donut Chart) -->
-                    <div class="portal-data-card" style="margin-bottom: 0;">
-                        <div class="portal-card-header" style="margin-bottom: 12px;">
-                            <div>
-                                <h3 class="portal-card-title">💎 VIP Loyalty Tier Split</h3>
-                                <span style="font-size: 12px; color: var(--text-muted);">Registered customer loyalty segmentation</span>
-                            </div>
-                        </div>
-                        <div style="height: 260px; position: relative;">
-                            <canvas id="vipTierCanvas"></canvas>
                         </div>
                     </div>
 
                     <!-- Specialist Production & Payment Mix Ledger -->
                     <div class="portal-data-card" style="margin-bottom: 0;">
                         <div class="portal-card-header" style="margin-bottom: 12px;">
-                            <h3 class="portal-card-title">Specialist Production & Commission Ledger</h3>
+                            <div>
+                                <h3 class="portal-card-title">Specialist Production & Commission Ledger</h3>
+                                <span style="font-size: 12px; color: var(--text-muted);">Payout calculations per specialist commission rate</span>
+                            </div>
                         </div>
-                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
-                                    <th style="padding: 8px 10px;">Specialist</th>
-                                    <th style="padding: 8px 10px;">Rate</th>
-                                    <th style="padding: 8px 10px;">Tickets</th>
-                                    <th style="padding: 8px 10px;">Gross Sales</th>
-                                    <th style="padding: 8px 10px; text-align: right;">Commission</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var stylist in SalonService.Team)
-                                {
-                                    var stylistInvoices = ReportInvoices.Where(i => i.StylistName == stylist.Name).ToList();
-                                    decimal gross = stylistInvoices.Sum(i => i.Total);
-                                    decimal commission = Math.Round(stylistInvoices.Sum(i => i.Subtotal) * stylist.CommissionRate, 0);
-                                    <tr style="border-bottom: 1px solid var(--border-light);">
-                                        <td style="padding: 10px; font-weight: 600;">@stylist.Name</td>
-                                        <td style="padding: 10px; font-size: 12px; color: var(--text-muted);">@((stylist.CommissionRate * 100).ToString("N0"))%</td>
-                                        <td style="padding: 10px;">@stylistInvoices.Count</td>
-                                        <td style="padding: 10px; font-weight: 700;">₱@gross.ToString("N0")</td>
-                                        <td style="padding: 10px; text-align: right; font-weight: 800; color: #2563EB;">₱@commission.ToString("N0")</td>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; text-transform: uppercase;">
+                                        <th style="padding: 10px 12px;">Specialist</th>
+                                        <th style="padding: 10px 12px;">Rate</th>
+                                        <th style="padding: 10px 12px;">Tickets</th>
+                                        <th style="padding: 10px 12px;">Gross Sales</th>
+                                        <th style="padding: 10px 12px; text-align: right;">Commission</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var stylist in SalonService.Team)
+                                    {
+                                        var stylistInvoices = ReportInvoices.Where(i => i.StylistName == stylist.Name).ToList();
+                                        decimal gross = stylistInvoices.Sum(i => i.Total);
+                                        decimal commission = Math.Round(stylistInvoices.Sum(i => i.Subtotal) * stylist.CommissionRate, 0);
+                                        <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
+                                            <td style="padding: 12px; font-weight: 700; color: #111827;">@stylist.Name</td>
+                                            <td style="padding: 12px; font-size: 12.5px; color: #4B5563; font-weight: 600;">@((stylist.CommissionRate * 100).ToString("N0"))%</td>
+                                            <td style="padding: 12px; font-weight: 600; color: #111827;">@stylistInvoices.Count</td>
+                                            <td style="padding: 12px; font-weight: 700; color: #111827;">₱@gross.ToString("N0")</td>
+                                            <td style="padding: 12px; text-align: right; font-weight: 800; color: #2563EB;">₱@commission.ToString("N0")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1166,13 +1450,13 @@
                 <div class="form-group">
                     <label class="booking-label">Service / Package</label>
                     <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnCRMServiceChanged">
-                        <optgroup label="✨ All-Inclusive Packages">
+                        <optgroup label="All-Inclusive Packages">
                             @foreach (var pkg in SalonService.Packages)
                             {
                                 <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
                             }
                         </optgroup>
-                        <optgroup label="✂️ Hairstyles, Cuts & Individual Treatments">
+                        <optgroup label="Hairstyles, Cuts & Individual Treatments">
                             @foreach (var svc in SalonService.Services)
                             {
                                 <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
@@ -1638,6 +1922,7 @@
 
 @code {
     private string currentTab = "appointments";
+    private string serviceSubTab = "services";
     private string customerSearchQuery = "";
     private string serviceSearchQuery = "";
     private string serviceCategoryFilter = "all";
@@ -1647,6 +1932,72 @@
     private string billingMethodFilter = "all";
     private string billingSearchQuery = "";
     private string reportPeriod = "today";
+
+    // Pagination State
+    private int apptPage = 1;
+    private const int apptPageSize = 8;
+    private int custPage = 1;
+    private const int custPageSize = 8;
+    private int svcPage = 1;
+    private const int svcPageSize = 6;
+    private int pkgPage = 1;
+    private const int pkgPageSize = 4;
+    private int staffPage = 1;
+    private const int staffPageSize = 6;
+    private int prodPage = 1;
+    private const int prodPageSize = 8;
+    private int supPage = 1;
+    private const int supPageSize = 6;
+    private int promoPage = 1;
+    private const int promoPageSize = 8;
+    private int rewardPage = 1;
+    private const int rewardPageSize = 4;
+    private int billPage = 1;
+    private const int billPageSize = 8;
+
+    // Helper methods for safe pagination calculations
+    private int TotalPages(int count, int pageSize) => Math.Max(1, (int)Math.Ceiling(count / (double)pageSize));
+    private int CurrentSafePage(int page, int totalPages) => Math.Max(1, Math.Min(page, totalPages));
+
+    private int ApptTotalPages => TotalPages(FilteredAppointments.Count(), apptPageSize);
+    private IEnumerable<AppointmentRecord> PagedAppointments =>
+        FilteredAppointments.Skip((CurrentSafePage(apptPage, ApptTotalPages) - 1) * apptPageSize).Take(apptPageSize);
+
+    private int CustTotalPages => TotalPages(FilteredCustomers.Count(), custPageSize);
+    private IEnumerable<CustomerRecord> PagedCustomers =>
+        FilteredCustomers.Skip((CurrentSafePage(custPage, CustTotalPages) - 1) * custPageSize).Take(custPageSize);
+
+    private int SvcTotalPages => TotalPages(FilteredAdminServices.Count(), svcPageSize);
+    private IEnumerable<ServiceOfferItem> PagedAdminServices =>
+        FilteredAdminServices.Skip((CurrentSafePage(svcPage, SvcTotalPages) - 1) * svcPageSize).Take(svcPageSize);
+
+    private int PkgTotalPages => TotalPages(SalonService.Packages.Count, pkgPageSize);
+    private IEnumerable<ServicePackageItem> PagedPackages =>
+        SalonService.Packages.Skip((CurrentSafePage(pkgPage, PkgTotalPages) - 1) * pkgPageSize).Take(pkgPageSize);
+
+    private int StaffTotalPages => TotalPages(FilteredStaffMembers.Count(), staffPageSize);
+    private IEnumerable<TeamMemberItem> PagedStaffMembers =>
+        FilteredStaffMembers.Skip((CurrentSafePage(staffPage, StaffTotalPages) - 1) * staffPageSize).Take(staffPageSize);
+
+    private int ProdTotalPages => TotalPages(SalonService.Products.Count, prodPageSize);
+    private IEnumerable<ProductItem> PagedProducts =>
+        SalonService.Products.OrderByDescending(p => p.Id).Skip((CurrentSafePage(prodPage, ProdTotalPages) - 1) * prodPageSize).Take(prodPageSize);
+
+    private int SupTotalPages => TotalPages(SalonService.Suppliers.Count, supPageSize);
+    private IEnumerable<SupplierRecord> PagedSuppliers =>
+        SalonService.Suppliers.Skip((CurrentSafePage(supPage, SupTotalPages) - 1) * supPageSize).Take(supPageSize);
+
+    private int PromoTotalPages => TotalPages(SalonService.Promotions.Count, promoPageSize);
+    private IEnumerable<PromotionItem> PagedPromotions =>
+        SalonService.Promotions.Skip((CurrentSafePage(promoPage, PromoTotalPages) - 1) * promoPageSize).Take(promoPageSize);
+
+    private int RewardTotalPages => TotalPages(SalonService.LoyaltyRewards.Count, rewardPageSize);
+    private IEnumerable<LoyaltyRewardItem> PagedLoyaltyRewards =>
+        SalonService.LoyaltyRewards.Skip((CurrentSafePage(rewardPage, RewardTotalPages) - 1) * rewardPageSize).Take(rewardPageSize);
+
+    private int BillTotalPages => TotalPages(FilteredInvoices.Count(), billPageSize);
+    private IEnumerable<InvoiceRecord> PagedInvoices =>
+        FilteredInvoices.Skip((CurrentSafePage(billPage, BillTotalPages) - 1) * billPageSize).Take(billPageSize);
 
     // Modal Visibility States
     private bool showNewBookingModal = false;
@@ -2175,27 +2526,6 @@
                 specComm.Add(c);
             }
             await JSRuntime.InvokeVoidAsync("SalonCharts.renderSpecialistBar", "specialistBarCanvas", specLabels, specSales, specComm);
-
-            // 4. Peak Hours Bar Chart
-            var hourSlots = new[] { "09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM" };
-            var hourCounts = new List<int>();
-            foreach (var slot in hourSlots)
-            {
-                int count = SalonService.Appointments.Count(a => a.TimeSlot.Contains(slot.Split(' ')[0], StringComparison.OrdinalIgnoreCase) || a.TimeSlot == slot);
-                hourCounts.Add(count);
-            }
-            await JSRuntime.InvokeVoidAsync("SalonCharts.renderPeakHoursBar", "peakHoursCanvas", hourSlots, hourCounts);
-
-            // 5. VIP Tier Donut Chart
-            var tierLabels = new[] { "Platinum VIP", "Gold Member", "Silver Member", "Bronze" };
-            var tierCounts = new[]
-            {
-                SalonService.Customers.Count(c => c.Tier.Equals("Platinum", StringComparison.OrdinalIgnoreCase)),
-                SalonService.Customers.Count(c => c.Tier.Equals("Gold", StringComparison.OrdinalIgnoreCase)),
-                SalonService.Customers.Count(c => c.Tier.Equals("Silver", StringComparison.OrdinalIgnoreCase)),
-                SalonService.Customers.Count(c => c.Tier.Equals("Bronze", StringComparison.OrdinalIgnoreCase))
-            };
-            await JSRuntime.InvokeVoidAsync("SalonCharts.renderVipTierDonut", "vipTierCanvas", tierLabels, tierCounts);
         }
         catch { }
     }

@@ -440,15 +440,15 @@
 
             <div class="booking-form-grid">
                 <div class="form-full">
-                    <label class="booking-label">Selected Service / Package</label>
+                    <label class="booking-label"><i class="bi bi-stars"></i> Selected Service / Package</label>
                     <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnServiceSelectionChanged">
-                        <optgroup label="✨ All-Inclusive Packages">
+                        <optgroup label="All-Inclusive Packages">
                             @foreach (var pkg in SalonService.Packages)
                             {
                                 <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
                             }
                         </optgroup>
-                        <optgroup label="✂️ Hairstyles, Cuts & Individual Treatments">
+                        <optgroup label="Hairstyles, Cuts & Individual Treatments">
                             @foreach (var svc in SalonService.Services)
                             {
                                 <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
@@ -458,22 +458,22 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Preferred Specialist</label>
+                    <label class="booking-label"><i class="bi bi-person-badge"></i> Preferred Specialist</label>
                     <select class="booking-input" @bind="newAppt.StylistName">
                         @foreach (var team in SalonService.Stylists)
                         {
-                            <option value="@team.Name">@team.Name (@team.Role)</option>
+                            <option value="@team.Name">@team.Name — @team.Role</option>
                         }
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Appointment Date</label>
+                    <label class="booking-label"><i class="bi bi-calendar3"></i> Appointment Date</label>
                     <input type="date" class="booking-input" @bind="newAppt.Date" />
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Time Slot</label>
+                    <label class="booking-label"><i class="bi bi-clock"></i> Time Slot</label>
                     <select class="booking-input" @bind="newAppt.TimeSlot">
                         <option value="09:00 AM">09:00 AM</option>
                         <option value="10:30 AM">10:30 AM</option>
@@ -485,17 +485,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Your Full Name</label>
+                    <label class="booking-label"><i class="bi bi-person"></i> Your Full Name</label>
                     <input type="text" class="booking-input" placeholder="e.g. Maria Santos" @bind="newAppt.ClientName" />
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Mobile Number</label>
+                    <label class="booking-label"><i class="bi bi-telephone"></i> Mobile Number</label>
                     <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newAppt.ClientPhone" />
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label">Email Address</label>
+                    <label class="booking-label"><i class="bi bi-envelope"></i> Email Address</label>
                     <input type="email" class="booking-input" placeholder="you@example.com" @bind="newAppt.ClientEmail" />
                 </div>
             </div>

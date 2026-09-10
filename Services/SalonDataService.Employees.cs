@@ -12,12 +12,17 @@ public partial class SalonDataService
     public List<TeamMemberItem> Team { get; private set; } = new();
 
     public List<TeamMemberItem> Stylists => Team.Where(t =>
+        t.IsActive &&
+        (t.Role.Contains("Stylist", StringComparison.OrdinalIgnoreCase) ||
+         t.Role.Contains("Color Specialist", StringComparison.OrdinalIgnoreCase) ||
+         t.Role.Contains("Hair Specialist", StringComparison.OrdinalIgnoreCase)) &&
         !t.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) &&
         !t.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase) &&
         !t.Role.Contains("Admin", StringComparison.OrdinalIgnoreCase) &&
         !t.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase) &&
-        !t.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase)
-    ).ToList() is { Count: > 0 } list ? list : Team;
+        !t.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase) &&
+        !t.Role.Contains("Staff", StringComparison.OrdinalIgnoreCase)
+    ).ToList();
 
     private void LoadEmployeesFromDb(SqlConnection conn)
     {

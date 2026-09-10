@@ -236,13 +236,13 @@
                         <div style="margin-bottom: 16px;">
                             <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Selected Ritual / Service</label>
                             <select class="booking-input" @bind="billingServiceName" @bind:after="RecalculateBasePrice">
-                                <optgroup label="✨ Service Packages">
+                                <optgroup label="Service Packages">
                                     @foreach (var pkg in SalonService.Packages)
                                     {
                                         <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
                                     }
                                 </optgroup>
-                                <optgroup label="✂️ Individual Services">
+                                <optgroup label="Individual Services">
                                     @foreach (var svc in SalonService.Services)
                                     {
                                         <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
@@ -881,7 +881,7 @@
             </div>
 
             <div style="text-align: center; font-size: 11px; color: #555; margin-bottom: 14px;">
-                <div>✨ Points Earned: <strong>+@viewingReceipt.PointsEarned pts</strong></div>
+                <div><i class="bi bi-stars" style="color: #D97706;"></i> Points Earned: <strong>+@viewingReceipt.PointsEarned pts</strong></div>
                 <div>Thank you for choosing Beauty Hair!</div>
             </div>
 

@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SalonSuite — Prototype Screens & Transaction Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --bg-base: #0B0E14;
+            --bg-surface: #111722;
+            --bg-card: #161F2E;
+            --bg-card-hover: #1D2A3D;
+            --gold-primary: #D4AF37;
+            --gold-light: #F3E5AB;
+            --gold-dark: #997A15;
+            --text-main: #F1F5F9;
+            --text-muted: #94A3B8;
+            --border-color: rgba(212, 175, 55, 0.18);
+            --border-card: rgba(255, 255, 255, 0.07);
+            --accent-emerald: #10B981;
+            --accent-blue: #38BDF8;
+            --accent-purple: #A855F7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        /* Sidebar Navigation */
+        .layout-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        .brand-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-text span {
+            font-size: 0.72rem;
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+        }
+
+        .nav-group-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--gold-primary);
+            margin: 1.5rem 0 0.6rem 0.5rem;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.65rem 0.9rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item a:hover {
+            color: #fff;
+            background: rgba(212, 175, 55, 0.1);
+            border-left: 3px solid var(--gold-primary);
+        }
+
+        .nav-item a i {
+            font-size: 1.05rem;
+            color: var(--gold-primary);
+        }
+
+        /* Main Content */
+        .content {
+            margin-left: 320px;
+            padding: 3rem 4rem;
+            width: calc(100% - 320px);
+            max-width: 1500px;
+        }
+
+        /* Header Hero */
+        .doc-header {
+            background: linear-gradient(135deg, rgba(22, 31, 46, 0.9), rgba(17, 23, 34, 0.95));
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-bottom: 3.5rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .doc-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .doc-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 1px solid var(--gold-primary);
+            border-radius: 30px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.2rem;
+        }
+
+        .doc-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.75rem;
+            color: #fff;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .doc-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 900px;
+            margin-bottom: 1.5rem;
+        }
+
+        .meta-tags {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-card);
+            padding: 6px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .meta-tag strong {
+            color: #fff;
+        }
+
+        /* Section Styling */
+        .doc-section {
+            margin-bottom: 5rem;
+            scroll-margin-top: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 1.8rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-card);
+        }
+
+        .section-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold-primary);
+            font-size: 1.5rem;
+        }
+
+        .section-title h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: #fff;
+        }
+
+        .section-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Screen Item Card */
+        .screen-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            margin-bottom: 2.8rem;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .screen-card:hover {
+            border-color: var(--border-color);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .screen-header {
+            padding: 1.4rem 1.8rem;
+            background: var(--bg-card);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        .screen-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .screen-tag {
+            background: var(--gold-primary);
+            color: #0B0E14;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .screen-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .screen-badge-route {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--gold-light);
+        }
+
+        .screen-body {
+            padding: 1.8rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.8rem;
+        }
+
+        .img-container {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #000;
+            position: relative;
+        }
+
+        .img-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .img-container:hover img {
+            transform: scale(1.01);
+        }
+
+        .img-caption {
+            padding: 0.6rem 1rem;
+            background: rgba(11, 14, 20, 0.85);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .img-caption strong {
+            color: var(--gold-primary);
+        }
+
+        /* Description Details */
+        .screen-description {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-card);
+        }
+
+        .desc-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--gold-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .desc-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .interaction-guide {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .guide-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .guide-steps {
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .guide-steps li {
+            position: relative;
+            padding-left: 24px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .guide-steps li::before {
+            content: '➔';
+            position: absolute;
+            left: 0;
+            color: var(--gold-primary);
+            font-size: 0.85rem;
+        }
+
+        .guide-steps li strong {
+            color: #fff;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                display: none;
+            }
+            .content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">S</div>
+            <div class="brand-text">
+                <h1>SalonSuite</h1>
+                <span>Design System & Specs</span>
+            </div>
+        </div>
+
+        <div class="nav-group-title">Prototype Modules</div>
+        <ul class="nav-list">
+            <li class="nav-item"><a href="#module-landing"><i class="bi bi-browser-safari"></i> 1. Public Landing Page</a></li>
+            <li class="nav-item"><a href="#module-booking"><i class="bi bi-calendar2-check-fill"></i> 2. Online Booking Engine</a></li>
+            <li class="nav-item"><a href="#module-auth"><i class="bi bi-shield-lock-fill"></i> 3. Authentication & Security</a></li>
+            <li class="nav-item"><a href="#module-client"><i class="bi bi-person-heart"></i> 4. Client & Loyalty Portal</a></li>
+            <li class="nav-item"><a href="#module-stylist"><i class="bi bi-scissors"></i> 5. Stylist Terminal</a></li>
+            <li class="nav-item"><a href="#module-cashier"><i class="bi bi-calculator-fill"></i> 6. Cashier & POS Terminal</a></li>
+            <li class="nav-item"><a href="#module-admin"><i class="bi bi-gear-wide-connected"></i> 7. Executive Admin ERP Suite</a></li>
+        </ul>
+
+        <div class="nav-group-title">Quick Actions</div>
+        <ul class="nav-list">
+            <li class="nav-item"><a href="/" target="_blank"><i class="bi bi-house-door"></i> Open Live App</a></li>
+            <li class="nav-item"><a href="/portal" target="_blank"><i class="bi bi-speedometer2"></i> Open ERP Suite</a></li>
+            <li class="nav-item"><a href="/cashier" target="_blank"><i class="bi bi-cash-stack"></i> Open Cashier POS</a></li>
+            <li class="nav-item"><a href="/book" target="_blank"><i class="bi bi-bag-plus"></i> Open Booking Page</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+        <!-- Header Hero -->
+        <header class="doc-header">
+            <div class="doc-badge"><i class="bi bi-stars"></i> Complete Prototype Documentation</div>
+            <h1>SalonSuite — Frontend Screens & Transaction Specification</h1>
+            <p>Comprehensive UI/UX catalog featuring high-resolution captures of every screen, modal, and state transition across the SalonSuite ecosystem. Each screen contains dedicated label names, functionality descriptions, and step-by-step user interaction guidelines.</p>
+            
+            <div class="meta-tags">
+                <div class="meta-tag"><i class="bi bi-layers-fill"></i> <strong>7 Core Modules</strong></div>
+                <div class="meta-tag"><i class="bi bi-images"></i> <strong>38 Prototype Screens</strong></div>
+                <div class="meta-tag"><i class="bi bi-credit-card-2-front"></i> <strong>All Transaction Flows Included</strong></div>
+                <div class="meta-tag"><i class="bi bi-check2-circle"></i> <strong>Production Ready (.NET 10 Blazor)</strong></div>
+            </div>
+        </header>
+
+        <!-- MODULE 1: PUBLIC LANDING PAGE -->
+        <section id="module-landing" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-browser-safari"></i></div>
+                <div class="section-title">
+                    <h2>1. Public Landing & Client Showcase</h2>
+                    <p>High-conversion luxury salon marketing portal, service catalog, team introduction, verified client reviews, and direct reservation entry point.</p>
+                </div>
+            </div>
+
+            <!-- Screen 1.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 1.1</span>
+                        <span class="screen-title">Hero Section & Primary Booking Call to Action</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/home_page_hero_1788960908015.png" alt="Hero Section & Primary Booking Call to Action">
+                        <div class="img-caption"><strong>Figure 1.1:</strong> Hero banner showcasing luxury brand identity, navigation bar, and primary "Book Reservation" CTA button.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Serves as the primary digital storefront for SalonSuite. It introduces the salon's luxury aesthetic, brand statement, and provides immediate access to online reservations, service menus, client loyalty lookup, and staff portals via the top navigation bar.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"Book an Appointment"</strong> or <strong>"Reserve Your Ritual"</strong> to immediately jump into the 5-step booking engine.</li>
+                                <li>Click navigation links (<strong>Services, Stylists, Reviews, Contact</strong>) for smooth anchor scrolling.</li>
+                                <li>Click <strong>"Portals / Login"</strong> in the top header to access role-based staff or client account dashboards.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 1.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 1.2</span>
+                        <span class="screen-title">Featured Treatments & Service Catalog Showcase</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /#services</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/home_page_services_1788960948425.png" alt="Featured Treatments & Service Catalog Showcase">
+                        <div class="img-caption"><strong>Figure 1.2:</strong> Interactive treatment catalog displaying service duration, pricing in Philippine Peso (PHP), and quick book actions.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Presents the salon's signature service menu categorized into Hair Styling, Balayage & Color, Spa & Scalp Treatments, and Nail Care. Each service card highlights estimated duration (mins), baseline pricing (₱), and brief description.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Browse categorized service offerings with transparent pricing and time estimates.</li>
+                                <li>Click the <strong>"Book This Service"</strong> button on any service card to pre-select that service and open the online booking form.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 1.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 1.3</span>
+                        <span class="screen-title">Master Stylists & Creative Directors Showcase</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /#stylists</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/home_page_team_footer_1788960989430.png" alt="Master Stylists & Creative Directors Showcase">
+                        <div class="img-caption"><strong>Figure 1.3:</strong> Specialist profiles highlighting individual experience, creative specializations, and booking availability.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Introduces the salon's resident master stylists and specialists, showcasing their profile portraits, artistic titles, years of industry experience, and customer star ratings.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Review each specialist's bio, signature techniques, and guest review ratings.</li>
+                                <li>Click <strong>"Book with [Stylist Name]"</strong> to initiate an appointment pre-assigned to the chosen specialist.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 1.4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 1.4</span>
+                        <span class="screen-title">Verified Guest Reviews & Testimonials</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /#reviews</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/home_page_team_reviews_1788961050610.png" alt="Verified Guest Reviews & Testimonials">
+                        <div class="img-caption"><strong>Figure 1.4:</strong> Social proof carousel presenting verified guest feedback, service ratings, and client recommendations.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Builds customer trust through authenticated feedback from recent salon clients, displaying verified customer names, 5-star quality ratings, and detailed testimonials of their salon experience.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Scroll through reviews to learn about specific treatments and service satisfaction.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 1.5 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 1.5</span>
+                        <span class="screen-title">Salon Operating Hours, Location & Footer Information</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /#contact</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/home_page_contact_footer_1788961164344.png" alt="Salon Operating Hours, Location & Footer Information">
+                        <div class="img-caption"><strong>Figure 1.5:</strong> Footer containing business hours, address, direct telephone, email support, and social media links.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Displays essential branch logistics including studio address, phone numbers, operating schedules (Monday–Sunday 9:00 AM – 8:00 PM), and links to terms, privacy policies, and administrative staff login portals.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Verify studio open hours prior to walk-in visits.</li>
+                                <li>Click telephone or email links to directly contact the front desk concierge.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 2: ONLINE BOOKING ENGINE -->
+        <section id="module-booking" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-calendar2-check-fill"></i></div>
+                <div class="section-title">
+                    <h2>2. Client Online Booking Engine</h2>
+                    <p>End-to-end appointment scheduling transaction workflow featuring category browsing, stylist allocation, interactive time slot selection, and automated reservation confirmation.</p>
+                </div>
+            </div>
+
+            <!-- Screen 2.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 2.1</span>
+                        <span class="screen-title">Category Filtering & Service Selection Grid</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /book</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/booking_step1_services_1788961323781.png" alt="Category Filtering & Service Selection Grid">
+                        <div class="img-caption"><strong>Figure 2.1:</strong> Category filter tabs (Hair, Color, Treatments, Nails) and service selection cards.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">The initial step of the booking transaction. Users filter through treatment categories and select one or more services to add to their booking itinerary.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click on category tabs (e.g. <strong>"Hair Cut & Style"</strong>, <strong>"Coloring"</strong>, <strong>"Spa"</strong>) to filter available treatments.</li>
+                                <li>Click <strong>"Select & Book"</strong> on the chosen service card to trigger the reservation modal.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 2.2</span>
+                        <span class="screen-title">Interactive Reservation Form & Time Slot Picker</span>
+                    </div>
+                    <span class="screen-badge-route">Modal: Reservation Form</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/booking_reservation_modal_1788961530543.png" alt="Interactive Reservation Form & Time Slot Picker">
+                        <div class="img-caption"><strong>Figure 2.2:</strong> Reservation modal displaying Specialist selector, date picker, real-time available time slots, and client contact inputs.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Coordinates specialist allocation, calendar date selection, and appointment time slot validation. Prevents double-booking by only showing currently vacant time slots for the selected stylist.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Select preferred stylist from the dropdown (or select <strong>"Any Available Specialist"</strong>).</li>
+                                <li>Choose appointment date using the date picker.</li>
+                                <li>Click on an active time slot chip (e.g. <strong>"10:00 AM"</strong>, <strong>"02:00 PM"</strong>).</li>
+                                <li>Enter Client Full Name, Mobile Contact Number, Email, and optional Special Requests.</li>
+                                <li>Click <strong>"Confirm & Complete Reservation"</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 2.3</span>
+                        <span class="screen-title">Appointment Summary & Confirmation Success Modal</span>
+                    </div>
+                    <span class="screen-badge-route">Modal: Booking Complete</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/booking_confirmation_modal_1788961770227.png" alt="Appointment Summary & Confirmation Success Modal">
+                        <div class="img-caption"><strong>Figure 2.3:</strong> Successful booking confirmation banner displaying reference number (APPT-XXXX), selected service, assigned stylist, and time.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Displays transaction completion state with a unique appointment code, appointment summary breakdown, estimated total cost, and options to print, copy reference, or view in client portal.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Note or copy the generated <strong>Appointment Reference ID</strong>.</li>
+                                <li>Click <strong>"View in Client Portal"</strong> to check status or <strong>"Book Another Service"</strong> to return to the catalog.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 3: AUTHENTICATION & SECURITY -->
+        <section id="module-auth" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-shield-lock-fill"></i></div>
+                <div class="section-title">
+                    <h2>3. Authentication & Security Gateways</h2>
+                    <p>Unified multi-role sign-in system supporting Administrators, Cashiers, Stylists, and Clients with Firebase authentication and quick role-switch test presets.</p>
+                </div>
+            </div>
+
+            <!-- Screen 3.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 3.1</span>
+                        <span class="screen-title">Unified Multi-Role Login Screen</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /login</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/login_page_view_1788961929888.png" alt="Unified Multi-Role Login Screen">
+                        <div class="img-caption"><strong>Figure 3.1:</strong> Authentication screen featuring Role selector tabs, Email/Password login form, and Quick-login role presets.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Secure gateway providing access control. Users select their appropriate role (Client, Stylist, Cashier, Admin/Owner) and enter credentials to authenticate and automatically redirect to their dedicated portal.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Select user role tab (<strong>Client, Stylist, Cashier, Admin</strong>).</li>
+                                <li>Enter Email and Password, then click <strong>"Sign In to SalonSuite"</strong>.</li>
+                                <li>Alternatively, click any one of the <strong>"Quick Demo Login"</strong> buttons to test specific role permissions instantly.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 3.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 3.2</span>
+                        <span class="screen-title">New Client Account Registration</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /login?tab=register</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/register_page_view_1788962009388.png" alt="New Client Account Registration">
+                        <div class="img-caption"><strong>Figure 3.2:</strong> Registration form with input validation for Full Name, Email, Mobile Phone, and Password confirmation.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Enables new salon guests to register an account, automatically enrolling them into the SalonSuite VIP Loyalty Club with a baseline starter balance of 50 welcome points.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Fill in Full Name, Email Address, Contact Number, and Password.</li>
+                                <li>Click <strong>"Create My Account"</strong> to register and enter the Client Portal.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 4: CLIENT & LOYALTY PORTAL -->
+        <section id="module-client" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-person-heart"></i></div>
+                <div class="section-title">
+                    <h2>4. Client & Loyalty Rewards Portal</h2>
+                    <p>Client self-service dashboard for tracking appointment bookings, monitoring VIP tier status, viewing accumulated loyalty points, and redeeming exclusive service perks.</p>
+                </div>
+            </div>
+
+            <!-- Screen 4.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 4.1</span>
+                        <span class="screen-title">Loyalty Member Search & Tier Status Overview</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /client-portal</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/loyalty_page_view_1788962222745.png" alt="Loyalty Member Search & Tier Status Overview">
+                        <div class="img-caption"><strong>Figure 4.1:</strong> Member lookup search bar and VIP tier ranking cards (Silver, Gold, Platinum, Diamond).</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Allows guests or front-desk staff to look up loyalty profiles by Phone Number or Client Name to inspect active rewards points and VIP tier privileges.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Type customer phone or name in the search input and click <strong>"Look Up Account"</strong> (or click one of the quick test account chips).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 4.2</span>
+                        <span class="screen-title">Client Account Summary & Points Balance Card</span>
+                    </div>
+                    <span class="screen-badge-route">Section: Member Summary</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/loyalty_search_result_1788962342862.png" alt="Client Account Summary & Points Balance Card">
+                        <div class="img-caption"><strong>Figure 4.2:</strong> Verified member card displaying current Tier badge, Total Spent, Lifetime Visits, and Spendable Loyalty Points.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Displays authenticated client metrics, including active VIP tier, lifetime expenditure, total appointments attended, and real-time spendable point balance (1 pt = ₱1 discount).</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Review points progress toward next VIP Tier upgrade.</li>
+                                <li>Click <strong>"Book New Appointment"</strong> to schedule a new visit using member credentials.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 4.3</span>
+                        <span class="screen-title">Client Appointment History & Status Ledger</span>
+                    </div>
+                    <span class="screen-badge-route">Section: Booking History</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/loyalty_appointments_table_1788962391855.png" alt="Client Appointment History & Status Ledger">
+                        <div class="img-caption"><strong>Figure 4.3:</strong> Filterable table showing past and upcoming appointments, assigned stylist, service type, and live status badge.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Comprehensive ledger of all appointments booked by the client, displaying status badges (Pending, Confirmed, In Service, Completed, Cancelled) and historical receipts.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Filter appointments by status using the dropdown filter.</li>
+                                <li>View appointment reference codes, scheduled times, and total prices.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4.4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 4.4</span>
+                        <span class="screen-title">Exclusive Loyalty Rewards & Voucher Catalog</span>
+                    </div>
+                    <span class="screen-badge-route">Section: Rewards Catalog</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/loyalty_rewards_catalog_1788962469281.png" alt="Exclusive Loyalty Rewards & Voucher Catalog">
+                        <div class="img-caption"><strong>Figure 4.4:</strong> Points redemption cards offering complimentary scalp massages, discounts, and retail vouchers.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Presents redeemable reward offers that clients can claim using their accumulated loyalty points during their next salon checkout.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Browse rewards based on required points cost.</li>
+                                <li>Click <strong>"Redeem Reward"</strong> to generate a discount voucher code applied directly to cashier billing.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 5: STYLIST / EMPLOYEE TERMINAL -->
+        <section id="module-stylist" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-scissors"></i></div>
+                <div class="section-title">
+                    <h2>5. Stylist Terminal & Station Workflow</h2>
+                    <p>Dedicated employee workstation for tracking daily appointment queues, executing real-time service state transitions (Seat Client ➔ Service Completed), and reviewing personal commission earnings.</p>
+                </div>
+            </div>
+
+            <!-- Screen 5.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 5.1</span>
+                        <span class="screen-title">Daily Appointment Queue & Station Dashboard</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /employee-portal</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/stylist_terminal_view_1788962574652.png" alt="Daily Appointment Queue & Station Dashboard">
+                        <div class="img-caption"><strong>Figure 5.1:</strong> Stylist workstation showing current queue, client notes, scheduled times, and station action triggers.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Empowers specialists to manage their chair in real time. Stylists select their name to load their personalized daily appointment list, guest preferences, and status action buttons.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Select your Stylist profile from the top selector dropdown.</li>
+                                <li>Review assigned clients, scheduled start times, and special styling requests.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 5.2</span>
+                        <span class="screen-title">In-Chair State Transition: "Seat Client" Trigger</span>
+                    </div>
+                    <span class="screen-badge-route">Action: Seat Client</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/stylist_client_seated_1788962653060.png" alt="In-Chair State Transition: Seat Client Trigger">
+                        <div class="img-caption"><strong>Figure 5.2:</strong> Appointment card updating to emerald "In Service" status badge with live timer.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Transaction trigger that transitions the client from "Waiting" to "In Service". This immediately updates the Cashier Floor Queue and Admin live dashboard.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click the <strong>"Seat Client"</strong> button when the guest sits at the styling station.</li>
+                                <li>Observe status badge change to active <strong>"In Service"</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 5.3</span>
+                        <span class="screen-title">Service Completion & Hand-Off to Billing</span>
+                    </div>
+                    <span class="screen-badge-route">Action: Complete Ritual</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/stylist_ritual_completed_1788962692992.png" alt="Service Completion & Hand-Off to Billing">
+                        <div class="img-caption"><strong>Figure 5.3:</strong> Card transitioning to "Completed" with automated prompt forwarding client to Cashier POS.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Signals the conclusion of treatment. Marks service as finished and pushes the completed ticket into the Cashier POS Terminal for final settlement and payment collection.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"Complete Ritual"</strong> once treatment and styling are finished.</li>
+                                <li>Escort client to the front reception desk for checkout.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5.4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 5.4</span>
+                        <span class="screen-title">Stylist Commission & Performance Analytics</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Performance & Earnings</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/stylist_performance_tab_1788962806917.png" alt="Stylist Commission & Performance Analytics">
+                        <div class="img-caption"><strong>Figure 5.4:</strong> Performance tab showing Daily Revenue Generated, Commission Rate (%), Total Earnings, and Client Satisfaction Score.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Provides transparent earnings visibility for stylists, calculating real-time commission earnings based on completed treatments and retail product upsells.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click the <strong>"Performance & Earnings"</strong> tab to inspect daily and weekly commissions.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 5.5 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 5.5</span>
+                        <span class="screen-title">Standard Operating Procedure (SOP) Ritual Guide</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Ritual Guide (SOP)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/stylist_ritual_guide_tab_1788962846531.png" alt="Standard Operating Procedure Ritual Guide">
+                        <div class="img-caption"><strong>Figure 5.5:</strong> Comprehensive technical guide outlining step-by-step procedures for balayage, scalp rituals, and sanitized tool prep.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Standardizes salon service quality by providing in-app technical reference manuals, chemical mixing ratios, exposure times, and hygiene protocols.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click the <strong>"Ritual Guide (SOP)"</strong> tab to reference procedural checklists before executing complex chemical or color services.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 6: CASHIER & POS TERMINAL -->
+        <section id="module-cashier" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-calculator-fill"></i></div>
+                <div class="section-title">
+                    <h2>6. Cashier POS & Floor Operations Terminal</h2>
+                    <p>Complete Point of Sale (POS) system for processing client checkouts, retail add-ons, multi-channel payment tenders (Cash, GCash, Maya, Card), change computation, official thermal receipt printing, and floor queue tracking.</p>
+                </div>
+            </div>
+
+            <!-- Screen 6.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.1</span>
+                        <span class="screen-title">Active POS Billing & Order Terminal</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /cashier</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_pos_portal_view_1788962895499.png" alt="Active POS Billing & Order Terminal">
+                        <div class="img-caption"><strong>Figure 6.1:</strong> Cashier POS terminal displaying quick client selection, service itemization, retail add-ons, and order summary.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">The central billing terminal. Cashiers select completed or walk-in appointments, add retail products (e.g. shampoo, serums) to the cart, apply discounts, and review subtotal, VAT, and grand total.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Select an appointment from the queue to automatically load its service line items.</li>
+                                <li>Click <strong>"+ Add Retail Product"</strong> to attach home-care items sold to the customer.</li>
+                                <li>Apply promo vouchers or loyalty points discount if applicable.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.2</span>
+                        <span class="screen-title">Multi-Payment Tender Method Selector</span>
+                    </div>
+                    <span class="screen-badge-route">Section: Payment Tender</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_payment_options_1788962925604.png" alt="Multi-Payment Tender Method Selector">
+                        <div class="img-caption"><strong>Figure 6.2:</strong> Payment method selector supporting Cash, GCash QR, Maya QR, and Credit/Debit Card swipe.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Supports modern omnichannel payment methods commonly used in Philippine salon operations, including exact cash calculations and digital e-wallet QR verification.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click on the payment method chip (<strong>Cash, GCash, Maya, Card</strong>).</li>
+                                <li>Enter the Tendered Amount in the payment input field.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.3</span>
+                        <span class="screen-title">Automated Change Computation & Payment Finalization</span>
+                    </div>
+                    <span class="screen-badge-route">Action: Process Payment</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_receipt_modal_1788962958173.png" alt="Automated Change Computation & Payment Finalization">
+                        <div class="img-caption"><strong>Figure 6.3:</strong> Change calculator highlighting exact change due back to client in Philippine Peso.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Computes exact change due to prevent manual cashier calculation errors, activates the payment confirmation trigger, and generates a formal fiscal invoice record in the database.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Verify the highlighted <strong>"Change Due"</strong> amount.</li>
+                                <li>Click <strong>"Finalize & Issue Official Receipt"</strong> to complete the transaction.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.4</span>
+                        <span class="screen-title">Printable Thermal Official Receipt Modal</span>
+                    </div>
+                    <span class="screen-badge-route">Modal: Thermal Receipt</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_official_receipt_modal_1788963197198.png" alt="Printable Thermal Official Receipt Modal">
+                        <div class="img-caption"><strong>Figure 6.4:</strong> High-fidelity 80mm thermal receipt preview with BIR tax breakdown, invoice number, and loyalty points earned.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Generates an authentic 80mm thermal receipt formatted for POS receipt printers. Features salon TIN, invoice series number, line item breakdown, 12% VAT breakdown, and new loyalty point balance earned from the transaction.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"Print Receipt (ESC/POS)"</strong> to send ticket to connected receipt printer.</li>
+                                <li>Click <strong>"New Transaction"</strong> to reset the POS terminal for the next guest.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.5 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.5</span>
+                        <span class="screen-title">Live Salon Floor Queue & Workstation Monitor</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Floor Queue</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_floor_queue_tab_1788963015732.png" alt="Live Salon Floor Queue & Workstation Monitor">
+                        <div class="img-caption"><strong>Figure 6.5:</strong> Real-time floor status monitor showing Waiting, In Chair, and Ready for Billing guest distribution.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Provides front-desk receptionists and cashiers with live situational awareness across all styling chairs, shampoo stations, and waiting lounge areas.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click the <strong>"Floor Queue"</strong> tab to view clients currently in treatment.</li>
+                                <li>Click <strong>"Seat"</strong> or <strong>"Checkout"</strong> directly from the floor queue cards.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.6 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.6</span>
+                        <span class="screen-title">Specialist Roster & Station Availability</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Stylist Roster</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_stylist_roster_tab_1788963051502.png" alt="Specialist Roster & Station Availability">
+                        <div class="img-caption"><strong>Figure 6.6:</strong> Stylist roster cards showing real-time operational status (Available, With Client, On Break).</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Shows live availability of all salon stylists and assistants to assist receptionists in assigning walk-in clients to unencumbered staff.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Inspect staff availability chips (Green = Available, Amber = Busy).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.7 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.7</span>
+                        <span class="screen-title">Express Walk-in Client Check-In Form</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Walk-in Check-in</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_walkin_checkin_tab_1788963087368.png" alt="Express Walk-in Client Check-In Form">
+                        <div class="img-caption"><strong>Figure 6.7:</strong> Rapid intake form for non-booked guests with immediate stylist assignment.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Streamlined check-in modal designed for quick front-desk intake of walk-in guests without requiring a full pre-booking process.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Input Walk-in Guest Name, Phone Number, desired service, and assign an available stylist.</li>
+                                <li>Click <strong>"Check-in Walk-in Guest"</strong> to immediately insert the ticket into the live queue.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 6.8 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 6.8</span>
+                        <span class="screen-title">Daily Settled Invoices & Shift Audit Register</span>
+                    </div>
+                    <span class="screen-badge-route">Tab: Daily Invoices</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/cashier_daily_invoices_tab_1788963140709.png" alt="Daily Settled Invoices & Shift Audit Register">
+                        <div class="img-caption"><strong>Figure 6.8:</strong> Shift register summarizing total daily cash, digital payments, total sales, and settled invoices.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Displays all transactions finalized during the cashier's active shift, facilitating end-of-day register reconciliation and cash drawer balancing.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Review shift totals breakdown (Cash Collected, GCash Collected, Card Collections).</li>
+                                <li>Click <strong>"View Receipt"</strong> on any settled transaction row to reprint invoice.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 7: EXECUTIVE ADMIN MANAGEMENT SUITE -->
+        <section id="module-admin" class="doc-section">
+            <div class="section-header">
+                <div class="section-icon"><i class="bi bi-gear-wide-connected"></i></div>
+                <div class="section-title">
+                    <h2>7. Executive Administration & ERP Suite</h2>
+                    <p>Enterprise management portal providing real-time KPI metrics, customer CRM, treatment catalog pricing, specialist staff commissions, retail inventory stock control, vendor directories, promotional campaigns, and financial analytics.</p>
+                </div>
+            </div>
+
+            <!-- Screen 7.1 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.1</span>
+                        <span class="screen-title">Executive ERP Dashboard & Real-Time KPI Overview</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Dashboard)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_erp_overview_1788963353357.png" alt="Executive ERP Dashboard & Real-Time KPI Overview">
+                        <div class="img-caption"><strong>Figure 7.1:</strong> Executive dashboard displaying Gross Daily Revenue, Completed Services, Active Specialists, and Low Stock inventory alerts.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Top-level command center for salon owners and general managers. Highlights revenue performance, real-time appointments volume, labor utilization, and urgent stock notifications.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Inspect KPI cards for today's gross revenue vs. monthly targets.</li>
+                                <li>Click any quick-action card to navigate directly into inventory, customers, or reports.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.2 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.2</span>
+                        <span class="screen-title">Client Relationship Management (CRM) Directory</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Customers)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_customers_crm_tab_1788963416312.png" alt="Client Relationship Management Directory">
+                        <div class="img-caption"><strong>Figure 7.2:</strong> Comprehensive CRM database tracking customer contact details, lifetime spend, visits, and VIP tier.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Customer intelligence database containing all registered clients. Displays individual customer lifetime value (LTV), visit frequencies, loyalty points, and notes for customized service.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Search customers by name, email, or phone number.</li>
+                                <li>Click <strong>"+ New Customer Profile"</strong> to manually register a VIP guest.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.3 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.3</span>
+                        <span class="screen-title">Service Menu, Pricing & Category Configuration</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Services)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_services_packages_tab_1788963593608.png" alt="Service Menu, Pricing & Category Configuration">
+                        <div class="img-caption"><strong>Figure 7.3:</strong> Treatment manager showing service names, categories, durations, baseline pricing, and active status switches.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Enables salon management to create new services, update prices, adjust service durations (affecting the booking calendar), and toggle availability of seasonal treatments.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"+ Add New Treatment"</strong> to create a new service offering.</li>
+                                <li>Edit existing pricing or duration inline and click <strong>"Save Changes"</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.4 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.4</span>
+                        <span class="screen-title">Specialist Staff Directory & Commission Rates</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Stylists)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_staff_specialists_tab_1788963699121.png" alt="Specialist Staff Directory & Commission Rates">
+                        <div class="img-caption"><strong>Figure 7.4:</strong> Staff administration cards detailing stylist roles, specializations, commission percentage rates, and active employment status.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Staff management module for onboarding new stylists, updating individual commission rates (e.g. 15%, 20%), assigning specialties, and managing profile credentials.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"+ Add Specialist"</strong> to register a new salon employee.</li>
+                                <li>Adjust individual commission percentage (%) to update automated earnings calculation.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.5 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.5</span>
+                        <span class="screen-title">Retail Inventory & SKU Stock Level Tracker</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Inventory)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_product_inventory_tab_1788963803466.png" alt="Retail Inventory & SKU Stock Level Tracker">
+                        <div class="img-caption"><strong>Figure 7.5:</strong> Inventory ledger displaying SKU codes, stock quantity bars, cost price, retail price, and reorder warnings.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Inventory control system tracking professional back-bar supplies and retail hair-care products. Automatically flags low-stock items falling below reorder thresholds.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Inspect stock level indicators (Red = Low Stock alert).</li>
+                                <li>Click <strong>"+ Add New SKU"</strong> or click <strong>"Restock"</strong> to increment inventory units.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.6 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.6</span>
+                        <span class="screen-title">Vendor & Supplier Directory Management</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Suppliers)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_suppliers_vendors_tab_1788963919955.png" alt="Vendor & Supplier Directory Management">
+                        <div class="img-caption"><strong>Figure 7.6:</strong> Supplier cards showing authorized distributors (L'Oréal Professional, Olaplex, Kerastase), lead times, and contact reps.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Supplier relationship manager for maintaining vendor contacts, delivery terms, payment conditions, and purchase order communications.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Review vendor catalog offerings, representative emails, and contact numbers.</li>
+                                <li>Click <strong>"+ Add Supplier"</strong> to record a new distributor.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.7 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.7</span>
+                        <span class="screen-title">Promotional Campaigns & Voucher Engine</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Promotions)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_promotions_vouchers_tab_1788964033105.png" alt="Promotional Campaigns & Voucher Engine">
+                        <div class="img-caption"><strong>Figure 7.7:</strong> Promo code engine displaying active discount campaigns (e.g. SUMMERGLOW, LUXURYVIP, FIRSTVISIT) and redemption limits.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Marketing engine allowing administrators to deploy percentage-based or fixed-value discount codes that integrate directly into online booking and cashier POS billing.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Click <strong>"+ Create Campaign Code"</strong> to deploy a new promotion with start/end expiry dates.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.8 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.8</span>
+                        <span class="screen-title">Loyalty Points Rules & VIP Tier Rewards Config</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Loyalty)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_loyalty_rewards_tab_1788964128987.png" alt="Loyalty Points Rules & VIP Tier Rewards Config">
+                        <div class="img-caption"><strong>Figure 7.8:</strong> Loyalty point system config showing earn multipliers, points-to-cash conversion rates, and tier thresholds.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Configures the business logic governing customer loyalty points, defining how many points are earned per ₱100 spent and establishing minimum spend requirements for Silver, Gold, Platinum, and Diamond VIP tiers.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Adjust reward redemption costs and tier multipliers.</li>
+                                <li>Click <strong>"Update Loyalty Parameters"</strong> to commit changes.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.9 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.9</span>
+                        <span class="screen-title">Financial Audit Ledger & Invoices Repository</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Invoices)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_daily_invoices_tab_1788964213882.png" alt="Financial Audit Ledger & Invoices Repository">
+                        <div class="img-caption"><strong>Figure 7.9:</strong> Searchable sales invoice ledger displaying invoice serials, dates, customers, payment methods, and net revenues.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Centralized financial audit log capturing every monetary transaction finalized in the salon for accounting, tax compliance, and revenue reporting.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Filter records by date range, payment method (Cash/GCash/Card), or client name.</li>
+                                <li>Click on an invoice row to inspect complete receipt breakdown.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.10 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.10</span>
+                        <span class="screen-title">Financial Performance & Revenue Trends Analytics</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Analytics Top)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_analytics_reports_tab_1788964282473.png" alt="Financial Performance & Revenue Trends Analytics">
+                        <div class="img-caption"><strong>Figure 7.10:</strong> Interactive analytics graphs showing weekly revenue trends, category sales distributions, and revenue growth.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Visual business intelligence module displaying interactive chart data on daily revenue surges, service vs. retail sales ratios, and overall monthly financial health.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Hover over trend lines to view exact daily gross sales.</li>
+                                <li>Select date filter presets (Last 7 Days, This Month, Year to Date).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 7.11 -->
+            <div class="screen-card">
+                <div class="screen-header">
+                    <div class="screen-label">
+                        <span class="screen-tag">Screen 7.11</span>
+                        <span class="screen-title">Top Stylists & Payment Method Breakdown Charts</span>
+                    </div>
+                    <span class="screen-badge-route">Route: /portal (Analytics Bottom)</span>
+                </div>
+                <div class="screen-body">
+                    <div class="img-container">
+                        <img src="/screenshots/admin_analytics_reports_bottom_1788964346014.png" alt="Top Stylists & Payment Method Breakdown Charts">
+                        <div class="img-caption"><strong>Figure 7.11:</strong> Specialist revenue ranking leaderboard and doughnut chart of payment channel distributions.</div>
+                    </div>
+                    <div class="screen-description">
+                        <div class="desc-title"><i class="bi bi-info-circle-fill"></i> Functionality Description</div>
+                        <p class="desc-text">Reveals staff productivity rankings (top revenue earners) and transaction share across payment channels (Cash vs. GCash vs. Maya vs. Cards) to assist in financial planning.</p>
+                        <div class="interaction-guide">
+                            <div class="guide-title"><i class="bi bi-cursor-fill"></i> How Users Interact With It:</div>
+                            <ul class="guide-steps">
+                                <li>Review top stylists leaderboard to calculate bonuses and incentives.</li>
+                                <li>Analyze payment method shares for cashless transaction optimization.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+</body>
+</html>

@@ -2,7 +2,9 @@
 @page "/services-packages"
 @page "/booking"
 @inject SalonDataService SalonService
+@inject FirebaseAuthService FirebaseAuth
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 @implements IDisposable
 
@@ -379,6 +381,154 @@
     </div>
 </footer>
 
+<!-- Customer Authentication Required Modal Dialog -->
+@if (showLoginRequiredModal)
+{
+    <div class="booking-modal-backdrop" @onclick="() => showLoginRequiredModal = false">
+        <div class="booking-modal-card modern-booking-card auth-required-modal-card" @onclick:stopPropagation>
+            <!-- Modal Header -->
+            <div class="modal-title-row">
+                <div>
+                    <span class="booking-modal-eyebrow" style="color: #D97706;">
+                        <i class="bi bi-shield-lock-fill"></i> CLIENT AUTHENTICATION
+                    </span>
+                    <h3 class="modal-h3">Please Sign In to Book</h3>
+                </div>
+                <button class="btn-close-modal" @onclick="() => showLoginRequiredModal = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <p class="auth-prompt-desc">
+                To reserve your appointment slot and link your booking to your VIP rewards & points, please sign in to your account or create a new one.
+            </p>
+
+            @if (!string.IsNullOrWhiteSpace(pendingBookingService))
+            {
+                <div class="pending-service-strip">
+                    <div class="pending-svc-icon"><i class="bi bi-stars"></i></div>
+                    <div class="pending-svc-text">
+                        <span class="pending-svc-label">Pending Reservation</span>
+                        <span class="pending-svc-name">@pendingBookingService</span>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(authErrorMessage))
+            {
+                <div class="auth-error-box">
+                    <i class="bi bi-exclamation-circle-fill"></i> @authErrorMessage
+                </div>
+            }
+
+            @if (authRegisterSuccess)
+            {
+                <div class="auth-success-box">
+                    <i class="bi bi-check-circle-fill"></i> Account authenticated! Preparing your reservation...
+                </div>
+            }
+
+            <!-- Auth Mode Toggle Tabs -->
+            <div class="auth-modal-tabs">
+                <button type="button" class="auth-tab-btn @(!isAuthRegisterMode ? "active" : "")" @onclick="() => SwitchAuthMode(false)">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In
+                </button>
+                <button type="button" class="auth-tab-btn @(isAuthRegisterMode ? "active" : "")" @onclick="() => SwitchAuthMode(true)">
+                    <i class="bi bi-person-plus-fill"></i> Create Account
+                </button>
+            </div>
+
+            @if (!isAuthRegisterMode)
+            {
+                <!-- Sign In Form -->
+                <form @onsubmit="HandleModalLogin" @onsubmit:preventDefault class="auth-modal-form">
+                    <div class="login-field-group">
+                        <label class="login-field-label">Email Address</label>
+                        <input type="email" class="login-input-text" placeholder="you@gmail.com" @bind="authEmail" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Password</label>
+                        <div style="position: relative;">
+                            <input type="@(showAuthPassword ? "text" : "password")" class="login-input-text" style="width: 100%; padding-right: 40px;" placeholder="••••••••" @bind="authPassword" required />
+                            <button type="button" @onclick="() => showAuthPassword = !showAuthPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #9CA3AF; font-size: 15px; cursor: pointer;">
+                                <i class="bi @(showAuthPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700; margin-top: 6px;" disabled="@isAuthenticating">
+                        @if (isAuthenticating)
+                        {
+                            <span><i class="bi bi-arrow-repeat spin"></i> Verifying credentials...</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-check2-circle"></i> Sign In & Continue Booking</span>
+                        }
+                    </button>
+                </form>
+            }
+            else
+            {
+                <!-- Register Form -->
+                <form @onsubmit="HandleModalRegister" @onsubmit:preventDefault class="auth-modal-form">
+                    <div class="login-field-group">
+                        <label class="login-field-label">Full Name <span style="color: #DC2626;">*</span></label>
+                        <input type="text" class="login-input-text" placeholder="e.g. Maria Santos" @bind="authFullName" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Mobile Phone Number <span style="color: #DC2626;">*</span></label>
+                        <input type="tel" class="login-input-text" placeholder="+63 917 000 0000" @bind="authPhone" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Email Address <span style="color: #DC2626;">*</span></label>
+                        <input type="email" class="login-input-text" placeholder="you@example.com" @bind="authEmail" required />
+                    </div>
+
+                    <div class="login-field-group">
+                        <label class="login-field-label">Password <span style="color: #DC2626;">*</span></label>
+                        <div style="position: relative;">
+                            <input type="@(showAuthPassword ? "text" : "password")" class="login-input-text" style="width: 100%; padding-right: 40px;" placeholder="•••••••• (min 6 chars)" @bind="authPassword" required />
+                            <button type="button" @onclick="() => showAuthPassword = !showAuthPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #9CA3AF; font-size: 15px; cursor: pointer;">
+                                <i class="bi @(showAuthPassword ? "bi-eye-slash" : "bi-eye")"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700; margin-top: 6px;" disabled="@isAuthenticating">
+                        @if (isAuthenticating)
+                        {
+                            <span><i class="bi bi-arrow-repeat spin"></i> Creating account...</span>
+                        }
+                        else
+                        {
+                            <span><i class="bi bi-person-check"></i> Create Account & Continue Booking</span>
+                        }
+                    </button>
+                </form>
+            }
+
+            <div class="login-divider" style="margin: 16px 0;">
+                <span>or</span>
+            </div>
+
+            <!-- Google One-Click Auth -->
+            <button type="button" class="btn-google-signin" @onclick="HandleModalGoogleSignIn" disabled="@isAuthenticating" style="width: 100%; justify-content: center;">
+                <svg class="google-icon-svg" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>Continue with Google</span>
+            </button>
+        </div>
+    </div>
+}
+
 <!-- Interactive Booking Modal Dialog -->
 @if (showBookingModal)
 {
@@ -431,6 +581,33 @@
             }
             else
             {
+                <!-- Authenticated Customer Info Banner -->
+                @if (SalonService.CurrentUser.IsLoggedIn)
+                {
+                    <div class="auth-user-booking-badge">
+                        <div class="auth-user-booking-left">
+                            <div class="auth-user-booking-avatar">
+                                <i class="bi bi-person-check-fill"></i>
+                            </div>
+                            <div class="auth-user-booking-info">
+                                <div class="auth-user-booking-name">Booking as <strong>@SalonService.CurrentUser.Name</strong></div>
+                                <div class="auth-user-booking-meta">
+                                    <span>@SalonService.CurrentUser.Email</span>
+                                    @if (CurrentLoggedInCustomer != null && !string.IsNullOrEmpty(CurrentLoggedInCustomer.Tier))
+                                    {
+                                        <span class="auth-user-tier-pill" style="background: @CurrentLoggedInCustomer.TierBadgeColor;">
+                                            <i class="bi bi-gem"></i> @CurrentLoggedInCustomer.Tier Member (@CurrentLoggedInCustomer.LoyaltyPoints pts)
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <a href="login?returnUrl=@(Uri.EscapeDataString(Navigation.Uri))" class="btn-link-muted" style="font-size: 11.5px; text-decoration: underline; color: var(--text-muted);">
+                            Switch
+                        </a>
+                    </div>
+                }
+
                 <div class="booking-form-grid">
                     <!-- Service / Package Dropdown -->
                     <div class="form-full">
@@ -438,13 +615,13 @@
                             <i class="bi bi-stars gold-icon"></i> Selected Offering
                         </label>
                         <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnServiceSelectionChanged">
-                            <optgroup label="✨ All-Inclusive Packages">
+                            <optgroup label="All-Inclusive Packages">
                                 @foreach (var pkg in SalonService.Packages)
                                 {
                                     <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0") • @pkg.DurationMinutes mins)</option>
                                 }
                             </optgroup>
-                            <optgroup label="✂️ Hairstyles, Cuts & Individual Treatments">
+                            <optgroup label="Hairstyles, Cuts & Individual Treatments">
                                 @foreach (var svc in SalonService.Services)
                                 {
                                     <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0") • @svc.DurationMinutes mins)</option>
@@ -513,9 +690,9 @@
                     <!-- Email Address -->
                     <div class="form-full">
                         <label class="booking-label">
-                            <i class="bi bi-envelope"></i> Email Address
+                            <i class="bi bi-envelope"></i> Email Address <span style="color: #DC2626;">*</span>
                         </label>
-                        <input type="email" class="booking-input" placeholder="you@example.com (for appointment receipt)" @bind="newAppt.ClientEmail" />
+                        <input type="email" class="booking-input" placeholder="you@example.com (for appointment receipt)" @bind="newAppt.ClientEmail" required />
                     </div>
 
                     <!-- Special Notes -->
@@ -557,6 +734,18 @@
     private string searchTerm = "";
     private string sortBy = "featured";
 
+    private bool showLoginRequiredModal = false;
+    private bool isAuthRegisterMode = false;
+    private string pendingBookingService = "";
+    private string authFullName = "";
+    private string authPhone = "";
+    private string authEmail = "";
+    private string authPassword = "";
+    private bool showAuthPassword = false;
+    private string authErrorMessage = "";
+    private bool authRegisterSuccess = false;
+    private bool isAuthenticating = false;
+
     private bool showBookingModal = false;
     private bool bookingConfirmed = false;
     private AppointmentRecord newAppt = new();
@@ -565,6 +754,13 @@
     {
         "09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM"
     };
+
+    private CustomerRecord? CurrentLoggedInCustomer =>
+        SalonService.CurrentUser.IsLoggedIn
+            ? SalonService.Customers.FirstOrDefault(c =>
+                (!string.IsNullOrEmpty(c.Email) && c.Email.Equals(SalonService.CurrentUser.Email, StringComparison.OrdinalIgnoreCase)) ||
+                c.FullName.Equals(SalonService.CurrentUser.Name, StringComparison.OrdinalIgnoreCase))
+            : null;
 
     protected override void OnInitialized()
     {
@@ -582,17 +778,23 @@
             selectedCategory = catValue.ToString();
         }
 
+        string? selectedServiceParam = null;
         if (query.TryGetValue("select", out var selectValue) && !string.IsNullOrWhiteSpace(selectValue))
         {
-            OpenBookingModal(selectValue.ToString());
+            selectedServiceParam = selectValue.ToString();
         }
         else if (query.TryGetValue("package", out var pkgValue) && !string.IsNullOrWhiteSpace(pkgValue))
         {
-            OpenBookingModal(pkgValue.ToString());
+            selectedServiceParam = pkgValue.ToString();
         }
         else if (query.TryGetValue("service", out var svcValue) && !string.IsNullOrWhiteSpace(svcValue))
         {
-            OpenBookingModal(svcValue.ToString());
+            selectedServiceParam = svcValue.ToString();
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedServiceParam))
+        {
+            OpenBookingModal(selectedServiceParam);
         }
     }
 
@@ -674,10 +876,257 @@
         }
     }
 
+    private void SwitchAuthMode(bool isRegister)
+    {
+        isAuthRegisterMode = isRegister;
+        authErrorMessage = "";
+        authRegisterSuccess = false;
+        isAuthenticating = false;
+    }
+
+    private async Task HandleModalGoogleSignIn()
+    {
+        authErrorMessage = "";
+        isAuthenticating = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<GoogleAuthPayload>("salonFirebaseAuth.signInWithGoogle");
+            if (result == null || !result.Success || string.IsNullOrWhiteSpace(result.Email))
+            {
+                authErrorMessage = result?.ErrorMessage ?? "Google Sign-In was cancelled or failed.";
+                isAuthenticating = false;
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.IdToken) && FirebaseAuth.IsConfigured)
+            {
+                await FirebaseAuth.SignInWithGoogleIdTokenAsync(result.IdToken);
+            }
+
+            string email = result.Email.Trim().ToLowerInvariant();
+            string displayName = !string.IsNullOrWhiteSpace(result.DisplayName) ? result.DisplayName : email.Split('@')[0];
+
+            if (email.Equals("francisarnejo67@gmail.com", StringComparison.OrdinalIgnoreCase) || 
+                email.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase))
+            {
+                displayName = "Francis Arnejo (Owner)";
+            }
+
+            string role = DetermineUserRole(email);
+            if (role != "Customer")
+            {
+                SalonService.EnsureEmployeeExists(displayName, email, role);
+            }
+            else
+            {
+                SalonService.EnsureCustomer(displayName, result.PhoneNumber ?? "", email);
+            }
+
+            SalonService.LoginAs(role, displayName, email);
+            isAuthenticating = false;
+            showLoginRequiredModal = false;
+
+            // Open booking modal
+            OpenBookingModal(pendingBookingService);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            authErrorMessage = $"Google sign in error: {ex.Message}";
+            isAuthenticating = false;
+        }
+    }
+
+    private async Task HandleModalLogin()
+    {
+        authErrorMessage = "";
+        if (string.IsNullOrWhiteSpace(authEmail))
+        {
+            authErrorMessage = "Please enter your email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(authPassword))
+        {
+            authErrorMessage = "Please enter your password.";
+            return;
+        }
+
+        isAuthenticating = true;
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var result = await FirebaseAuth.SignInWithEmailPasswordAsync(authEmail, authPassword);
+            if (!result.Success)
+            {
+                authErrorMessage = result.ErrorMessage ?? "Authentication failed.";
+                isAuthenticating = false;
+                return;
+            }
+        }
+
+        isAuthenticating = false;
+
+        string username = "Client";
+        if (!string.IsNullOrWhiteSpace(authEmail))
+        {
+            var parts = authEmail.Trim().Split('@');
+            if (parts.Length > 0 && !string.IsNullOrEmpty(parts[0]))
+            {
+                username = char.ToUpper(parts[0][0]) + (parts[0].Length > 1 ? parts[0].Substring(1) : "");
+            }
+        }
+
+        var staffMember = SalonService.Team.FirstOrDefault(t => t.Email.Equals(authEmail, StringComparison.OrdinalIgnoreCase));
+        if (staffMember != null)
+        {
+            username = staffMember.Name;
+        }
+
+        var customerRecord = SalonService.Customers.FirstOrDefault(c => !string.IsNullOrEmpty(c.Email) && c.Email.Equals(authEmail, StringComparison.OrdinalIgnoreCase));
+        if (customerRecord != null)
+        {
+            username = customerRecord.FullName;
+        }
+
+        string role = DetermineUserRole(authEmail);
+        if (role != "Customer")
+        {
+            SalonService.EnsureEmployeeExists(username, authEmail, role);
+        }
+        else
+        {
+            SalonService.EnsureCustomer(username, "", authEmail);
+        }
+
+        SalonService.LoginAs(role, username, authEmail);
+        showLoginRequiredModal = false;
+
+        // Open booking modal
+        OpenBookingModal(pendingBookingService);
+        StateHasChanged();
+    }
+
+    private async Task HandleModalRegister()
+    {
+        authErrorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(authFullName))
+        {
+            authErrorMessage = "Please enter your full name.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(authPhone))
+        {
+            authErrorMessage = "Please enter your mobile phone number.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(authEmail))
+        {
+            authErrorMessage = "Please enter your email address.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(authPassword))
+        {
+            authErrorMessage = "Please enter a password.";
+            return;
+        }
+
+        if (authPassword.Length < 6)
+        {
+            authErrorMessage = "Password must be at least 6 characters in Firebase.";
+            return;
+        }
+
+        isAuthenticating = true;
+
+        if (FirebaseAuth.IsConfigured)
+        {
+            var result = await FirebaseAuth.SignUpWithEmailPasswordAsync(authEmail, authPassword);
+            if (!result.Success)
+            {
+                authErrorMessage = result.ErrorMessage ?? "Registration failed.";
+                isAuthenticating = false;
+                return;
+            }
+        }
+
+        isAuthenticating = false;
+
+        string assignedRole = DetermineUserRole(authEmail);
+        if (assignedRole != "Customer")
+        {
+            SalonService.EnsureEmployeeExists(authFullName, authEmail, assignedRole);
+        }
+        else
+        {
+            SalonService.EnsureCustomer(authFullName, authPhone, authEmail);
+        }
+
+        SalonService.LoginAs(assignedRole, authFullName, authEmail);
+        authRegisterSuccess = true;
+
+        await Task.Delay(800);
+        showLoginRequiredModal = false;
+        authRegisterSuccess = false;
+
+        // Open booking modal
+        OpenBookingModal(pendingBookingService);
+        StateHasChanged();
+    }
+
+    private string DetermineUserRole(string email)
+    {
+        if (email.Equals("francisarnejo67@gmail.com", StringComparison.OrdinalIgnoreCase) ||
+            email.Equals("francisarnejo@gmail.com", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("admin", StringComparison.OrdinalIgnoreCase) ||
+            email.Contains("owner", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Salon Owner / Admin";
+        }
+
+        var member = SalonService.Team.FirstOrDefault(t => t.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        if (member != null)
+        {
+            if (member.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase))
+                return "Cashier / Front Desk";
+            if (member.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase) || member.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase))
+                return "Salon Owner / Admin";
+            return "Stylist / Specialist";
+        }
+
+        if (email.Contains("cashier", StringComparison.OrdinalIgnoreCase)) return "Cashier / Front Desk";
+        if (email.Contains("stylist", StringComparison.OrdinalIgnoreCase)) return "Stylist / Specialist";
+        if (email.Contains("staff", StringComparison.OrdinalIgnoreCase) || email.Contains("employee", StringComparison.OrdinalIgnoreCase)) return "Staff Member";
+
+        return "Customer";
+    }
+
     private void OpenBookingModal(string initialServiceName)
     {
+        pendingBookingService = initialServiceName;
+
+        // Ensure the customer is logged in before booking
+        if (!SalonService.CurrentUser.IsLoggedIn)
+        {
+            showBookingModal = false;
+            authErrorMessage = "";
+            authRegisterSuccess = false;
+            showLoginRequiredModal = true;
+            return;
+        }
+
+        showLoginRequiredModal = false;
         bookingConfirmed = false;
         var resolvedService = ResolveServiceSelection(initialServiceName);
+        
+        var profile = CurrentLoggedInCustomer;
+
         newAppt = new AppointmentRecord
         {
             ServiceName = resolvedService,
@@ -685,7 +1134,10 @@
             Date = DateTime.Today.AddDays(1),
             TimeSlot = "10:30 AM",
             Price = GetPriceForSelectedService(resolvedService),
-            Status = "Confirmed"
+            Status = "Confirmed",
+            ClientName = SalonService.CurrentUser.Name,
+            ClientEmail = SalonService.CurrentUser.Email,
+            ClientPhone = profile?.Phone ?? ""
         };
         showBookingModal = true;
     }
@@ -743,6 +1195,13 @@
 
     private void ConfirmBooking()
     {
+        if (!SalonService.CurrentUser.IsLoggedIn)
+        {
+            showBookingModal = false;
+            showLoginRequiredModal = true;
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(newAppt.ClientName) || string.IsNullOrWhiteSpace(newAppt.ClientPhone))
         {
             return;
@@ -768,3 +1227,4 @@
         SalonService.OnChange -= HandleDataChanged;
     }
 }
+

@@ -22,9 +22,9 @@ public class CustomerRecord
 
     public string TierBadgeColor => Tier switch
     {
-        "Platinum" => "#8B5CF6", // Purple
-        "Gold" => "#D97706",     // Gold/Amber
-        "Silver" => "#64748B",   // Slate/Silver
-        _ => "#B45309"           // Bronze
+        "Platinum" => "#7C3AED", // Vibrant Purple
+        "Gold" => "#D97706",     // Amber / Gold
+        "Silver" => "#4B5563",   // Slate / Silver
+        _ => "#9A3412"           // Deep Bronze
     };
 }

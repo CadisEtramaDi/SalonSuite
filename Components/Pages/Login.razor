@@ -67,6 +67,14 @@
                     <p class="login-subtitle">Sign up to manage your appointments, preferred stylists, and salon rewards</p>
                 </div>
 
+                @if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl.Contains("book"))
+                {
+                    <div style="background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; padding: 10px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-calendar2-check-fill" style="color: #D97706; font-size: 16px;"></i>
+                        <span>Create an account to complete your appointment booking</span>
+                    </div>
+                }
+
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
                     <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 10px 14px; border-radius: 4px; font-size: 13.5px; margin-bottom: 16px;">
@@ -155,6 +163,14 @@
                     <p class="login-subtitle">Sign in to your salon workspace or client account</p>
                 </div>
 
+                @if (!string.IsNullOrWhiteSpace(returnUrl) && returnUrl.Contains("book"))
+                {
+                    <div style="background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; padding: 10px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-calendar2-check-fill" style="color: #D97706; font-size: 16px;"></i>
+                        <span>Sign in to complete your appointment booking</span>
+                    </div>
+                }
+
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
                     <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; padding: 10px 14px; border-radius: 4px; font-size: 13.5px; margin-bottom: 16px;">
@@ -240,11 +256,19 @@
     private string errorMessage = "";
     private bool registerSuccess = false;
     private bool isAuthenticating = false;
+    private string? returnUrl = null;
 
     protected override void OnInitialized()
     {
-        var uri = Navigation.Uri.ToLower();
-        if (uri.Contains("/register"))
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("returnUrl", out var rUrl) && !string.IsNullOrWhiteSpace(rUrl))
+        {
+            returnUrl = rUrl.ToString();
+        }
+
+        if (uri.AbsolutePath.ToLower().Contains("/register") || (query.TryGetValue("mode", out var mode) && mode == "register"))
         {
             isRegisterMode = true;
         }
@@ -455,13 +479,21 @@
         Navigation.NavigateTo(redirectUrl);
     }
 
-    private string GetRedirectUrlForRole(string role) => role switch
+    private string GetRedirectUrlForRole(string role)
     {
-        "Salon Owner / Admin" or "Salon Manager" => "/admin",
-        "Cashier / Front Desk" or "Front Desk Cashier" => "/cashier",
-        "Stylist / Specialist" or "Staff Member" or "Senior Stylist" or "Color Specialist" or "Creative Director" or "Junior Stylist" => "/employee",
-        _ => "/my-account"
-    };
+        if (role == "Customer" && !string.IsNullOrWhiteSpace(returnUrl))
+        {
+            return returnUrl;
+        }
+
+        return role switch
+        {
+            "Salon Owner / Admin" or "Salon Manager" => "/admin",
+            "Cashier / Front Desk" or "Front Desk Cashier" => "/cashier",
+            "Stylist / Specialist" or "Staff Member" or "Senior Stylist" or "Color Specialist" or "Creative Director" or "Junior Stylist" => "/employee",
+            _ => !string.IsNullOrWhiteSpace(returnUrl) ? returnUrl : "/my-account"
+        };
+    }
 
     private string DetermineUserRole(string email)
     {

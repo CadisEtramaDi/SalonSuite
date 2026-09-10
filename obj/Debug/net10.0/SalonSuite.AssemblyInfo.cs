@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SalonSuite")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+83827d3c82f1c70b40b9312d5d84045857e01afd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ce3fdaf20215363362a819923687a1ae801c1f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("SalonSuite")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SalonSuite")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
