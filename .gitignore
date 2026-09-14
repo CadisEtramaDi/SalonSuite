@@ -7,3 +7,7 @@ obj/
 .vscode/
 .idea/
 *.log
+
+## Ignore local secret configs
+appsettings.Development.json
+appsettings.Local.json

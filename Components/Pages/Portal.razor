@@ -119,13 +119,6 @@
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <a href="/" class="btn-portal-secondary" title="View Public Website">
-                    <i class="bi bi-globe"></i> Website
-                </a>
-                <a href="/cashier" class="btn-portal-secondary" title="Open Cashier POS Register">
-                    <i class="bi bi-receipt"></i> POS Cashier
-                </a>
-
                 @if (currentTab == "appointments")
                 {
                     <button class="btn-primary-dark" @onclick="() => showNewBookingModal = true">

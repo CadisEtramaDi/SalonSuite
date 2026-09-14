@@ -5,6 +5,7 @@
 @inject FirebaseAuthService FirebaseAuth
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject EmailReceiptService EmailService
 
 @implements IDisposable
 
@@ -572,6 +573,14 @@
                         </div>
                     </div>
 
+                    @if (!string.IsNullOrWhiteSpace(newAppt.ClientEmail))
+                    {
+                        <div style="background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 18px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="bi bi-envelope-check-fill" style="font-size: 16px; color: #059669;"></i>
+                            <span>Confirmation email sent to <strong>@newAppt.ClientEmail</strong></span>
+                        </div>
+                    }
+
                     <div class="confirm-actions-row">
                         <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="() => showBookingModal = false">
                             Done
@@ -673,26 +682,26 @@
 
                     <!-- Client Name -->
                     <div class="form-group">
-                        <label class="booking-label">
+                        <label class="booking-label" for="bookingClientName">
                             <i class="bi bi-person"></i> Full Name <span style="color: #DC2626;">*</span>
                         </label>
-                        <input type="text" class="booking-input" placeholder="e.g. Maria Santos" @bind="newAppt.ClientName" required />
+                        <input id="bookingClientName" name="name" type="text" autocomplete="name" class="booking-input" placeholder="e.g. Maria Santos" @bind="newAppt.ClientName" required />
                     </div>
 
                     <!-- Mobile Phone -->
                     <div class="form-group">
-                        <label class="booking-label">
+                        <label class="booking-label" for="bookingClientPhone">
                             <i class="bi bi-telephone"></i> Mobile Phone <span style="color: #DC2626;">*</span>
                         </label>
-                        <input type="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newAppt.ClientPhone" required />
+                        <input id="bookingClientPhone" name="phone" type="tel" autocomplete="tel" class="booking-input" placeholder="+63 917 000 0000" @bind="newAppt.ClientPhone" required />
                     </div>
 
                     <!-- Email Address -->
                     <div class="form-full">
-                        <label class="booking-label">
+                        <label class="booking-label" for="bookingClientEmail">
                             <i class="bi bi-envelope"></i> Email Address <span style="color: #DC2626;">*</span>
                         </label>
-                        <input type="email" class="booking-input" placeholder="you@example.com (for appointment receipt)" @bind="newAppt.ClientEmail" required />
+                        <input id="bookingClientEmail" name="email" type="email" autocomplete="email" class="booking-input" placeholder="you@example.com (for appointment receipt)" @bind="newAppt.ClientEmail" required />
                     </div>
 
                     <!-- Special Notes -->
@@ -708,7 +717,7 @@
                 <div class="booking-summary-strip">
                     <div class="summary-left">
                         <span class="summary-label">Estimated Service Total</span>
-                        <span class="summary-sub">Pay in salon via Cash, GCash, Maya, or Card</span>
+                        <span class="summary-sub">Pay in salon via Cash, GCash, Maya, or Card at Cashier</span>
                     </div>
                     <div class="summary-price">
                         ₱@newAppt.Price.ToString("N0")
@@ -1126,6 +1135,13 @@
         var resolvedService = ResolveServiceSelection(initialServiceName);
         
         var profile = CurrentLoggedInCustomer;
+        var customerPhone = profile?.Phone;
+        if (string.IsNullOrWhiteSpace(customerPhone))
+        {
+            var foundCust = SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Email) ??
+                            SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Name);
+            customerPhone = foundCust?.Phone;
+        }
 
         newAppt = new AppointmentRecord
         {
@@ -1137,7 +1153,7 @@
             Status = "Confirmed",
             ClientName = SalonService.CurrentUser.Name,
             ClientEmail = SalonService.CurrentUser.Email,
-            ClientPhone = profile?.Phone ?? ""
+            ClientPhone = customerPhone ?? ""
         };
         showBookingModal = true;
     }
@@ -1207,8 +1223,14 @@
             return;
         }
 
+        newAppt.IsPaid = false;
         SalonService.AddAppointment(newAppt);
         bookingConfirmed = true;
+
+        if (!string.IsNullOrWhiteSpace(newAppt.ClientEmail))
+        {
+            _ = EmailService.SendBookingConfirmationAsync(newAppt, newAppt.ClientEmail);
+        }
     }
 
     private void HandleDataChanged()

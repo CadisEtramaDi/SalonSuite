@@ -1,0 +1,366 @@
+@page "/booking-success"
+@inject StripePaymentService StripeService
+@inject XenditPaymentService XenditService
+@inject SalonDataService SalonService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Booking Confirmation & Payment Receipt | Beauty Hair Studio</PageTitle>
+
+<!-- Public Navigation Bar -->
+<header class="public-navbar">
+    <div class="container-custom navbar-inner">
+        <a href="/" class="brand-logo">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="brand-logo-img" />
+            <span style="letter-spacing: -0.03em;">Beauty Hair</span>
+        </a>
+
+        <ul class="nav-menu-links">
+            <li><a href="/" class="nav-link-item">Home</a></li>
+            <li><a href="book" class="nav-link-item">Packages & Services</a></li>
+            <li><a href="loyalty" class="nav-link-item">Loyalty & Rewards</a></li>
+            <li><a href="/#our-work" class="nav-link-item">Portfolio</a></li>
+            <li><a href="/#team" class="nav-link-item">Stylists</a></li>
+        </ul>
+
+        <div class="navbar-actions">
+            <a href="book" class="btn-book-nav">
+                <i class="bi bi-calendar2-check"></i> Book Another
+            </a>
+            @if (SalonService.CurrentUser.IsLoggedIn)
+            {
+                <a href="loyalty" class="btn-staff-nav">
+                    <i class="bi bi-person-check-fill"></i> @SalonService.CurrentUser.Name.Split(' ').FirstOrDefault()
+                </a>
+            }
+        </div>
+    </div>
+</header>
+
+<main class="booking-page-body" style="min-height: 80vh; padding: 48px 0 64px 0; background: #FAF9F6;">
+    <div class="container-custom" style="max-width: 680px;">
+
+        @if (isVerifying)
+        {
+            <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 12px; padding: 48px 24px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="spinner-border" style="width: 3rem; height: 3rem; color: #D97706;" role="status"></div>
+                <h3 style="font-weight: 800; margin: 20px 0 8px 0; color: var(--text-dark);">Verifying Stripe Payment...</h3>
+                <p style="color: var(--text-muted); font-size: 14px;">Confirming transaction with Stripe Sandbox gateway and securing your appointment slot.</p>
+            </div>
+        }
+        else if (isSuccess && matchedAppt != null)
+        {
+            <div style="background: #FFFFFF; border: 1px solid #10B981; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.08);">
+                
+                <!-- Success Header Banner -->
+                <div style="background: linear-gradient(135deg, #064E3B 0%, #047857 100%); color: #FFFFFF; padding: 36px 24px; text-align: center;">
+                    <div style="width: 64px; height: 64px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 16px auto; backdrop-filter: blur(8px);">
+                        <i class="bi bi-check-lg" style="color: #6EE7B7;"></i>
+                    </div>
+                    <span style="background: rgba(110, 231, 183, 0.2); color: #A7F3D0; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 9999px; border: 1px solid rgba(167, 243, 208, 0.3);">
+                        @(isSimulated ? "STRIPE SANDBOX VERIFIED" : "ONLINE PAYMENT CONFIRMED")
+                    </span>
+                    <h1 style="font-size: 28px; font-weight: 800; margin: 12px 0 6px 0; letter-spacing: -0.02em;">Payment Successful!</h1>
+                    <p style="margin: 0; font-size: 14.5px; color: #D1FAE5; opacity: 0.9;">
+                        Your appointment has been reserved and marked as <strong>Fully Paid</strong>.
+                    </p>
+                </div>
+
+                <!-- Receipt Body -->
+                <div style="padding: 28px 32px;">
+                    
+                    <!-- Appointment Reference & Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px dashed var(--border-light); margin-bottom: 20px;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; display: block;">Booking Reference</span>
+                            <strong style="font-size: 17px; font-family: monospace; color: var(--text-dark);">#APT-@(matchedAppt.Id.ToString("D5"))</strong>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; display: block;">Payment Gateway</span>
+                            <span style="background: #FEF3C7; color: #92400E; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 4px;">
+                                <i class="bi bi-stripe"></i> Stripe Sandbox Card
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Details Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 24px;">
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Client Name</span>
+                            <strong style="font-size: 14px; color: var(--text-dark);">@matchedAppt.ClientName</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Contact Phone</span>
+                            <strong style="font-size: 14px; color: var(--text-dark);">@matchedAppt.ClientPhone</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Service Ritual</span>
+                            <strong style="font-size: 14px; color: #D97706;">@matchedAppt.ServiceName</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Dedicated Stylist</span>
+                            <strong style="font-size: 14px; color: var(--text-dark);">@matchedAppt.StylistName</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Date & Time</span>
+                            <strong style="font-size: 14px; color: var(--text-dark);">@matchedAppt.Date.ToString("MMM dd, yyyy") &bull; @matchedAppt.TimeSlot</strong>
+                        </div>
+                        <div>
+                            <span style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 2px;">Booking Status</span>
+                            <span style="background: #ECFDF5; color: #065F46; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block;">
+                                <i class="bi bi-check2-circle"></i> Paid & Confirmed
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Summary Breakdown -->
+                    <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 8px; color: var(--text-dark);">
+                            <span>@matchedAppt.ServiceName</span>
+                            <span>₱@matchedAppt.Price.ToString("N0")</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 8px; color: #059669; font-weight: 600;">
+                            <span><i class="bi bi-gift-fill"></i> Loyalty Points Credited</span>
+                            <span>+@((int)(matchedAppt.Price / 100)) pts</span>
+                        </div>
+                        <div style="border-top: 1px solid var(--border-light); padding-top: 10px; display: flex; justify-content: space-between; align-items: baseline;">
+                            <span style="font-weight: 800; font-size: 15px; color: var(--text-dark);">Total Amount Charged</span>
+                            <span style="font-weight: 900; font-size: 20px; color: #047857;">₱@matchedAppt.Price.ToString("N0")</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <a href="loyalty" class="btn-primary-dark" style="flex: 1; text-align: center; justify-content: center; text-decoration: none;">
+                            <i class="bi bi-gem"></i> View in Loyalty Lounge
+                        </a>
+                        <a href="book" class="btn-cancel-modal" style="flex: 1; text-align: center; justify-content: center; text-decoration: none; border: 1px solid var(--border-light);">
+                            <i class="bi bi-calendar-plus"></i> Book Another Ritual
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="background: #FFFFFF; border: 1px solid #EF4444; border-radius: 12px; padding: 40px 24px; text-align: center; box-shadow: 0 4px 20px rgba(239, 68, 68, 0.08);">
+                <div style="width: 56px; height: 56px; background: #FEE2E2; color: #DC2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <h3 style="font-weight: 800; color: #991B1B; margin-bottom: 8px;">Payment Verification Notice</h3>
+                <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+                    @(errorMessage ?? "We could not verify the Stripe checkout session. If you completed payment, our reception staff will confirm your slot upon arrival.")
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <a href="book" class="btn-primary-dark" style="text-decoration: none;">Return to Booking</a>
+                    <a href="/" class="btn-cancel-modal" style="text-decoration: none; border: 1px solid var(--border-light);">Return Home</a>
+                </div>
+            </div>
+        }
+    </div>
+</main>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? session_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? xendit_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? appt_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? simulated { get; set; }
+
+    private bool isVerifying = true;
+    private bool isSuccess = false;
+    private bool isSimulated = false;
+    private string? errorMessage;
+    private AppointmentRecord? matchedAppt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SalonService.OnChange += HandleDataChanged;
+        SalonService.EnsureSeedData();
+
+        isSimulated = simulated?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+
+        await ProcessSessionVerificationAsync();
+    }
+
+    private async Task ProcessSessionVerificationAsync()
+    {
+        isVerifying = true;
+        try
+        {
+            int targetApptId = 0;
+            if (!string.IsNullOrWhiteSpace(appt_id) && int.TryParse(appt_id, out int parsedId))
+            {
+                targetApptId = parsedId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(session_id))
+            {
+                var result = await StripeService.VerifySessionAsync(session_id, targetApptId);
+
+                if (result.IsPaid)
+                {
+                    // Find appointment by ID or session metadata
+                    if (targetApptId == 0 && result.Metadata != null && result.Metadata.TryGetValue("AppointmentId", out var metaApptId))
+                    {
+                        int.TryParse(metaApptId, out targetApptId);
+                    }
+
+                    if (targetApptId > 0)
+                    {
+                        matchedAppt = SalonService.Appointments.FirstOrDefault(a => a.Id == targetApptId);
+                    }
+
+                    if (matchedAppt == null && SalonService.Appointments.Count > 0)
+                    {
+                        matchedAppt = SalonService.Appointments.OrderByDescending(a => a.Id).FirstOrDefault();
+                    }
+
+                    if (matchedAppt != null)
+                    {
+                        // 1. Mark appointment as paid
+                        matchedAppt.IsPaid = true;
+                        matchedAppt.Status = "Confirmed";
+                        SalonService.UpdateAppointmentStatus(matchedAppt.Id, "Confirmed");
+
+                        // 2. Generate and store InvoiceRecord if not already generated
+                        var existingInvoice = SalonService.Invoices.FirstOrDefault(i => i.AppointmentId == matchedAppt.Id);
+                        if (existingInvoice == null)
+                        {
+                            var newInvoice = new InvoiceRecord
+                            {
+                                AppointmentId = matchedAppt.Id,
+                                CustomerId = matchedAppt.CustomerId,
+                                ClientName = matchedAppt.ClientName,
+                                ServiceName = matchedAppt.ServiceName,
+                                StylistName = matchedAppt.StylistName,
+                                Subtotal = matchedAppt.Price,
+                                Total = matchedAppt.Price,
+                                AmountPaid = matchedAppt.Price,
+                                PaymentMethod = "Stripe Card (Online)",
+                                Timestamp = DateTime.Now,
+                                CashierName = "Stripe Online Gateway"
+                            };
+
+                            SalonService.AddInvoice(newInvoice);
+                        }
+
+                        isSuccess = true;
+                    }
+                    else
+                    {
+                        isSuccess = true; // Fallback display
+                    }
+                }
+                else
+                {
+                    errorMessage = "Payment session was not marked as completed by Stripe.";
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(xendit_id))
+            {
+                var result = await XenditService.VerifyInvoiceAsync(xendit_id);
+
+                if (result.IsPaid)
+                {
+                    if (targetApptId == 0 && xendit_id.Contains("APPT-"))
+                    {
+                        var parts = xendit_id.Split('-');
+                        for (int i = 0; i < parts.Length - 1; i++)
+                        {
+                            if (parts[i] == "APPT" && int.TryParse(parts[i + 1], out int id))
+                            {
+                                targetApptId = id;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (targetApptId > 0)
+                    {
+                        matchedAppt = SalonService.Appointments.FirstOrDefault(a => a.Id == targetApptId);
+                    }
+
+                    if (matchedAppt == null && SalonService.Appointments.Count > 0)
+                    {
+                        matchedAppt = SalonService.Appointments.OrderByDescending(a => a.Id).FirstOrDefault();
+                    }
+
+                    if (matchedAppt != null)
+                    {
+                        matchedAppt.IsPaid = true;
+                        matchedAppt.Status = "Confirmed";
+                        SalonService.UpdateAppointmentStatus(matchedAppt.Id, "Confirmed");
+
+                        var existingInvoice = SalonService.Invoices.FirstOrDefault(i => i.AppointmentId == matchedAppt.Id);
+                        if (existingInvoice == null)
+                        {
+                            var newInvoice = new InvoiceRecord
+                            {
+                                AppointmentId = matchedAppt.Id,
+                                CustomerId = matchedAppt.CustomerId,
+                                ClientName = matchedAppt.ClientName,
+                                ServiceName = matchedAppt.ServiceName,
+                                StylistName = matchedAppt.StylistName,
+                                Subtotal = matchedAppt.Price,
+                                Total = matchedAppt.Price,
+                                AmountPaid = matchedAppt.Price,
+                                PaymentMethod = "GCash (Xendit Online)",
+                                Timestamp = DateTime.Now,
+                                CashierName = "Xendit GCash Gateway"
+                            };
+
+                            SalonService.AddInvoice(newInvoice);
+                        }
+
+                        isSuccess = true;
+                    }
+                    else
+                    {
+                        isSuccess = true;
+                    }
+                }
+                else
+                {
+                    errorMessage = $"GCash payment status is {result.Status}.";
+                }
+            }
+            else if (targetApptId > 0)
+            {
+                matchedAppt = SalonService.Appointments.FirstOrDefault(a => a.Id == targetApptId);
+                if (matchedAppt != null)
+                {
+                    isSuccess = true;
+                }
+            }
+            else
+            {
+                errorMessage = "No checkout session ID was provided.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error processing payment verification: {ex.Message}";
+        }
+        finally
+        {
+            isVerifying = false;
+        }
+    }
+
+    private void HandleDataChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
+    }
+}

@@ -2,6 +2,11 @@
 @page "/pos"
 @inject SalonDataService SalonService
 @inject NavigationManager Navigation
+@inject StripePaymentService StripeService
+@inject XenditPaymentService XenditService
+@inject EmailReceiptService EmailService
+
+@implements IDisposable
 
 <PageTitle>Front Desk POS, Floor & Billing | Beauty Hair Studio</PageTitle>
 
@@ -73,12 +78,6 @@
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <a href="/" class="btn-portal-secondary" title="View Public Website">
-                    <i class="bi bi-globe"></i> Website
-                </a>
-                <a href="/admin" class="btn-portal-secondary" title="Open Admin Management ERP">
-                    <i class="bi bi-shield-lock"></i> Admin ERP
-                </a>
 
                 @if (currentTab != "register")
                 {
@@ -86,8 +85,8 @@
                         <i class="bi bi-calculator"></i> Open POS Register
                     </button>
                 }
-                <button class="btn-primary-dark" @onclick="PrepareNewWalkin">
-                    <i class="bi bi-plus-circle"></i> Quick Walk-in Bill
+                <button class="btn-primary-dark" @onclick='() => currentTab = "checkin"'>
+                    <i class="bi bi-person-check"></i> Walk-in Check-in
                 </button>
             </div>
         </div>
@@ -104,7 +103,7 @@
             </div>
             <div class="portal-kpi-card">
                 <span class="portal-kpi-label">Pending Checkout</span>
-                <div class="portal-kpi-num" style="color: #F59E0B;">@SalonService.Appointments.Count(a => !a.IsPaid)</div>
+                <div class="portal-kpi-num" style="color: #F59E0B;">@SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid)</div>
             </div>
             <div class="portal-kpi-card">
                 <span class="portal-kpi-label">Invoices Issued</span>
@@ -121,7 +120,7 @@
                 <div style="display: flex; gap: 8px;">
                     @if (lastPaidInvoice != null)
                     {
-                        <button style="background: #065F46; color: #FFFFFF; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;" @onclick="() => viewingReceipt = lastPaidInvoice">
+                        <button style="background: #065F46; color: #FFFFFF; border: none; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;" @onclick="() => OpenReceiptModal(lastPaidInvoice!)">
                             <i class="bi bi-printer"></i> View Receipt
                         </button>
                     }
@@ -141,15 +140,15 @@
                     <div class="portal-card-header">
                         <div>
                             <h3 class="portal-card-title">1. Select Appointment to Bill</h3>
-                            <span style="font-size: 12px; color: var(--text-muted);">Clients waiting or completed in chairs</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">Completed rituals ready for checkout</span>
                         </div>
-                        <span style="font-size: 12px; background: #F3F4F6; padding: 4px 8px; border-radius: 4px; font-weight: 600;">
-                            @SalonService.Appointments.Count(a => !a.IsPaid) Waiting
+                        <span style="font-size: 12px; background: #FEF3C7; color: #92400E; padding: 4px 8px; border-radius: 4px; font-weight: 700;">
+                            @SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid) Ready to Bill
                         </span>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        @foreach (var appt in SalonService.Appointments.Where(a => !a.IsPaid).OrderByDescending(a => a.Id))
+                        @foreach (var appt in SalonService.Appointments.Where(a => a.Status == "Completed" && !a.IsPaid).OrderByDescending(a => a.Id))
                         {
                             bool isSelected = selectedApptId == appt.Id;
                             <div style="border: 2px solid @(isSelected ? "var(--gold-accent)" : "var(--border-light)"); padding: 14px; border-radius: 4px; cursor: pointer; background: @(isSelected ? "#FFFDF5" : "#FFFFFF"); transition: all 0.2s ease;"
@@ -163,18 +162,21 @@
                                     <span><i class="bi bi-person"></i> @appt.StylistName</span>
                                 </div>
                                 <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
+                                    <span class="badge-status completed">Ritual Done</span>
                                     <span style="font-size: 12px; color: var(--text-muted);">Slot: @appt.TimeSlot</span>
                                 </div>
                             </div>
                         }
 
-                        @if (!SalonService.Appointments.Any(a => !a.IsPaid))
+                        @if (!SalonService.Appointments.Any(a => a.Status == "Completed" && !a.IsPaid))
                         {
-                            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                                <i class="bi bi-check-all" style="font-size: 32px; color: #10B981;"></i>
-                                <p style="margin-top: 8px; font-weight: 600;">All appointments for today are paid!</p>
-                                <button class="btn-primary-dark" style="margin-top: 12px;" @onclick="PrepareNewWalkin">Create Walk-in Bill</button>
+                            <div style="text-align: center; padding: 36px 20px; color: var(--text-muted); background: #FAF9F6; border: 1px dashed var(--border-light); border-radius: 6px;">
+                                <i class="bi bi-hourglass-split" style="font-size: 28px; color: var(--gold-accent);"></i>
+                                <p style="margin: 8px 0 2px 0; font-weight: 700; color: var(--text-dark);">No Completed Rituals Awaiting Payment</p>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">Clients will appear here once the specialist clicks <strong>'Finish Ritual (Done)'</strong>.</p>
+                                <button class="btn-primary-dark" style="font-size: 12px; padding: 8px 14px;" @onclick='() => currentTab = "checkin"'>
+                                    <i class="bi bi-person-check"></i> Walk-in Check-in
+                                </button>
                             </div>
                         }
                     </div>
@@ -187,196 +189,475 @@
                             <h3 class="portal-card-title">2. Billing Terminal</h3>
                             <span style="font-size: 12px; color: var(--text-muted);">Calculate discounts, add-ons, and payment</span>
                         </div>
-                        <span style="font-size: 12px; font-weight: 700; color: #10B981; background: #ECFDF5; padding: 4px 8px; border-radius: 4px;">ACTIVE REGISTER</span>
+                        @if (HasSelectedAwaitingPayment && SelectedAppointment != null)
+                        {
+                            <span style="font-size: 12px; font-weight: 700; color: #10B981; background: #ECFDF5; padding: 4px 8px; border-radius: 4px;">
+                                TICKET #@SelectedAppointment.Id ACTIVE
+                            </span>
+                        }
+                        else if (HasAwaitingPayments)
+                        {
+                            <span style="font-size: 12px; font-weight: 700; color: #D97706; background: #FEF3C7; padding: 4px 8px; border-radius: 4px;">
+                                SELECT TICKET
+                            </span>
+                        }
+                        else
+                        {
+                            <span style="font-size: 12px; font-weight: 700; color: #6B7280; background: #F3F4F6; padding: 4px 8px; border-radius: 4px;">
+                                STANDBY &bull; NO AWAITING PAYMENT
+                            </span>
+                        }
                     </div>
 
-                    <div style="padding: 16px 0;">
-                        <!-- Client & Service Info -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                            <div>
-                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Client Name</label>
-                                <input type="text" class="booking-input" @bind="billingClientName" @bind:after="OnClientNameChanged" placeholder="Client Name" />
+                    @if (!HasAwaitingPayments)
+                    {
+                        <!-- Standby State: No appointments awaiting payment -->
+                        <div style="padding: 48px 24px; text-align: center;">
+                            <div style="width: 64px; height: 64px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                                <i class="bi bi-shield-check" style="font-size: 30px; color: var(--gold-accent);"></i>
                             </div>
-                            <div>
-                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Assigned Stylist</label>
-                                <select class="booking-input" @bind="billingStylistName">
-                                    @foreach (var tm in SalonService.Stylists)
-                                    {
-                                        <option value="@tm.Name">@tm.Name</option>
-                                    }
-                                </select>
+                            <h4 style="font-size: 17px; font-weight: 800; color: var(--text-dark); margin: 0 0 8px 0;">No Rituals Awaiting Payment</h4>
+                            <p style="font-size: 13.5px; color: var(--text-muted); max-width: 440px; margin: 0 auto 20px auto; line-height: 1.5;">
+                                The billing register is on standby. Payment can only be tendered once a specialist marks a client's ritual as completed on the floor.
+                            </p>
+                            <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 6px; padding: 14px 18px; max-width: 440px; margin: 0 auto 24px auto; text-align: left; font-size: 12.5px; color: var(--text-muted);">
+                                <strong style="color: var(--text-dark); display: block; margin-bottom: 6px;">Salon Floor Lifecycle:</strong>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span>1. <strong>Check-in</strong> &bull; Client arrives or checks in at reception</span>
+                                    <span>2. <strong>In Progress</strong> &bull; Specialist seats client and performs ritual</span>
+                                    <span>3. <strong>Ritual Done</strong> &bull; Specialist completes service on floor</span>
+                                    <span>4. <strong>Checkout</strong> &bull; Ticket unlocks here for tender settlement</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn-primary-dark" style="font-size: 13px; padding: 9px 18px;" @onclick='() => currentTab = "floor"'>
+                                    <i class="bi bi-display"></i> View Salon Floor & Queue
+                                </button>
+                                <button style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 9px 18px; border-radius: 4px; font-weight: 700; font-size: 13px; color: var(--text-dark); cursor: pointer;" @onclick='() => currentTab = "checkin"'>
+                                    <i class="bi bi-person-check"></i> Walk-in Check-in
+                                </button>
                             </div>
                         </div>
-
-                        <!-- Customer Loyalty Status Banner -->
-                        @if (matchedCustomer != null)
-                        {
-                            <div style="background: #FAF5FF; border: 1px solid #E9D5FF; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    }
+                    else if (!HasSelectedAwaitingPayment)
+                    {
+                        <!-- Awaiting Selection State -->
+                        <div style="padding: 48px 24px; text-align: center;">
+                            <div style="width: 64px; height: 64px; background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                                <i class="bi bi-hand-index-thumb" style="font-size: 28px; color: #D97706;"></i>
+                            </div>
+                            <h4 style="font-size: 17px; font-weight: 800; color: var(--text-dark); margin: 0 0 8px 0;">Select a Ticket to Proceed</h4>
+                            <p style="font-size: 13.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 20px auto; line-height: 1.5;">
+                                There are <strong>@SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid)</strong> completed ritual(s) ready for billing. Please click an appointment from the queue on the left to review invoice details and tender payment.
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Active Billing Form for Selected Awaiting Payment Ticket -->
+                        <div style="padding: 16px 0;">
+                            <!-- Active Ticket Info Banner -->
+                            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                 <div>
-                                    <span style="font-size: 11px; font-weight: 800; color: #7C3AED; text-transform: uppercase;">CRM CLIENT: @matchedCustomer.FullName</span>
-                                    <div style="font-size: 12px; color: var(--text-dark);">
-                                        Tier: <strong>@matchedCustomer.Tier</strong> &bull; Points: <strong style="color: #D97706;">@matchedCustomer.LoyaltyPoints pts</strong>
+                                    <span style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.04em;">
+                                        <i class="bi bi-check2-circle"></i> COMPLETED RITUAL READY FOR PAYMENT
+                                    </span>
+                                    <div style="font-size: 15px; font-weight: 800; color: #14532D; margin-top: 2px;">
+                                        @SelectedAppointment!.ClientName &bull; @SelectedAppointment.ServiceName
+                                    </div>
+                                    <div style="font-size: 12px; color: #15803D; margin-top: 2px;">
+                                        Specialist: <strong>@SelectedAppointment.StylistName</strong> &bull; Slot: <strong>@SelectedAppointment.TimeSlot</strong>
                                     </div>
                                 </div>
-                                @if (matchedCustomer.LoyaltyPoints >= 200 && !redeemPoints)
-                                {
-                                    <button type="button" style="background: #7C3AED; color: #FFF; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;" @onclick="ToggleRedeemPoints">
-                                        Redeem 200 pts (-₱350)
-                                    </button>
-                                }
-                                else if (redeemPoints)
-                                {
-                                    <span style="color: #059669; font-weight: 700; font-size: 12px;">
-                                        <i class="bi bi-check-circle-fill"></i> 200 pts Redeemed (-₱350)
-                                    </span>
-                                }
+                                <span style="font-size: 18px; font-weight: 900; color: #15803D;">
+                                    ₱@SelectedAppointment.Price.ToString("N0")
+                                </span>
                             </div>
-                        }
 
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Selected Ritual / Service</label>
-                            <select class="booking-input" @bind="billingServiceName" @bind:after="RecalculateBasePrice">
-                                <optgroup label="Service Packages">
-                                    @foreach (var pkg in SalonService.Packages)
-                                    {
-                                        <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
-                                    }
-                                </optgroup>
-                                <optgroup label="Individual Services">
-                                    @foreach (var svc in SalonService.Services)
-                                    {
-                                        <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
-                                    }
-                                </optgroup>
-                            </select>
-                        </div>
-
-                        <!-- Dynamic Retail Product Add-ons from Inventory -->
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">
-                                Add-on Salon Retail Products (Live Inventory)
-                            </label>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                @foreach (var prod in SalonService.Products.Where(p => p.Category == "Retail" || p.Category == "Hair Care"))
-                                {
-                                    bool isSelected = selectedProductIds.Contains(prod.Id);
-                                    <button type="button" class="btn-addon @(isSelected ? "selected" : "")" @onclick="() => ToggleProductSelection(prod.Id)">
-                                        <i class="bi @(isSelected ? "bi-check-square-fill" : "bi-square")"></i>
-                                        @prod.Name (+₱@prod.RetailPrice.ToString("N0"))
-                                        <span style="font-size: 11px; opacity: 0.8; margin-left: 4px;">[@prod.StockQuantity in stock]</span>
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Promo Code Input & Standard Discounts -->
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Promo Code / Voucher</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" class="booking-input" style="font-family: monospace; text-transform: uppercase; font-weight: 700;" placeholder="e.g. WELCOME10, VIP200" @bind="promoCodeInput" />
-                                <button type="button" class="btn-primary-dark" style="padding: 0 16px;" @onclick="ApplyPromoCode">Apply</button>
-                            </div>
-                            @if (!string.IsNullOrEmpty(promoMessage))
-                            {
-                                <div style="font-size: 12px; margin-top: 4px; color: @(promoApplied ? "#059669" : "#DC2626"); font-weight: 600;">
-                                    <i class="bi @(promoApplied ? "bi-check-circle" : "bi-exclamation-circle")"></i> @promoMessage
-                                </div>
-                            }
-                        </div>
-
-                        <!-- Quick Discounts -->
-                        <div style="margin-bottom: 20px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Standard Discounts</label>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                                <button type="button" class="btn-discount @(selectedDiscountType == "NONE" ? "active" : "")" @onclick='() => SetDiscount("NONE")'>None (0%)</button>
-                                <button type="button" class="btn-discount @(selectedDiscountType == "SENIOR" ? "active" : "")" @onclick='() => SetDiscount("SENIOR")'>Senior (20%)</button>
-                                <button type="button" class="btn-discount @(selectedDiscountType == "VIP" ? "active" : "")" @onclick='() => SetDiscount("VIP")'>VIP (10%)</button>
-                            </div>
-                        </div>
-
-                        <!-- Price Calculation Summary Box -->
-                        <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 4px; padding: 14px; margin-bottom: 20px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;">
-                                <span style="color: var(--text-muted);">Base Service:</span>
-                                <span>₱@baseServicePrice.ToString("N0")</span>
-                            </div>
-                            @if (addonTotal > 0)
-                            {
-                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;">
-                                    <span style="color: var(--text-muted);">Retail Add-ons (@selectedProductIds.Count items):</span>
-                                    <span>+₱@addonTotal.ToString("N0")</span>
-                                </div>
-                            }
-                            @if (calculatedDiscount > 0)
-                            {
-                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
-                                    <span>Standard Discount (@selectedDiscountType):</span>
-                                    <span>-₱@calculatedDiscount.ToString("N0")</span>
-                                </div>
-                            }
-                            @if (promoDiscount > 0)
-                            {
-                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
-                                    <span>Promo Code (@promoCodeApplied):</span>
-                                    <span>-₱@promoDiscount.ToString("N0")</span>
-                                </div>
-                            }
-                            @if (loyaltyDiscount > 0)
-                            {
-                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #7C3AED;">
-                                    <span>Loyalty Points Redemption:</span>
-                                    <span>-₱@loyaltyDiscount.ToString("N0")</span>
-                                </div>
-                            }
-                            <div style="border-top: 1px dashed var(--border-light); margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                            <!-- Client & Service Info -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                                 <div>
-                                    <strong style="font-size: 16px;">Total Due:</strong>
-                                    <span style="display: block; font-size: 11px; color: #059669; font-weight: 700;">+@((int)(netTotalDue / 100)) Loyalty Pts to Earn</span>
+                                    <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Client Name</label>
+                                    <input type="text" class="booking-input" @bind="billingClientName" @bind:after="OnClientNameChanged" placeholder="Client Name" />
                                 </div>
-                                <strong style="font-size: 22px; color: var(--gold-accent);">₱@netTotalDue.ToString("N0")</strong>
+                                <div>
+                                    <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Assigned Stylist</label>
+                                    <select class="booking-input" @bind="billingStylistName">
+                                        @foreach (var tm in SalonService.Stylists)
+                                        {
+                                            <option value="@tm.Name">@tm.Name</option>
+                                        }
+                                    </select>
+                                </div>
                             </div>
+
+                            <!-- Customer Loyalty Status Banner -->
+                            @if (matchedCustomer != null)
+                            {
+                                <div style="background: #FAF5FF; border: 1px solid #E9D5FF; padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 11px; font-weight: 800; color: #7C3AED; text-transform: uppercase;">CRM CLIENT: @matchedCustomer.FullName</span>
+                                        <div style="font-size: 12px; color: var(--text-dark);">
+                                            Tier: <strong>@matchedCustomer.Tier</strong> &bull; Points: <strong style="color: #D97706;">@matchedCustomer.LoyaltyPoints pts</strong>
+                                        </div>
+                                    </div>
+                                    @if (matchedCustomer.LoyaltyPoints >= 200 && !redeemPoints)
+                                    {
+                                        <button type="button" style="background: #7C3AED; color: #FFF; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; cursor: pointer;" @onclick="ToggleRedeemPoints">
+                                            Redeem 200 pts (-₱350)
+                                        </button>
+                                    }
+                                    else if (redeemPoints)
+                                    {
+                                        <span style="color: #059669; font-weight: 700; font-size: 12px;">
+                                            <i class="bi bi-check-circle-fill"></i> 200 pts Redeemed (-₱350)
+                                        </span>
+                                    }
+                                </div>
+                            }
+
+                            <div style="margin-bottom: 16px;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Selected Ritual / Service</label>
+                                <select class="booking-input" @bind="billingServiceName" @bind:after="RecalculateBasePrice">
+                                    <optgroup label="Service Packages">
+                                        @foreach (var pkg in SalonService.Packages)
+                                        {
+                                            <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0"))</option>
+                                        }
+                                    </optgroup>
+                                    <optgroup label="Individual Services">
+                                        @foreach (var svc in SalonService.Services)
+                                        {
+                                            <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0"))</option>
+                                        }
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <!-- Dynamic Retail Product Add-ons from Inventory -->
+                            <div style="margin-bottom: 16px;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                                    Add-on Salon Retail Products (Live Inventory)
+                                </label>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    @foreach (var prod in SalonService.Products.Where(p => p.Category == "Retail" || p.Category == "Hair Care"))
+                                    {
+                                        bool isSelected = selectedProductIds.Contains(prod.Id);
+                                        <button type="button" class="btn-addon @(isSelected ? "selected" : "")" @onclick="() => ToggleProductSelection(prod.Id)">
+                                            <i class="bi @(isSelected ? "bi-check-square-fill" : "bi-square")"></i>
+                                            @prod.Name (+₱@prod.RetailPrice.ToString("N0"))
+                                            <span style="font-size: 11px; opacity: 0.8; margin-left: 4px;">[@prod.StockQuantity in stock]</span>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Promo Code Input & Standard Discounts -->
+                            <div style="margin-bottom: 16px;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Promo Code / Voucher</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" class="booking-input" style="font-family: monospace; text-transform: uppercase; font-weight: 700;" placeholder="e.g. WELCOME10, VIP200" @bind="promoCodeInput" />
+                                    <button type="button" class="btn-primary-dark" style="padding: 0 16px;" @onclick="ApplyPromoCode">Apply</button>
+                                </div>
+                                @if (!string.IsNullOrEmpty(promoMessage))
+                                {
+                                    <div style="font-size: 12px; margin-top: 4px; color: @(promoApplied ? "#059669" : "#DC2626"); font-weight: 600;">
+                                        <i class="bi @(promoApplied ? "bi-check-circle" : "bi-exclamation-circle")"></i> @promoMessage
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Quick Discounts -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px;">Standard Discounts</label>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                    <button type="button" class="btn-discount @(selectedDiscountType == "NONE" ? "active" : "")" @onclick='() => SetDiscount("NONE")'>None (0%)</button>
+                                    <button type="button" class="btn-discount @(selectedDiscountType == "SENIOR" ? "active" : "")" @onclick='() => SetDiscount("SENIOR")'>Senior (20%)</button>
+                                    <button type="button" class="btn-discount @(selectedDiscountType == "VIP" ? "active" : "")" @onclick='() => SetDiscount("VIP")'>VIP (10%)</button>
+                                </div>
+                            </div>
+
+                            <!-- Price Calculation Summary Box -->
+                            <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 4px; padding: 14px; margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;">
+                                    <span style="color: var(--text-muted);">Base Service:</span>
+                                    <span>₱@baseServicePrice.ToString("N0")</span>
+                                </div>
+                                @if (addonTotal > 0)
+                                {
+                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;">
+                                        <span style="color: var(--text-muted);">Retail Add-ons (@selectedProductIds.Count items):</span>
+                                        <span>+₱@addonTotal.ToString("N0")</span>
+                                    </div>
+                                }
+                                @if (calculatedDiscount > 0)
+                                {
+                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
+                                        <span>Standard Discount (@selectedDiscountType):</span>
+                                        <span>-₱@calculatedDiscount.ToString("N0")</span>
+                                    </div>
+                                }
+                                @if (promoDiscount > 0)
+                                {
+                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #DC2626;">
+                                        <span>Promo Code (@promoCodeApplied):</span>
+                                        <span>-₱@promoDiscount.ToString("N0")</span>
+                                    </div>
+                                }
+                                @if (loyaltyDiscount > 0)
+                                {
+                                    <div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; color: #7C3AED;">
+                                        <span>Loyalty Points Redemption:</span>
+                                        <span>-₱@loyaltyDiscount.ToString("N0")</span>
+                                    </div>
+                                }
+                                <div style="border-top: 1px dashed var(--border-light); margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong style="font-size: 16px;">Total Due:</strong>
+                                        <span style="display: block; font-size: 11px; color: #059669; font-weight: 700;">+@((int)(netTotalDue / 100)) Loyalty Pts to Earn</span>
+                                    </div>
+                                    <strong style="font-size: 22px; color: var(--gold-accent);">₱@netTotalDue.ToString("N0")</strong>
+                                </div>
+                            </div>
+
+                            <!-- Payment Method Selection -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 8px;">Payment Method</label>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                                    <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Cash"'>
+                                        <i class="bi bi-cash-stack"></i> Cash
+                                    </button>
+                                    <button type="button" class="btn-paymethod @(selectedPaymentMethod == "GCash" ? "active" : "")" @onclick='() => selectedPaymentMethod = "GCash"'>
+                                        <i class="bi bi-phone"></i> GCash
+                                    </button>
+                                    <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Maya" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Maya"'>
+                                        <i class="bi bi-wallet2"></i> Maya
+                                    </button>
+                                    <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Credit Card" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Credit Card"'>
+                                        <i class="bi bi-stripe"></i> Stripe / Card
+                                    </button>
+                                </div>
+                            </div>
+
+                            @if (selectedPaymentMethod == "Cash")
+                            {
+                                <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 14px; border-radius: 4px; margin-bottom: 20px;">
+                                    <label style="font-size: 12px; font-weight: 700; color: #92400E; display: block; margin-bottom: 6px;">Cash Tendered</label>
+                                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                        <input type="number" class="booking-input" style="font-size: 16px; font-weight: 700;" @bind="cashTendered" @bind:after="CalculateTotals" />
+                                        <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="SetExactCash">Exact</button>
+                                        <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="() => AddTender(500)">+₱500</button>
+                                        <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="() => AddTender(1000)">+₱1k</button>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #92400E;">
+                                        <span>Change:</span>
+                                        <span>₱@calculatedChange.ToString("N0")</span>
+                                    </div>
+                                </div>
+                            }
+                            else if (selectedPaymentMethod == "GCash")
+                            {
+                                <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1.5px solid #93C5FD; padding: 18px; border-radius: 8px; margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <div style="width: 32px; height: 32px; background: #007DFE; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 900; font-size: 15px;">
+                                                G
+                                            </div>
+                                            <div>
+                                                <strong style="font-size: 14px; color: #1E3A8A; display: block;">GCash Online via Xendit Gateway</strong>
+                                                <span style="font-size: 11.5px; color: #2563EB;">Dynamic QR scanner, instant mobile checkout & automated receipt</span>
+                                            </div>
+                                        </div>
+                                        <span style="background: #007DFE; color: #FFFFFF; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
+                                            <i class="bi bi-shield-check"></i> XENDIT ACTIVE
+                                        </span>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(activeGcashQrUrl))
+                                    {
+                                        <!-- Active On-Screen QR Code Box -->
+                                        <div style="background: #FFFFFF; border: 2px solid #007DFE; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(0, 125, 254, 0.12);">
+                                            <div style="display: inline-flex; align-items: center; gap: 6px; background: #007DFE; color: #FFF; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px; letter-spacing: 0.04em;">
+                                                <i class="bi bi-qr-code-scan"></i> SCAN WITH PHONE CAMERA TO PAY
+                                            </div>
+
+                                            <div style="position: relative; display: inline-block; padding: 10px; background: #FFF; border-radius: 10px; border: 1.5px solid #E2E8F0; margin-bottom: 6px;">
+                                                <img src="@activeGcashQrUrl" alt="GCash QR Code" style="width: 180px; height: 180px; display: block; border-radius: 4px;" />
+                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #007DFE; color: #FFF; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; border: 2.5px solid #FFF; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+                                                    G
+                                                </div>
+                                            </div>
+
+                                            <div style="font-size: 18px; font-weight: 900; color: #1E3A8A; margin-top: 4px;">
+                                                ₱@netTotalDue.ToString("N0")
+                                            </div>
+                                            <div style="font-size: 11.5px; color: #64748B; margin-top: 2px;">
+                                                Customer: <strong>@billingClientName</strong> &bull; Service: @billingServiceName
+                                            </div>
+
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px 0; color: #0284C7; font-size: 12px; font-weight: 700; background: #F0F9FF; padding: 6px 12px; border-radius: 6px;">
+                                                <span class="spinner-grow spinner-grow-sm" style="width: 8px; height: 8px;" role="status"></span>
+                                                <span>Live Auto-Poll: Waiting for customer payment...</span>
+                                            </div>
+
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                                                <button type="button" class="btn-primary-dark" style="background: #10B981; justify-content: center; font-size: 12.5px; padding: 10px;" @onclick="CheckGcashPaymentStatus" disabled="@isCheckingGcashStatus">
+                                                    @if (isCheckingGcashStatus)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-arrow-repeat"></i>
+                                                    }
+                                                    <span>Verify Status</span>
+                                                </button>
+
+                                                @if (!string.IsNullOrWhiteSpace(activeGcashInvoiceUrl))
+                                                {
+                                                    <a href="@activeGcashInvoiceUrl" target="_blank" class="btn-primary-dark" style="background: #007DFE; justify-content: center; font-size: 12.5px; padding: 10px; text-decoration: none;">
+                                                        <i class="bi bi-box-arrow-up-right"></i> Open Portal
+                                                    </a>
+                                                }
+                                            </div>
+
+                                            <button type="button" style="margin-top: 10px; background: none; border: none; color: #64748B; font-size: 11.5px; text-decoration: underline; cursor: pointer;" @onclick="CancelGcashQr">
+                                                Cancel / Hide QR Code
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <!-- Setup View -->
+                                        <div style="background: #FFFFFF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+                                            <div style="font-size: 11.5px; color: #4B5563; line-height: 1.4; margin-bottom: 10px;">
+                                                Click <strong>"Show GCash QR Code"</strong> to generate a customer-facing QR code on this screen, or launch direct checkout.
+                                            </div>
+
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px;">
+                                                <div>
+                                                    <label style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; display: block; margin-bottom: 2px;">Customer Email (for receipt)</label>
+                                                    <input type="email" class="booking-input" style="font-size: 12.5px; padding: 6px 10px; background: #F0F9FF;" placeholder="customer@example.com" @bind="gcashReceiptEmail" />
+                                                </div>
+                                                <div>
+                                                    <label style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; display: block; margin-bottom: 2px;">GCash Ref / Counter QR (Optional)</label>
+                                                    <input type="text" class="booking-input" style="font-size: 12.5px; padding: 6px 10px; background: #F0F9FF;" placeholder="e.g. 902183921820" @bind="gcashReferenceNumber" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if (!string.IsNullOrEmpty(gcashErrorMessage))
+                                        {
+                                            <div style="background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; font-size: 12px; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;">
+                                                <i class="bi bi-exclamation-circle-fill"></i> @gcashErrorMessage
+                                            </div>
+                                        }
+
+                                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <button type="button" 
+                                                    class="btn-primary-dark" 
+                                                    style="flex: 1; background: #007DFE; justify-content: center; font-size: 14px; padding: 12px; min-width: 200px;" 
+                                                    @onclick="GenerateGcashQrCode" 
+                                                    disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                                                @if (isProcessingGcash)
+                                                {
+                                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="margin-right: 6px;"></span>
+                                                    <span>Generating QR...</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-qr-code"></i>
+                                                    <span>Show GCash QR (₱@netTotalDue.ToString("N0"))</span>
+                                                }
+                                            </button>
+
+                                            <button type="button" 
+                                                    class="btn-primary-dark" 
+                                                    style="background: #1E40AF; justify-content: center; font-size: 13px; padding: 12px;" 
+                                                    @onclick="OpenXenditGcashCheckout" 
+                                                    title="Open Xendit Checkout in browser immediately"
+                                                    disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                                                <i class="bi bi-box-arrow-up-right"></i> Direct Checkout
+                                            </button>
+
+                                            @if (!string.IsNullOrWhiteSpace(gcashReferenceNumber))
+                                            {
+                                                <button type="button" 
+                                                        class="btn-primary-dark" 
+                                                        style="background: #10B981; justify-content: center; font-size: 13px; padding: 12px;" 
+                                                        @onclick="ProcessManualGcashPayment"
+                                                        title="Record payment directly with the manual reference number">
+                                                    <i class="bi bi-check-circle"></i> Quick Confirm
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else if (selectedPaymentMethod == "Credit Card")
+                            {
+                                <div style="background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%); border: 1.5px solid #C4B5FD; padding: 18px; border-radius: 8px; margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <i class="bi bi-stripe" style="color: #6366F1; font-size: 26px;"></i>
+                                            <div>
+                                                <strong style="font-size: 14px; color: #4C1D95; display: block;">Stripe Sandbox Hosted Checkout</strong>
+                                                <span style="font-size: 11.5px; color: #6D28D9;">Interactive card entry screen with sandbox verification</span>
+                                            </div>
+                                        </div>
+                                        <span style="background: #10B981; color: #FFFFFF; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
+                                            <i class="bi bi-check-circle-fill"></i> SANDBOX LIVE
+                                        </span>
+                                    </div>
+
+                                    <div style="background: #FFFFFF; border: 1px solid #DDD6FE; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                            <span style="font-size: 11.5px; font-weight: 700; color: #4B5563;">Stripe Test Card:</span>
+                                            <span style="font-size: 11px; font-family: monospace; background: #F3F4F6; padding: 2px 6px; border-radius: 4px; color: #1F2937; font-weight: 700;">4242 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4242</span>
+                                        </div>
+                                        <div style="font-size: 11.5px; color: #6B7280; line-height: 1.4; margin-bottom: 8px;">
+                                            Clicking below will launch Stripe's payment page where you can manually enter the card number, expiry date (e.g. 12/28), and CVC (123).
+                                        </div>
+                                        <div>
+                                            <label style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; display: block; margin-bottom: 2px;">Customer Email (for receipt)</label>
+                                            <input type="email" class="booking-input" style="font-size: 12.5px; padding: 6px 10px; background: #FAF5FF;" placeholder="customer@example.com" @bind="stripeReceiptEmail" />
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(stripeErrorMessage))
+                                    {
+                                        <div style="background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; font-size: 12px; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;">
+                                            <i class="bi bi-exclamation-circle-fill"></i> @stripeErrorMessage
+                                        </div>
+                                    }
+
+                                    <button type="button" 
+                                            class="btn-primary-dark" 
+                                            style="width: 100%; background: #6366F1; justify-content: center; font-size: 15px; padding: 13px;" 
+                                            @onclick="OpenStripeHostedCheckout" 
+                                            disabled="@(!HasSelectedAwaitingPayment || isProcessingStripe || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                                        @if (isProcessingStripe)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="margin-right: 6px;"></span>
+                                            <span>Opening Stripe Checkout...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-credit-card-2-front-fill"></i>
+                                            <span>Proceed to Stripe Checkout (₱@netTotalDue.ToString("N0"))</span>
+                                        }
+                                    </button>
+                                </div>
+                            }
+
+                            @if (selectedPaymentMethod != "Credit Card" && selectedPaymentMethod != "GCash")
+                            {
+                                <button class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 14px; font-size: 16px;" @onclick="ProcessPayment" disabled="@(!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue < 0)">
+                                    <i class="bi bi-check2-circle"></i> Complete Payment & Issue Receipt (₱@netTotalDue.ToString("N0"))
+                                </button>
+                            }
                         </div>
-
-                        <!-- Payment Method Selection -->
-                        <div style="margin-bottom: 20px;">
-                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 8px;">Payment Method</label>
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-                                <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Cash" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Cash"'>
-                                    <i class="bi bi-cash-stack"></i> Cash
-                                </button>
-                                <button type="button" class="btn-paymethod @(selectedPaymentMethod == "GCash" ? "active" : "")" @onclick='() => selectedPaymentMethod = "GCash"'>
-                                    <i class="bi bi-phone"></i> GCash
-                                </button>
-                                <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Maya" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Maya"'>
-                                    <i class="bi bi-wallet2"></i> Maya
-                                </button>
-                                <button type="button" class="btn-paymethod @(selectedPaymentMethod == "Credit Card" ? "active" : "")" @onclick='() => selectedPaymentMethod = "Credit Card"'>
-                                    <i class="bi bi-credit-card"></i> Card
-                                </button>
-                            </div>
-                        </div>
-
-                        @if (selectedPaymentMethod == "Cash")
-                        {
-                            <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 14px; border-radius: 4px; margin-bottom: 20px;">
-                                <label style="font-size: 12px; font-weight: 700; color: #92400E; display: block; margin-bottom: 6px;">Cash Tendered</label>
-                                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                                    <input type="number" class="booking-input" style="font-size: 16px; font-weight: 700;" @bind="cashTendered" @bind:after="CalculateTotals" />
-                                    <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="SetExactCash">Exact</button>
-                                    <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="() => AddTender(500)">+₱500</button>
-                                    <button type="button" style="padding: 0 12px; background: #FFFFFF; border: 1px solid #D97706; border-radius: 4px; font-size: 12px; font-weight: 700; color: #92400E;" @onclick="() => AddTender(1000)">+₱1k</button>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #92400E;">
-                                    <span>Change:</span>
-                                    <span>₱@calculatedChange.ToString("N0")</span>
-                                </div>
-                            </div>
-                        }
-
-                        <button class="btn-primary-dark" style="width: 100%; justify-content: center; padding: 14px; font-size: 16px;" @onclick="ProcessPayment" disabled="@(string.IsNullOrWhiteSpace(billingClientName) || netTotalDue < 0)">
-                            <i class="bi bi-check2-circle"></i> Complete Payment & Issue Receipt (₱@netTotalDue.ToString("N0"))
-                        </button>
-                    </div>
+                    }
                 </div>
             </div>
         }
@@ -730,13 +1011,22 @@
                                     <td style="padding: 14px;">@inv.ServiceName</td>
                                     <td style="padding: 14px;">@inv.StylistName</td>
                                     <td style="padding: 14px;">
-                                        <span style="display: inline-block; font-size: 12px; font-weight: 600; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">
-                                            @inv.PaymentMethod
-                                        </span>
+                                        @if (inv.PaymentMethod.Contains("Stripe", StringComparison.OrdinalIgnoreCase) || inv.PaymentMethod.Contains("Card", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; background: #EDE9FE; color: #6D28D9; padding: 2px 8px; border-radius: 4px; border: 1px solid #DDD6FE;">
+                                                <i class="bi bi-stripe"></i> @inv.PaymentMethod
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span style="display: inline-block; font-size: 12px; font-weight: 600; background: #F3F4F6; padding: 2px 8px; border-radius: 4px;">
+                                                @inv.PaymentMethod
+                                            </span>
+                                        }
                                     </td>
                                     <td style="padding: 14px; font-weight: 800; color: #10B981;">₱@inv.Total.ToString("N0")</td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: 1px solid var(--border-light); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => viewingReceipt = inv">
+                                        <button style="background: #F3F4F6; border: 1px solid var(--border-light); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => OpenReceiptModal(inv)">
                                             <i class="bi bi-receipt"></i> View Receipt
                                         </button>
                                     </td>
@@ -885,6 +1175,32 @@
                 <div>Thank you for choosing Beauty Hair!</div>
             </div>
 
+            <!-- Email Receipt to Customer Box -->
+            <div style="background: #FFFFFF; border: 1px solid #D1D5DB; padding: 10px; border-radius: 6px; margin-bottom: 14px;">
+                <label style="font-size: 10.5px; font-weight: 700; color: #4B5563; display: block; margin-bottom: 4px; text-transform: uppercase;">
+                    <i class="bi bi-envelope-fill" style="color: #D97706;"></i> Email Receipt to Customer
+                </label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="email" class="booking-input" style="font-size: 11.5px; padding: 5px 8px; flex: 1;" placeholder="customer@example.com" @bind="receiptModalEmail" />
+                    <button type="button" class="btn-primary-dark" style="font-size: 11px; padding: 5px 12px; background: #D97706; white-space: nowrap;" @onclick="SendModalReceiptEmail" disabled="@(isSendingReceiptEmail || string.IsNullOrWhiteSpace(receiptModalEmail))">
+                        @if (isSendingReceiptEmail)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send"></i> <span>Send</span>
+                        }
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(receiptModalEmailStatus))
+                {
+                    <div style="font-size: 10.5px; margin-top: 5px; color: @(receiptModalEmailSuccess ? "#059669" : "#DC2626"); font-weight: 600;">
+                        <i class="bi @(receiptModalEmailSuccess ? "bi-check-circle-fill" : "bi-info-circle-fill")"></i> @receiptModalEmailStatus
+                    </div>
+                }
+            </div>
+
             <div style="display: flex; gap: 8px;">
                 <button class="btn-primary-dark" style="flex: 1; justify-content: center;" @onclick="() => viewingReceipt = null">Done</button>
             </div>
@@ -960,7 +1276,7 @@
     private string billingClientName = "";
     private string billingStylistName = "";
     private string billingServiceName = "";
-    private decimal baseServicePrice = 850;
+    private decimal baseServicePrice = 0;
     private HashSet<int> selectedProductIds = new();
     private decimal addonTotal = 0;
     private string selectedDiscountType = "NONE";
@@ -976,14 +1292,35 @@
     private bool redeemPoints = false;
     private decimal loyaltyDiscount = 0;
 
-    private decimal netTotalDue = 850;
+    private decimal netTotalDue = 0;
     private string selectedPaymentMethod = "Cash";
-    private decimal cashTendered = 850;
+    private decimal cashTendered = 0;
     private decimal calculatedChange = 0;
+
+    // Stripe Cashier Fields
+    private string stripeReceiptEmail = "";
+    private bool isProcessingStripe = false;
+    private string? stripeErrorMessage = null;
+
+    // Xendit GCash Fields
+    private string gcashReceiptEmail = "";
+    private bool isProcessingGcash = false;
+    private string? gcashErrorMessage = null;
+    private string gcashReferenceNumber = "";
+    private string? activeGcashQrUrl = null;
+    private string? activeGcashInvoiceUrl = null;
+    private string? activeGcashInvoiceId = null;
+    private string? activeGcashExternalId = null;
+    private bool isCheckingGcashStatus = false;
+    private System.Threading.CancellationTokenSource? _gcashPollCts;
 
     private string? successNotification = null;
     private InvoiceRecord? lastPaidInvoice = null;
     private InvoiceRecord? viewingReceipt = null;
+    private string receiptModalEmail = "";
+    private bool isSendingReceiptEmail = false;
+    private string? receiptModalEmailStatus = null;
+    private bool receiptModalEmailSuccess = false;
 
     // Floor & Chair Monitor Fields
     private string floorStylistFilter = "ALL";
@@ -1005,6 +1342,15 @@
     private string walkinSlot = "Walk-in (Now)";
 
     private int ActiveChairsCount => SalonService.Appointments.Count(a => a.Status == "In Progress");
+
+    private bool HasAwaitingPayments => SalonService.Appointments.Any(a => a.Status == "Completed" && !a.IsPaid);
+
+    private AppointmentRecord? SelectedAppointment =>
+        selectedApptId > 0
+            ? SalonService.Appointments.FirstOrDefault(a => a.Id == selectedApptId && a.Status == "Completed" && !a.IsPaid)
+            : null;
+
+    private bool HasSelectedAwaitingPayment => SelectedAppointment != null;
 
     private List<AppointmentRecord> FilteredFloorAppointments
     {
@@ -1030,17 +1376,231 @@
         }
     }
 
-    protected override void OnInitialized()
+    [SupplyParameterFromQuery]
+    public string? stripe_session_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? xendit_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? xendit_simulated { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? appt_id { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? status { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        var firstUnpaid = SalonService.Appointments.FirstOrDefault(a => !a.IsPaid);
+        SalonService.OnChange += HandleDataChanged;
+        SalonService.EnsureSeedData();
+
+        if (!string.IsNullOrWhiteSpace(stripe_session_id))
+        {
+            await HandleStripeReturnAsync(stripe_session_id);
+        }
+        else if (!string.IsNullOrWhiteSpace(xendit_id))
+        {
+            await HandleXenditReturnAsync(xendit_id);
+        }
+
+        var firstUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
         if (firstUnpaid != null)
         {
             SelectAppointmentForBilling(firstUnpaid);
         }
         else
         {
-            PrepareNewWalkin();
+            ClearBillingSelection();
         }
+    }
+
+    private async Task HandleXenditReturnAsync(string xenditId)
+    {
+        try
+        {
+            var result = await XenditService.VerifyInvoiceAsync(xenditId);
+            if (result.IsPaid)
+            {
+                int targetApptId = 0;
+                if (!string.IsNullOrWhiteSpace(appt_id))
+                {
+                    int.TryParse(appt_id, out targetApptId);
+                }
+
+                if (targetApptId == 0 && xenditId.Contains("APPT-"))
+                {
+                    var parts = xenditId.Split('-');
+                    for (int i = 0; i < parts.Length - 1; i++)
+                    {
+                        if (parts[i] == "APPT" && int.TryParse(parts[i + 1], out int id))
+                        {
+                            targetApptId = id;
+                            break;
+                        }
+                    }
+                }
+
+                var appt = SalonService.Appointments.FirstOrDefault(a => a.Id == targetApptId);
+                var clientName = appt?.ClientName ?? "GCash Customer";
+                var serviceName = appt?.ServiceName ?? "Salon Service";
+                var amount = result.Amount > 0 ? result.Amount : (appt?.Price ?? 850);
+
+                var existingInv = SalonService.Invoices.FirstOrDefault(i => i.AppointmentId == targetApptId && targetApptId > 0);
+                if (existingInv == null)
+                {
+                    var invoice = new InvoiceRecord
+                    {
+                        AppointmentId = targetApptId,
+                        CustomerId = appt?.CustomerId,
+                        ClientName = clientName,
+                        ServiceName = serviceName,
+                        StylistName = appt?.StylistName ?? "Sofia Martinez",
+                        Subtotal = amount,
+                        Total = amount,
+                        AmountPaid = amount,
+                        PaymentMethod = "GCash (Xendit)",
+                        Timestamp = DateTime.Now,
+                        CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
+                    };
+
+                    SalonService.AddInvoice(invoice);
+                    lastPaidInvoice = invoice;
+                    SetSuccessNotification($"GCash Payment of ₱{invoice.Total:N0} successfully verified via Xendit for {invoice.ClientName}! (Invoice: {invoice.InvoiceNumber})");
+
+                    var targetEmail = !string.IsNullOrWhiteSpace(result.CustomerEmail) ? result.CustomerEmail : (appt?.ClientEmail ?? matchedCustomer?.Email);
+                    if (!string.IsNullOrWhiteSpace(targetEmail))
+                    {
+                        _ = EmailService.SendInvoiceReceiptAsync(invoice, targetEmail);
+                    }
+                }
+                else
+                {
+                    lastPaidInvoice = existingInv;
+                    SetSuccessNotification($"Invoice {existingInv.InvoiceNumber} payment verified with Xendit GCash.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetSuccessNotification($"Xendit payment callback error: {ex.Message}");
+        }
+    }
+
+    private async Task HandleStripeReturnAsync(string sessionId)
+    {
+        try
+        {
+            var result = await StripeService.VerifySessionAsync(sessionId);
+            if (result.IsPaid)
+            {
+                int apptId = 0;
+                if (result.Metadata != null && result.Metadata.TryGetValue("AppointmentId", out var metaApptId))
+                {
+                    int.TryParse(metaApptId, out apptId);
+                }
+
+                var appt = SalonService.Appointments.FirstOrDefault(a => a.Id == apptId);
+                var clientName = result.Metadata?.GetValueOrDefault("ClientName") ?? appt?.ClientName ?? "Stripe Customer";
+                var serviceName = result.Metadata?.GetValueOrDefault("ServiceName") ?? appt?.ServiceName ?? "Salon Service";
+                var amount = result.AmountTotal > 0 ? result.AmountTotal : (appt?.Price ?? 850);
+
+                var existingInv = SalonService.Invoices.FirstOrDefault(i => i.AppointmentId == apptId && apptId > 0);
+                if (existingInv == null)
+                {
+                    var invoice = new InvoiceRecord
+                    {
+                        AppointmentId = apptId,
+                        CustomerId = appt?.CustomerId,
+                        ClientName = clientName,
+                        ServiceName = serviceName,
+                        StylistName = appt?.StylistName ?? "Sofia Martinez",
+                        Subtotal = amount,
+                        Total = amount,
+                        AmountPaid = amount,
+                        PaymentMethod = "Stripe Card (Sandbox)",
+                        Timestamp = DateTime.Now,
+                        CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
+                    };
+
+                    SalonService.AddInvoice(invoice);
+                    lastPaidInvoice = invoice;
+                    SetSuccessNotification($"Payment of ₱{invoice.Total:N0} successfully verified via Stripe Checkout for {invoice.ClientName}! (Invoice: {invoice.InvoiceNumber})");
+
+                    var targetEmail = !string.IsNullOrWhiteSpace(result.CustomerEmail) ? result.CustomerEmail : (appt?.ClientEmail ?? matchedCustomer?.Email);
+                    if (!string.IsNullOrWhiteSpace(targetEmail))
+                    {
+                        _ = EmailService.SendInvoiceReceiptAsync(invoice, targetEmail);
+                    }
+                }
+                else
+                {
+                    lastPaidInvoice = existingInv;
+                    SetSuccessNotification($"Invoice {existingInv.InvoiceNumber} payment verified with Stripe Checkout.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetSuccessNotification($"Stripe payment callback processed: {ex.Message}");
+        }
+    }
+
+    private System.Threading.CancellationTokenSource? _notificationCts;
+
+    private void SetSuccessNotification(string message, int durationSeconds = 5)
+    {
+        successNotification = message;
+        _notificationCts?.Cancel();
+        _notificationCts = new System.Threading.CancellationTokenSource();
+        var token = _notificationCts.Token;
+
+        _ = Task.Delay(durationSeconds * 1000, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                InvokeAsync(() =>
+                {
+                    successNotification = null;
+                    StateHasChanged();
+                });
+            }
+        }, token);
+    }
+
+    private void HandleDataChanged()
+    {
+        if (selectedApptId > 0 && !SalonService.Appointments.Any(a => a.Id == selectedApptId && a.Status == "Completed" && !a.IsPaid))
+        {
+            var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
+            if (nextUnpaid != null)
+            {
+                SelectAppointmentForBilling(nextUnpaid);
+            }
+            else
+            {
+                ClearBillingSelection();
+            }
+        }
+        else if (selectedApptId == 0)
+        {
+            var firstUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
+            if (firstUnpaid != null)
+            {
+                SelectAppointmentForBilling(firstUnpaid);
+            }
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
+        _notificationCts?.Cancel();
+        _notificationCts?.Dispose();
+        _gcashPollCts?.Cancel();
+        _gcashPollCts?.Dispose();
     }
 
     private void OnClientNameChanged()
@@ -1053,6 +1613,17 @@
 
     private void SelectAppointmentForBilling(AppointmentRecord appt)
     {
+        if (appt.Status != "Completed" || appt.IsPaid)
+        {
+            return;
+        }
+
+        _gcashPollCts?.Cancel();
+        activeGcashQrUrl = null;
+        activeGcashInvoiceUrl = null;
+        activeGcashInvoiceId = null;
+        activeGcashExternalId = null;
+
         selectedApptId = appt.Id;
         billingClientName = appt.ClientName;
         billingStylistName = appt.StylistName;
@@ -1066,6 +1637,11 @@
         promoApplied = false;
         promoMessage = "";
         matchedCustomer = SalonService.FindCustomerByPhoneOrName(appt.ClientName);
+        stripeReceiptEmail = appt.ClientEmail ?? matchedCustomer?.Email ?? "";
+        stripeErrorMessage = null;
+        gcashReceiptEmail = appt.ClientEmail ?? matchedCustomer?.Email ?? "";
+        gcashReferenceNumber = "";
+        gcashErrorMessage = null;
         redeemPoints = false;
         loyaltyDiscount = 0;
         CalculateTotals();
@@ -1077,13 +1653,19 @@
         currentTab = "register";
     }
 
-    private void PrepareNewWalkin()
+    private void ClearBillingSelection()
     {
+        _gcashPollCts?.Cancel();
+        activeGcashQrUrl = null;
+        activeGcashInvoiceUrl = null;
+        activeGcashInvoiceId = null;
+        activeGcashExternalId = null;
+
         selectedApptId = 0;
-        billingClientName = "Walk-in Client";
-        billingStylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez";
-        billingServiceName = "01 Precision Haircut";
-        baseServicePrice = 850;
+        billingClientName = "";
+        billingStylistName = "";
+        billingServiceName = "";
+        baseServicePrice = 0;
         selectedProductIds.Clear();
         selectedDiscountType = "NONE";
         promoCodeInput = "";
@@ -1092,10 +1674,16 @@
         promoApplied = false;
         promoMessage = "";
         matchedCustomer = null;
+        stripeReceiptEmail = "";
+        stripeErrorMessage = null;
+        gcashReceiptEmail = "";
+        gcashReferenceNumber = "";
+        gcashErrorMessage = null;
         redeemPoints = false;
         loyaltyDiscount = 0;
-        CalculateTotals();
-        currentTab = "register";
+        netTotalDue = 0;
+        cashTendered = 0;
+        calculatedChange = 0;
     }
 
     private void ToggleProductSelection(int productId)
@@ -1210,14 +1798,18 @@
 
     private void ProcessPayment()
     {
-        if (string.IsNullOrWhiteSpace(billingClientName)) return;
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName))
+        {
+            SetSuccessNotification("Cannot process payment: No valid completed ritual awaiting payment is selected.");
+            return;
+        }
 
         var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
 
         var invoice = new InvoiceRecord
         {
             AppointmentId = selectedApptId,
-            CustomerId = matchedCustomer?.Id,
+            CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
             ClientName = billingClientName,
             ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
             StylistName = billingStylistName,
@@ -1237,16 +1829,423 @@
 
         SalonService.AddInvoice(invoice, purchasedList);
         lastPaidInvoice = invoice;
-        successNotification = $"Invoice {invoice.InvoiceNumber} created for {invoice.ClientName} (₱{invoice.Total:N0} via {invoice.PaymentMethod}).";
+        SetSuccessNotification($"Invoice {invoice.InvoiceNumber} created for {invoice.ClientName} (₱{invoice.Total:N0} via {invoice.PaymentMethod}).");
 
-        var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => !a.IsPaid);
+        var clientEmail = !string.IsNullOrWhiteSpace(stripeReceiptEmail) ? stripeReceiptEmail : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+        if (!string.IsNullOrWhiteSpace(clientEmail))
+        {
+            _ = EmailService.SendInvoiceReceiptAsync(invoice, clientEmail);
+        }
+
+        var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
         if (nextUnpaid != null)
         {
             SelectAppointmentForBilling(nextUnpaid);
         }
         else
         {
-            PrepareNewWalkin();
+            ClearBillingSelection();
+        }
+    }
+
+    private async Task ProcessStripeCardPayment()
+    {
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        {
+            stripeErrorMessage = "Cannot process payment: No valid completed ritual awaiting payment is selected.";
+            return;
+        }
+
+        try
+        {
+            isProcessingStripe = true;
+            stripeErrorMessage = null;
+            StateHasChanged();
+
+            var emailToUse = !string.IsNullOrWhiteSpace(stripeReceiptEmail) 
+                ? stripeReceiptEmail 
+                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+
+            var result = await StripeService.ProcessCashierCardPaymentAsync(
+                netTotalDue,
+                billingClientName,
+                emailToUse,
+                billingServiceName
+            );
+
+            if (result.Success)
+            {
+                var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
+
+                var invoice = new InvoiceRecord
+                {
+                    AppointmentId = selectedApptId,
+                    CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
+                    ClientName = billingClientName,
+                    ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
+                    StylistName = billingStylistName,
+                    Subtotal = baseServicePrice,
+                    RetailAddonsTotal = addonTotal,
+                    Discount = calculatedDiscount,
+                    PromoCode = promoApplied ? promoCodeApplied : null,
+                    PromoDiscount = promoDiscount,
+                    LoyaltyPointsRedeemed = redeemPoints ? 200 : 0,
+                    LoyaltyDiscount = loyaltyDiscount,
+                    Total = netTotalDue,
+                    AmountPaid = netTotalDue,
+                    PaymentMethod = "Stripe Card (Sandbox)",
+                    Timestamp = DateTime.Now,
+                    CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
+                };
+
+                SalonService.AddInvoice(invoice, purchasedList);
+                lastPaidInvoice = invoice;
+                SetSuccessNotification($"Invoice {invoice.InvoiceNumber} successfully charged via Stripe Sandbox! (Txn ID: {result.TransactionId} • ₱{invoice.Total:N0})");
+
+                if (!string.IsNullOrWhiteSpace(emailToUse))
+                {
+                    _ = EmailService.SendInvoiceReceiptAsync(invoice, emailToUse);
+                }
+
+                var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
+                if (nextUnpaid != null)
+                {
+                    SelectAppointmentForBilling(nextUnpaid);
+                }
+                else
+                {
+                    ClearBillingSelection();
+                }
+            }
+            else
+            {
+                stripeErrorMessage = result.ErrorMessage ?? "Payment was declined or encountered an error.";
+            }
+        }
+        catch (Exception ex)
+        {
+            stripeErrorMessage = $"Stripe charge error: {ex.Message}";
+        }
+        finally
+        {
+            isProcessingStripe = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenStripeHostedCheckout()
+    {
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        {
+            stripeErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            return;
+        }
+
+        try
+        {
+            isProcessingStripe = true;
+            stripeErrorMessage = null;
+            StateHasChanged();
+
+            var emailToUse = !string.IsNullOrWhiteSpace(stripeReceiptEmail) 
+                ? stripeReceiptEmail 
+                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+
+            var checkoutUrl = await StripeService.CreateCashierCheckoutSessionAsync(
+                netTotalDue,
+                billingClientName,
+                emailToUse,
+                billingServiceName,
+                selectedApptId
+            );
+
+            Navigation.NavigateTo(checkoutUrl, forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            stripeErrorMessage = $"Error creating Stripe checkout session: {ex.Message}";
+            isProcessingStripe = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateGcashQrCode()
+    {
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        {
+            gcashErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            return;
+        }
+
+        try
+        {
+            isProcessingGcash = true;
+            gcashErrorMessage = null;
+            StateHasChanged();
+
+            var emailToUse = !string.IsNullOrWhiteSpace(gcashReceiptEmail)
+                ? gcashReceiptEmail
+                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+
+            var invoiceResult = await XenditService.CreateGcashInvoiceAsync(
+                netTotalDue,
+                billingClientName,
+                emailToUse,
+                billingServiceName,
+                selectedApptId,
+                returnPath: "cashier"
+            );
+
+            if (invoiceResult.Success)
+            {
+                activeGcashQrUrl = invoiceResult.QrCodeUrl;
+                activeGcashInvoiceUrl = invoiceResult.InvoiceUrl;
+                activeGcashInvoiceId = invoiceResult.InvoiceId;
+                activeGcashExternalId = invoiceResult.ExternalId;
+                StartGcashAutoPoll();
+            }
+            else
+            {
+                gcashErrorMessage = invoiceResult.ErrorMessage ?? "Failed to create Xendit GCash invoice.";
+            }
+        }
+        catch (Exception ex)
+        {
+            gcashErrorMessage = $"Error creating GCash QR: {ex.Message}";
+        }
+        finally
+        {
+            isProcessingGcash = false;
+            StateHasChanged();
+        }
+    }
+
+    private void StartGcashAutoPoll()
+    {
+        _gcashPollCts?.Cancel();
+        _gcashPollCts = new System.Threading.CancellationTokenSource();
+        var token = _gcashPollCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(activeGcashInvoiceId ?? activeGcashExternalId))
+            {
+                await Task.Delay(4000, token);
+                if (token.IsCancellationRequested) break;
+
+                try
+                {
+                    var idToCheck = activeGcashInvoiceId ?? activeGcashExternalId ?? "";
+                    var result = await XenditService.VerifyInvoiceAsync(idToCheck);
+                    if (result.IsPaid)
+                    {
+                        await InvokeAsync(() =>
+                        {
+                            CompleteGcashTransaction(idToCheck, result.Amount, result.CustomerEmail);
+                        });
+                        break;
+                    }
+                }
+                catch
+                {
+                    // Continue polling
+                }
+            }
+        }, token);
+    }
+
+    private async Task CheckGcashPaymentStatus()
+    {
+        if (string.IsNullOrWhiteSpace(activeGcashInvoiceId) && string.IsNullOrWhiteSpace(activeGcashExternalId))
+        {
+            return;
+        }
+
+        try
+        {
+            isCheckingGcashStatus = true;
+            StateHasChanged();
+
+            var idToCheck = activeGcashInvoiceId ?? activeGcashExternalId ?? "";
+            var result = await XenditService.VerifyInvoiceAsync(idToCheck);
+
+            if (result.IsPaid)
+            {
+                CompleteGcashTransaction(idToCheck, result.Amount, result.CustomerEmail);
+            }
+            else
+            {
+                gcashErrorMessage = $"GCash invoice status is '{result.Status}'. Waiting for customer to complete payment.";
+            }
+        }
+        catch (Exception ex)
+        {
+            gcashErrorMessage = $"Error checking payment status: {ex.Message}";
+        }
+        finally
+        {
+            isCheckingGcashStatus = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CompleteGcashTransaction(string xenditId, decimal paidAmount, string payerEmail)
+    {
+        _gcashPollCts?.Cancel();
+        activeGcashQrUrl = null;
+        activeGcashInvoiceUrl = null;
+        activeGcashInvoiceId = null;
+        activeGcashExternalId = null;
+
+        var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
+
+        var invoice = new InvoiceRecord
+        {
+            AppointmentId = selectedApptId,
+            CustomerId = matchedCustomer?.Id ?? SelectedAppointment?.CustomerId,
+            ClientName = billingClientName,
+            ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
+            StylistName = billingStylistName,
+            Subtotal = baseServicePrice,
+            RetailAddonsTotal = addonTotal,
+            Discount = calculatedDiscount,
+            PromoCode = promoApplied ? promoCodeApplied : null,
+            PromoDiscount = promoDiscount,
+            LoyaltyPointsRedeemed = redeemPoints ? 200 : 0,
+            LoyaltyDiscount = loyaltyDiscount,
+            Total = netTotalDue,
+            AmountPaid = netTotalDue,
+            PaymentMethod = "GCash (Xendit QR)",
+            Timestamp = DateTime.Now,
+            CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
+        };
+
+        SalonService.AddInvoice(invoice, purchasedList);
+        lastPaidInvoice = invoice;
+        SetSuccessNotification($"GCash Payment of ₱{invoice.Total:N0} successfully confirmed via Xendit QR for {invoice.ClientName}! (Invoice: {invoice.InvoiceNumber})");
+
+        var targetEmail = !string.IsNullOrWhiteSpace(payerEmail) ? payerEmail : (gcashReceiptEmail);
+        if (!string.IsNullOrWhiteSpace(targetEmail))
+        {
+            _ = EmailService.SendInvoiceReceiptAsync(invoice, targetEmail);
+        }
+
+        var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
+        if (nextUnpaid != null)
+        {
+            SelectAppointmentForBilling(nextUnpaid);
+        }
+        else
+        {
+            ClearBillingSelection();
+        }
+    }
+
+    private void CancelGcashQr()
+    {
+        _gcashPollCts?.Cancel();
+        activeGcashQrUrl = null;
+        activeGcashInvoiceUrl = null;
+        activeGcashInvoiceId = null;
+        activeGcashExternalId = null;
+        gcashErrorMessage = null;
+    }
+
+    private async Task OpenXenditGcashCheckout()
+    {
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        {
+            gcashErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            return;
+        }
+
+        try
+        {
+            isProcessingGcash = true;
+            gcashErrorMessage = null;
+            StateHasChanged();
+
+            var emailToUse = !string.IsNullOrWhiteSpace(gcashReceiptEmail)
+                ? gcashReceiptEmail
+                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+
+            var invoiceResult = await XenditService.CreateGcashInvoiceAsync(
+                netTotalDue,
+                billingClientName,
+                emailToUse,
+                billingServiceName,
+                selectedApptId,
+                returnPath: "cashier"
+            );
+
+            if (invoiceResult.Success && !string.IsNullOrWhiteSpace(invoiceResult.InvoiceUrl))
+            {
+                Navigation.NavigateTo(invoiceResult.InvoiceUrl, forceLoad: true);
+            }
+            else
+            {
+                gcashErrorMessage = invoiceResult.ErrorMessage ?? "Failed to create Xendit GCash invoice.";
+                isProcessingGcash = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            gcashErrorMessage = $"Error initiating GCash checkout: {ex.Message}";
+            isProcessingGcash = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ProcessManualGcashPayment()
+    {
+        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName))
+        {
+            gcashErrorMessage = "Cannot process payment: No valid completed ritual awaiting payment is selected.";
+            return;
+        }
+
+        var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
+
+        var invoice = new InvoiceRecord
+        {
+            AppointmentId = selectedApptId,
+            CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
+            ClientName = billingClientName,
+            ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
+            StylistName = billingStylistName,
+            Subtotal = baseServicePrice,
+            RetailAddonsTotal = addonTotal,
+            Discount = calculatedDiscount,
+            PromoCode = promoApplied ? promoCodeApplied : null,
+            PromoDiscount = promoDiscount,
+            LoyaltyPointsRedeemed = redeemPoints ? 200 : 0,
+            LoyaltyDiscount = loyaltyDiscount,
+            Total = netTotalDue,
+            AmountPaid = netTotalDue,
+            PaymentMethod = $"GCash (Ref: {gcashReferenceNumber})",
+            Timestamp = DateTime.Now,
+            CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
+        };
+
+        SalonService.AddInvoice(invoice, purchasedList);
+        lastPaidInvoice = invoice;
+        SetSuccessNotification($"Invoice {invoice.InvoiceNumber} successfully logged for {invoice.ClientName} (GCash Ref: {gcashReferenceNumber} • ₱{invoice.Total:N0})");
+
+        var clientEmail = !string.IsNullOrWhiteSpace(gcashReceiptEmail) ? gcashReceiptEmail : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+        if (!string.IsNullOrWhiteSpace(clientEmail))
+        {
+            _ = EmailService.SendInvoiceReceiptAsync(invoice, clientEmail);
+        }
+
+        var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
+        if (nextUnpaid != null)
+        {
+            SelectAppointmentForBilling(nextUnpaid);
+        }
+        else
+        {
+            ClearBillingSelection();
         }
     }
 
@@ -1263,14 +2262,14 @@
         if (!string.IsNullOrWhiteSpace(stylistName))
         {
             SalonService.ReassignAppointmentStylist(apptId, stylistName);
-            successNotification = $"Specialist updated to {stylistName}.";
+            SetSuccessNotification($"Specialist updated to {stylistName}.");
         }
     }
 
     private void UpdateAppointmentStatusAndNotify(int apptId, string newStatus, string message)
     {
         SalonService.UpdateAppointmentStatus(apptId, newStatus);
-        successNotification = message;
+        SetSuccessNotification(message);
     }
 
     private void OpenQuickSeatModal(string stylistName)
@@ -1305,7 +2304,7 @@
 
         SalonService.AddAppointment(newQuickSeatAppt);
         showQuickSeatModal = false;
-        successNotification = $"{newQuickSeatAppt.ClientName} seated with {newQuickSeatAppt.StylistName}.";
+        SetSuccessNotification($"{newQuickSeatAppt.ClientName} seated with {newQuickSeatAppt.StylistName}.");
     }
 
     private void SaveWalkinCheckin()
@@ -1332,10 +2331,35 @@
         };
 
         SalonService.AddAppointment(newAppt);
-        SelectAppointmentForBilling(newAppt);
         currentTab = "floor";
-        successNotification = $"Client {walkinName} checked in and assigned to {walkinStylist}.";
+        SetSuccessNotification($"Client {walkinName} checked in and assigned to {walkinStylist}.");
         walkinName = "";
+    }
+
+    private void OpenReceiptModal(InvoiceRecord inv)
+    {
+        viewingReceipt = inv;
+        var cust = SalonService.FindCustomerByPhoneOrName(inv.ClientName);
+        var appt = SalonService.Appointments.FirstOrDefault(a => a.Id == inv.AppointmentId);
+        receiptModalEmail = !string.IsNullOrWhiteSpace(stripeReceiptEmail)
+            ? stripeReceiptEmail
+            : (appt?.ClientEmail ?? cust?.Email ?? "");
+        receiptModalEmailStatus = null;
+    }
+
+    private async Task SendModalReceiptEmail()
+    {
+        if (viewingReceipt == null || string.IsNullOrWhiteSpace(receiptModalEmail)) return;
+
+        isSendingReceiptEmail = true;
+        receiptModalEmailStatus = null;
+        StateHasChanged();
+
+        var result = await EmailService.SendInvoiceReceiptAsync(viewingReceipt, receiptModalEmail);
+        isSendingReceiptEmail = false;
+        receiptModalEmailSuccess = result.Sent;
+        receiptModalEmailStatus = result.Message ?? (result.Sent ? $"Receipt sent to {receiptModalEmail}" : "Failed to send email");
+        StateHasChanged();
     }
 
     private void HandleLogout()

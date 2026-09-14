@@ -1,6 +1,7 @@
 @page "/"
 @inject SalonDataService SalonService
 @inject NavigationManager Navigation
+@inject EmailReceiptService EmailService
 @implements IDisposable
 
 <PageTitle>Salon Studio | Professional Hair Care & Styling</PageTitle>
@@ -682,6 +683,11 @@
 
         SalonService.AddAppointment(newAppt);
         bookingConfirmed = true;
+
+        if (!string.IsNullOrWhiteSpace(newAppt.ClientEmail))
+        {
+            _ = EmailService.SendBookingConfirmationAsync(newAppt, newAppt.ClientEmail);
+        }
 
         Task.Delay(1400).ContinueWith(_ =>
         {
