@@ -450,71 +450,94 @@
                             }
                             else if (selectedPaymentMethod == "GCash")
                             {
-                                <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1.5px solid #93C5FD; padding: 18px; border-radius: 8px; margin-bottom: 20px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <div style="width: 32px; height: 32px; background: #007DFE; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 900; font-size: 15px;">
+                                <div style="background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 102, 255, 0.06); margin-bottom: 20px;">
+                                    <!-- GCash Card Header -->
+                                    <div style="background: linear-gradient(135deg, #005CE6 0%, #007DFE 100%); color: #FFFFFF; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <div style="width: 32px; height: 32px; background: #FFFFFF; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #007DFE; font-weight: 900; font-size: 17px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
                                                 G
                                             </div>
                                             <div>
-                                                <strong style="font-size: 14px; color: #1E3A8A; display: block;">GCash Online via Xendit Gateway</strong>
-                                                <span style="font-size: 11.5px; color: #2563EB;">Dynamic QR scanner, instant mobile checkout & automated receipt</span>
+                                                <div style="font-size: 14px; font-weight: 800; letter-spacing: -0.01em;">GCash Dynamic QR Pay</div>
+                                                <div style="font-size: 11px; opacity: 0.88;">Powered by Xendit Real-Time Gateway</div>
                                             </div>
                                         </div>
-                                        <span style="background: #007DFE; color: #FFFFFF; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
-                                            <i class="bi bi-shield-check"></i> XENDIT ACTIVE
-                                        </span>
+                                        <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;">
+                                            <span style="display: inline-block; width: 7px; height: 7px; background: #4ADE80; border-radius: 50%; box-shadow: 0 0 6px #4ADE80;"></span>
+                                            <span>AUTO-POLL LIVE</span>
+                                        </div>
                                     </div>
 
                                     @if (!string.IsNullOrWhiteSpace(activeGcashQrUrl))
                                     {
                                         <!-- Active On-Screen QR Code Box -->
-                                        <div style="background: #FFFFFF; border: 2px solid #007DFE; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(0, 125, 254, 0.12);">
-                                            <div style="display: inline-flex; align-items: center; gap: 6px; background: #007DFE; color: #FFF; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px; letter-spacing: 0.04em;">
-                                                <i class="bi bi-qr-code-scan"></i> SCAN WITH PHONE CAMERA TO PAY
+                                        <div style="padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; background: #FAFAFC;">
+                                            
+                                            <!-- Scan Instruction Pill -->
+                                            <div style="display: inline-flex; align-items: center; gap: 6px; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; font-size: 11.5px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px;">
+                                                <i class="bi bi-qr-code-scan"></i> Scan with Phone Camera or GCash App
                                             </div>
 
-                                            <div style="position: relative; display: inline-block; padding: 10px; background: #FFF; border-radius: 10px; border: 1.5px solid #E2E8F0; margin-bottom: 6px;">
-                                                <img src="@activeGcashQrUrl" alt="GCash QR Code" style="width: 180px; height: 180px; display: block; border-radius: 4px;" />
-                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #007DFE; color: #FFF; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; border: 2.5px solid #FFF; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+                                            <!-- Centered QR Container with Logo Overlay -->
+                                            <div style="position: relative; padding: 14px; background: #FFFFFF; border-radius: 16px; border: 2px solid #DBEAFE; box-shadow: 0 10px 25px rgba(0, 125, 254, 0.08); margin-bottom: 16px; display: inline-block;">
+                                                <img src="@activeGcashQrUrl" alt="GCash Dynamic QR" style="width: 200px; height: 200px; display: block; border-radius: 6px; object-fit: contain;" />
+                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #007DFE; color: #FFFFFF; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; border: 3px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.22);">
                                                     G
                                                 </div>
                                             </div>
 
-                                            <div style="font-size: 18px; font-weight: 900; color: #1E3A8A; margin-top: 4px;">
-                                                ₱@netTotalDue.ToString("N0")
+                                            <!-- Amount & Client Meta -->
+                                            <div style="font-size: 26px; font-weight: 900; color: #0F172A; letter-spacing: -0.03em; line-height: 1;">
+                                                ₱@netTotalDue.ToString("N2")
                                             </div>
-                                            <div style="font-size: 11.5px; color: #64748B; margin-top: 2px;">
-                                                Customer: <strong>@billingClientName</strong> &bull; Service: @billingServiceName
+                                            
+                                            <div style="display: inline-flex; align-items: center; gap: 6px; background: #F1F5F9; border: 1px solid #E2E8F0; padding: 4px 12px; border-radius: 20px; font-size: 12px; color: #475569; margin-top: 8px;">
+                                                <i class="bi bi-person-circle" style="color: #64748B;"></i>
+                                                <span>Customer: <strong style="color: #0F172A;">@billingClientName</strong></span>
+                                                <span style="color: #CBD5E1;">&bull;</span>
+                                                <span>@billingServiceName</span>
                                             </div>
 
-                                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin: 10px 0; color: #0284C7; font-size: 12px; font-weight: 700; background: #F0F9FF; padding: 6px 12px; border-radius: 6px;">
-                                                <span class="spinner-grow spinner-grow-sm" style="width: 8px; height: 8px;" role="status"></span>
-                                                <span>Live Auto-Poll: Waiting for customer payment...</span>
+                                            <!-- Live Realtime Status Pill -->
+                                            <div style="display: inline-flex; align-items: center; gap: 8px; background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; font-size: 12px; font-weight: 700; padding: 7px 16px; border-radius: 20px; margin-top: 14px;">
+                                                <span class="spinner-grow spinner-grow-sm" style="width: 8px; height: 8px; color: #16A34A;" role="status"></span>
+                                                <span>Waiting for customer payment... Checking every 3s</span>
                                             </div>
 
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
-                                                <button type="button" class="btn-primary-dark" style="background: #10B981; justify-content: center; font-size: 12.5px; padding: 10px;" @onclick="CheckGcashPaymentStatus" disabled="@isCheckingGcashStatus">
+                                            <!-- Button Actions Row -->
+                                            <div style="display: flex; gap: 10px; width: 100%; max-width: 360px; margin-top: 18px;">
+                                                <button type="button" 
+                                                        class="btn-primary-dark" 
+                                                        style="flex: 1; background: #10B981; border: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 11px; border-radius: 8px;" 
+                                                        @onclick="CheckGcashPaymentStatus" 
+                                                        disabled="@isCheckingGcashStatus">
                                                     @if (isCheckingGcashStatus)
                                                     {
                                                         <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                        <span>Checking...</span>
                                                     }
                                                     else
                                                     {
                                                         <i class="bi bi-arrow-repeat"></i>
+                                                        <span>Verify Status</span>
                                                     }
-                                                    <span>Verify Status</span>
                                                 </button>
 
                                                 @if (!string.IsNullOrWhiteSpace(activeGcashInvoiceUrl))
                                                 {
-                                                    <a href="@activeGcashInvoiceUrl" target="_blank" class="btn-primary-dark" style="background: #007DFE; justify-content: center; font-size: 12.5px; padding: 10px; text-decoration: none;">
+                                                    <a href="@activeGcashInvoiceUrl" 
+                                                       target="_blank" 
+                                                       class="btn-portal-secondary" 
+                                                       style="flex: 1; justify-content: center; font-size: 13px; font-weight: 700; padding: 11px; border-radius: 8px; border: 1.5px solid #007DFE; color: #007DFE; background: #FFFFFF; text-decoration: none;">
                                                         <i class="bi bi-box-arrow-up-right"></i> Open Portal
                                                     </a>
                                                 }
                                             </div>
 
-                                            <button type="button" style="margin-top: 10px; background: none; border: none; color: #64748B; font-size: 11.5px; text-decoration: underline; cursor: pointer;" @onclick="CancelGcashQr">
+                                            <!-- Cancel Button -->
+                                            <button type="button" 
+                                                    style="margin-top: 12px; background: none; border: none; color: #64748B; font-size: 12px; font-weight: 600; text-decoration: underline; cursor: pointer;" 
+                                                    @onclick="CancelGcashQr">
                                                 Cancel / Hide QR Code
                                             </button>
                                         </div>
@@ -522,67 +545,67 @@
                                     else
                                     {
                                         <!-- Setup View -->
-                                        <div style="background: #FFFFFF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
-                                            <div style="font-size: 11.5px; color: #4B5563; line-height: 1.4; margin-bottom: 10px;">
-                                                Click <strong>"Show GCash QR Code"</strong> to generate a customer-facing QR code on this screen, or launch direct checkout.
+                                        <div style="padding: 18px; background: #FFFFFF;">
+                                            <div style="font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 12px;">
+                                                Generate an on-screen dynamic QR code for the customer to scan with their GCash app, or launch the checkout page directly.
                                             </div>
 
-                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px;">
+                                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
                                                 <div>
-                                                    <label style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; display: block; margin-bottom: 2px;">Customer Email (for receipt)</label>
-                                                    <input type="email" class="booking-input" style="font-size: 12.5px; padding: 6px 10px; background: #F0F9FF;" placeholder="customer@example.com" @bind="gcashReceiptEmail" />
+                                                    <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; display: block; margin-bottom: 4px;">Customer Email (for receipt)</label>
+                                                    <input type="email" class="booking-input" style="font-size: 13px; padding: 8px 12px; background: #F8FAFC;" placeholder="customer@example.com" @bind="gcashReceiptEmail" />
                                                 </div>
                                                 <div>
-                                                    <label style="font-size: 10px; font-weight: 700; color: #6B7280; text-transform: uppercase; display: block; margin-bottom: 2px;">GCash Ref / Counter QR (Optional)</label>
-                                                    <input type="text" class="booking-input" style="font-size: 12.5px; padding: 6px 10px; background: #F0F9FF;" placeholder="e.g. 902183921820" @bind="gcashReferenceNumber" />
+                                                    <label style="font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; display: block; margin-bottom: 4px;">GCash Ref / Counter QR (Optional)</label>
+                                                    <input type="text" class="booking-input" style="font-size: 13px; padding: 8px 12px; background: #F8FAFC;" placeholder="e.g. 902183921820" @bind="gcashReferenceNumber" />
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        @if (!string.IsNullOrEmpty(gcashErrorMessage))
-                                        {
-                                            <div style="background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; font-size: 12px; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px;">
-                                                <i class="bi bi-exclamation-circle-fill"></i> @gcashErrorMessage
-                                            </div>
-                                        }
-
-                                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                            <button type="button" 
-                                                    class="btn-primary-dark" 
-                                                    style="flex: 1; background: #007DFE; justify-content: center; font-size: 14px; padding: 12px; min-width: 200px;" 
-                                                    @onclick="GenerateGcashQrCode" 
-                                                    disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
-                                                @if (isProcessingGcash)
-                                                {
-                                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="margin-right: 6px;"></span>
-                                                    <span>Generating QR...</span>
-                                                }
-                                                else
-                                                {
-                                                    <i class="bi bi-qr-code"></i>
-                                                    <span>Show GCash QR (₱@netTotalDue.ToString("N0"))</span>
-                                                }
-                                            </button>
-
-                                            <button type="button" 
-                                                    class="btn-primary-dark" 
-                                                    style="background: #1E40AF; justify-content: center; font-size: 13px; padding: 12px;" 
-                                                    @onclick="OpenXenditGcashCheckout" 
-                                                    title="Open Xendit Checkout in browser immediately"
-                                                    disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
-                                                <i class="bi bi-box-arrow-up-right"></i> Direct Checkout
-                                            </button>
-
-                                            @if (!string.IsNullOrWhiteSpace(gcashReferenceNumber))
+                                            @if (!string.IsNullOrEmpty(gcashErrorMessage))
                                             {
+                                                <div style="background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; font-size: 12px; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px;">
+                                                    <i class="bi bi-exclamation-circle-fill"></i> @gcashErrorMessage
+                                                </div>
+                                            }
+
+                                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                                 <button type="button" 
                                                         class="btn-primary-dark" 
-                                                        style="background: #10B981; justify-content: center; font-size: 13px; padding: 12px;" 
-                                                        @onclick="ProcessManualGcashPayment"
-                                                        title="Record payment directly with the manual reference number">
-                                                    <i class="bi bi-check-circle"></i> Quick Confirm
+                                                        style="flex: 1; background: linear-gradient(135deg, #005CE6 0%, #007DFE 100%); border: none; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px; border-radius: 8px; min-width: 200px;" 
+                                                        @onclick="GenerateGcashQrCode" 
+                                                        disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                                                    @if (isProcessingGcash)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="margin-right: 6px;"></span>
+                                                        <span>Generating QR...</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="bi bi-qr-code"></i>
+                                                        <span>Show GCash QR (₱@netTotalDue.ToString("N0"))</span>
+                                                    }
                                                 </button>
-                                            }
+
+                                                <button type="button" 
+                                                        class="btn-primary-dark" 
+                                                        style="background: #0F172A; justify-content: center; font-size: 13px; font-weight: 700; padding: 12px; border-radius: 8px;" 
+                                                        @onclick="OpenXenditGcashCheckout" 
+                                                        title="Open Xendit Checkout in browser immediately"
+                                                        disabled="@(!HasSelectedAwaitingPayment || isProcessingGcash || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)">
+                                                    <i class="bi bi-box-arrow-up-right"></i> Direct Checkout
+                                                </button>
+
+                                                @if (!string.IsNullOrWhiteSpace(gcashReferenceNumber))
+                                                {
+                                                    <button type="button" 
+                                                            class="btn-primary-dark" 
+                                                            style="background: #10B981; border: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 12px; border-radius: 8px;" 
+                                                            @onclick="ProcessManualGcashPayment"
+                                                            title="Record payment directly with the manual reference number">
+                                                        <i class="bi bi-check-circle"></i> Quick Confirm
+                                                    </button>
+                                                }
+                                            </div>
                                         </div>
                                     }
                                 </div>
