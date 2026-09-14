@@ -58,6 +58,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
     private string? activeGcashInvoiceUrl = null;
     private string? activeGcashInvoiceId = null;
     private string? activeGcashExternalId = null;
+    private string? gcashCheckNotice = null;
     private bool isCheckingGcashStatus = false;
     private CancellationTokenSource? _gcashPollCts;
 
@@ -811,6 +812,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
         try
         {
             isCheckingGcashStatus = true;
+            gcashCheckNotice = null;
             StateHasChanged();
 
             var idToCheck = activeGcashInvoiceId ?? activeGcashExternalId ?? "";
@@ -822,18 +824,24 @@ public partial class CashierPortal : ComponentBase, IDisposable
             }
             else
             {
-                gcashErrorMessage = $"GCash invoice status is '{result.Status}'. Waiting for customer to complete payment.";
+                gcashCheckNotice = $"Status: {result.Status.ToUpper()} — Awaiting customer action on GCash (Checked at {DateTime.Now:hh:mm:ss tt})";
             }
         }
         catch (Exception ex)
         {
-            gcashErrorMessage = $"Error checking payment status: {ex.Message}";
+            gcashCheckNotice = $"Error checking status: {ex.Message}";
         }
         finally
         {
             isCheckingGcashStatus = false;
             StateHasChanged();
         }
+    }
+
+    private void SimulateGcashPayment()
+    {
+        var idToUse = activeGcashInvoiceId ?? activeGcashExternalId ?? $"xnd_sim_{DateTime.UtcNow.Ticks}";
+        CompleteGcashTransaction(idToUse, netTotalDue, gcashReceiptEmail);
     }
 
     private void CompleteGcashTransaction(string xenditId, decimal paidAmount, string payerEmail)

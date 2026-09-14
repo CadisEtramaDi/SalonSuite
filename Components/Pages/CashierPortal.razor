@@ -501,11 +501,19 @@
                                             <!-- Live Realtime Status Pill -->
                                             <div style="display: inline-flex; align-items: center; gap: 8px; background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; font-size: 12px; font-weight: 700; padding: 7px 16px; border-radius: 20px; margin-top: 14px;">
                                                 <span class="spinner-grow spinner-grow-sm" style="width: 8px; height: 8px; color: #16A34A;" role="status"></span>
-                                                <span>Waiting for customer payment... Checking every 3s</span>
+                                                <span>Auto-Poll Active &bull; Waiting for customer to pay...</span>
                                             </div>
 
+                                            @if (!string.IsNullOrWhiteSpace(gcashCheckNotice))
+                                            {
+                                                <div style="background: #FEF3C7; border: 1.5px solid #F59E0B; color: #92400E; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 8px; margin-top: 10px; max-width: 380px;">
+                                                    <i class="bi bi-info-circle-fill" style="color: #D97706; margin-right: 4px;"></i>
+                                                    @gcashCheckNotice
+                                                </div>
+                                            }
+
                                             <!-- Button Actions Row -->
-                                            <div style="display: flex; gap: 10px; width: 100%; max-width: 360px; margin-top: 18px;">
+                                            <div style="display: flex; gap: 10px; width: 100%; max-width: 360px; margin-top: 16px;">
                                                 <button type="button" 
                                                         class="btn-primary-dark" 
                                                         style="flex: 1; background: #10B981; border: none; justify-content: center; font-size: 13px; font-weight: 700; padding: 11px; border-radius: 8px;" 
@@ -514,7 +522,7 @@
                                                     @if (isCheckingGcashStatus)
                                                     {
                                                         <span class="spinner-border spinner-border-sm" role="status"></span>
-                                                        <span>Checking...</span>
+                                                        <span>Checking Live...</span>
                                                     }
                                                     else
                                                     {
@@ -532,6 +540,16 @@
                                                         <i class="bi bi-box-arrow-up-right"></i> Open Portal
                                                     </a>
                                                 }
+                                            </div>
+
+                                            <!-- Quick Test Simulate Action -->
+                                            <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                                                <button type="button" 
+                                                        style="background: #F3F4F6; border: 1px dashed #9CA3AF; color: #374151; font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer;" 
+                                                        @onclick="SimulateGcashPayment"
+                                                        title="Simulate successful payment for instant test verification">
+                                                    ⚡ Simulate Paid (Test Sandbox)
+                                                </button>
                                             </div>
 
                                             <!-- Cancel Button -->
