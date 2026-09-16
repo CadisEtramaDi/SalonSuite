@@ -11,46 +11,44 @@ public partial class SalonDataService
 {
     public List<LoyaltyRewardItem> LoyaltyRewards { get; private set; } = new();
 
-    private void LoadLoyaltyRewardsFromDb(SqlConnection conn)
+    private async Task LoadLoyaltyRewardsFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, Title, PointsRequired, DiscountValue, Description, IsActive FROM dbo.LoyaltyRewards ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("loyaltyRewards").GetSnapshotAsync();
             var list = new List<LoyaltyRewardItem>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new LoyaltyRewardItem
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    Title = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    PointsRequired = reader.IsDBNull(2) ? 0 : reader.GetInt32(2),
-                    DiscountValue = reader.IsDBNull(3) ? 0m : reader.GetDecimal(3),
-                    Description = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    IsActive = reader.IsDBNull(5) || reader.GetBoolean(5)
-                });
+                    var item = doc.ConvertTo<LoyaltyRewardItem>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) LoyaltyRewards = list;
+            if (list.Count > 0)
+            {
+                LoyaltyRewards = list.OrderBy(r => r.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading loyalty rewards: {ex.Message}");
+        }
     }
 
     public void AddLoyaltyReward(LoyaltyRewardItem reward)
     {
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.LoyaltyRewards (Title, PointsRequired, DiscountValue, Description, IsActive) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@Title, @PointsRequired, @DiscountValue, @Description, @IsActive);",
-            new SqlParameter("@Title", reward.Title),
-            new SqlParameter("@PointsRequired", reward.PointsRequired),
-            new SqlParameter("@DiscountValue", reward.DiscountValue),
-            new SqlParameter("@Description", (object?)reward.Description ?? DBNull.Value),
-            new SqlParameter("@IsActive", reward.IsActive)
-        );
-
-        reward.Id = dbId > 0 ? dbId : (LoyaltyRewards.Count > 0 ? LoyaltyRewards.Max(r => r.Id) + 1 : 1);
+        reward.Id = LoyaltyRewards.Count > 0 ? LoyaltyRewards.Max(r => r.Id) + 1 : 1;
         LoyaltyRewards.Add(reward);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("loyaltyRewards", reward.Id.ToString(), reward));
     }
 
     public void UpdateLoyaltyReward(LoyaltyRewardItem reward)
@@ -64,26 +62,17 @@ public partial class SalonDataService
             existing.Description = reward.Description;
             existing.IsActive = reward.IsActive;
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.LoyaltyRewards SET Title = @Title, PointsRequired = @PointsRequired, " +
-                "DiscountValue = @DiscountValue, Description = @Description, IsActive = @IsActive WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@Title", existing.Title),
-                new SqlParameter("@PointsRequired", existing.PointsRequired),
-                new SqlParameter("@DiscountValue", existing.DiscountValue),
-                new SqlParameter("@Description", (object?)existing.Description ?? DBNull.Value),
-                new SqlParameter("@IsActive", existing.IsActive)
-            );
-
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("loyaltyRewards", existing.Id.ToString(), existing));
         }
     }
 
     public void DeleteLoyaltyReward(int id)
     {
         LoyaltyRewards.RemoveAll(r => r.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.LoyaltyRewards WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("loyaltyRewards", id.ToString()));
     }
 
     public static List<LoyaltyRewardItem> GetDefaultLoyaltyRewards() => new()

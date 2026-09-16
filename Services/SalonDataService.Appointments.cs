@@ -11,35 +11,35 @@ public partial class SalonDataService
 {
     public List<AppointmentRecord> Appointments { get; private set; } = new();
 
-    private void LoadAppointmentsFromDb(SqlConnection conn)
+    private async Task LoadAppointmentsFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, CustomerId, ClientName, ClientPhone, ClientEmail, ServiceName, StylistName, Date, TimeSlot, Price, Status, IsPaid, Notes FROM dbo.Appointments ORDER BY Id DESC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("appointments").GetSnapshotAsync();
             var list = new List<AppointmentRecord>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new AppointmentRecord
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    CustomerId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
-                    ClientName = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    ClientPhone = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    ClientEmail = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    ServiceName = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                    StylistName = reader.IsDBNull(6) ? "" : reader.GetString(6),
-                    Date = reader.IsDBNull(7) ? DateTime.Today : reader.GetDateTime(7),
-                    TimeSlot = reader.IsDBNull(8) ? "" : reader.GetString(8),
-                    Price = reader.IsDBNull(9) ? 0m : reader.GetDecimal(9),
-                    Status = reader.IsDBNull(10) ? "Confirmed" : reader.GetString(10),
-                    IsPaid = !reader.IsDBNull(11) && reader.GetBoolean(11),
-                    Notes = reader.IsDBNull(12) ? null : reader.GetString(12)
-                });
+                    var item = doc.ConvertTo<AppointmentRecord>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Appointments = list;
+            if (list.Count > 0)
+            {
+                Appointments = list.OrderByDescending(a => a.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading appointments: {ex.Message}");
+        }
     }
 
     public void AddAppointment(AppointmentRecord appointment)
@@ -56,28 +56,16 @@ public partial class SalonDataService
             appointment.CustomerId = customer.Id;
         }
 
-        // 2. Persist Appointment to SQL Server database
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Appointments (CustomerId, ClientName, ClientPhone, ClientEmail, ServiceName, StylistName, Date, TimeSlot, Price, Status, IsPaid, Notes) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@CustomerId, @ClientName, @ClientPhone, @ClientEmail, @ServiceName, @StylistName, @Date, @TimeSlot, @Price, @Status, @IsPaid, @Notes);",
-            new SqlParameter("@CustomerId", (object?)appointment.CustomerId ?? DBNull.Value),
-            new SqlParameter("@ClientName", appointment.ClientName),
-            new SqlParameter("@ClientPhone", appointment.ClientPhone),
-            new SqlParameter("@ClientEmail", (object?)appointment.ClientEmail ?? DBNull.Value),
-            new SqlParameter("@ServiceName", appointment.ServiceName),
-            new SqlParameter("@StylistName", appointment.StylistName),
-            new SqlParameter("@Date", appointment.Date.Date),
-            new SqlParameter("@TimeSlot", appointment.TimeSlot),
-            new SqlParameter("@Price", appointment.Price),
-            new SqlParameter("@Status", appointment.Status),
-            new SqlParameter("@IsPaid", appointment.IsPaid),
-            new SqlParameter("@Notes", (object?)appointment.Notes ?? DBNull.Value)
-        );
-
-        appointment.Id = dbId > 0 ? dbId : (Appointments.Count > 0 ? Appointments.Max(a => a.Id) + 1 : 1);
-        Appointments.Add(appointment);
+        // 2. Persist Appointment to Firestore
+        appointment.Id = Appointments.Count > 0 ? Appointments.Max(a => a.Id) + 1 : 1;
+        if (appointment.Date.Kind != DateTimeKind.Utc)
+        {
+            appointment.Date = DateTime.SpecifyKind(appointment.Date, DateTimeKind.Utc);
+        }
+        Appointments.Insert(0, appointment);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("appointments", appointment.Id.ToString(), appointment));
     }
 
     public void UpdateAppointmentStatus(int id, string newStatus)
@@ -86,10 +74,9 @@ public partial class SalonDataService
         if (appt != null)
         {
             appt.Status = newStatus;
-            ExecuteSqlNonQuery("UPDATE dbo.Appointments SET Status = @Status WHERE Id = @Id;",
-                new SqlParameter("@Id", id),
-                new SqlParameter("@Status", newStatus));
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("appointments", appt.Id.ToString(), appt));
         }
     }
 
@@ -99,10 +86,9 @@ public partial class SalonDataService
         if (appt != null)
         {
             appt.Notes = notes;
-            ExecuteSqlNonQuery("UPDATE dbo.Appointments SET Notes = @Notes WHERE Id = @Id;",
-                new SqlParameter("@Id", id),
-                new SqlParameter("@Notes", notes));
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("appointments", appt.Id.ToString(), appt));
         }
     }
 
@@ -112,18 +98,17 @@ public partial class SalonDataService
         if (appt != null && !string.IsNullOrWhiteSpace(newStylist))
         {
             appt.StylistName = newStylist;
-            ExecuteSqlNonQuery("UPDATE dbo.Appointments SET StylistName = @StylistName WHERE Id = @Id;",
-                new SqlParameter("@Id", id),
-                new SqlParameter("@StylistName", newStylist));
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("appointments", appt.Id.ToString(), appt));
         }
     }
 
     public void DeleteAppointment(int id)
     {
         Appointments.RemoveAll(a => a.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Appointments WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("appointments", id.ToString()));
     }
 
     public static int ParseTimeSlotToMinutes(string? timeSlot)

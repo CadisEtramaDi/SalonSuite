@@ -251,9 +251,9 @@ public partial class Login : ComponentBase
 
     private string GetRedirectUrlForRole(string role)
     {
-        if (role == "Customer" && !string.IsNullOrWhiteSpace(returnUrl))
+        if (role == "Customer")
         {
-            return returnUrl;
+            return !string.IsNullOrWhiteSpace(returnUrl) ? returnUrl : "/";
         }
 
         return role switch
@@ -261,7 +261,7 @@ public partial class Login : ComponentBase
             "Salon Owner / Admin" or "Salon Manager" => "/admin",
             "Cashier / Front Desk" or "Front Desk Cashier" => "/cashier",
             "Stylist / Specialist" or "Staff Member" or "Senior Stylist" or "Color Specialist" or "Creative Director" or "Junior Stylist" => "/employee",
-            _ => !string.IsNullOrWhiteSpace(returnUrl) ? returnUrl : "/my-account"
+            _ => !string.IsNullOrWhiteSpace(returnUrl) ? returnUrl : "/"
         };
     }
 

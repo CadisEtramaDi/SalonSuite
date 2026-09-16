@@ -16,14 +16,19 @@ public partial class Portal : ComponentBase, IDisposable
     [Inject] public NavigationManager Navigation { get; set; } = default!;
     [Inject] public IJSRuntime JSRuntime { get; set; } = default!;
 
-    private string currentTab = "appointments";
+    private string currentTab = "calendar";
     private string serviceSubTab = "services";
     private string customerSearchQuery = "";
     private string serviceSearchQuery = "";
     private string serviceCategoryFilter = "all";
     private string apptStatusFilter = "all";
+    private string apptStylistFilter = "all";
     private string apptSortOrder = "newest";
     private string apptSearchQuery = "";
+    private string apptViewMode = "calendar"; // "table" or "calendar"
+    private DateTime calendarMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? selectedCalendarDate = DateTime.Today;
+    private AppointmentRecord? selectedApptDetail = null;
     private string billingMethodFilter = "all";
     private string billingSearchQuery = "";
     private string reportPeriod = "today";
@@ -182,6 +187,7 @@ public partial class Portal : ComponentBase, IDisposable
         {
             var query = SalonService.Appointments.Where(a =>
                 (apptStatusFilter == "all" || a.Status.Equals(apptStatusFilter, StringComparison.OrdinalIgnoreCase)) &&
+                (apptStylistFilter == "all" || a.StylistName.Equals(apptStylistFilter, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(apptSearchQuery) ||
                  a.ClientName.Contains(apptSearchQuery, StringComparison.OrdinalIgnoreCase) ||
                  a.StylistName.Contains(apptSearchQuery, StringComparison.OrdinalIgnoreCase) ||
@@ -200,6 +206,88 @@ public partial class Portal : ComponentBase, IDisposable
                 _ => query.OrderByDescending(a => a.Id)
             };
         }
+    }
+
+    // Calendar Navigation and Data Methods
+    public class CalendarDayInfo
+    {
+        public DateTime Date { get; set; }
+        public bool IsCurrentMonth { get; set; }
+        public bool IsToday => Date.Date == DateTime.Today;
+        public List<AppointmentRecord> Appointments { get; set; } = new();
+    }
+
+    private void PrevCalendarMonth() => calendarMonth = calendarMonth.AddMonths(-1);
+    private void NextCalendarMonth() => calendarMonth = calendarMonth.AddMonths(1);
+    private void GoToToday()
+    {
+        calendarMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        selectedCalendarDate = DateTime.Today;
+    }
+
+    private void SelectCalendarDate(DateTime date)
+    {
+        selectedCalendarDate = date.Date;
+    }
+
+    private void OpenApptDetail(AppointmentRecord appt)
+    {
+        selectedApptDetail = appt;
+    }
+
+    private void CloseApptDetail()
+    {
+        selectedApptDetail = null;
+    }
+
+    private void UpdateApptStatusFromCalendar(int id, string newStatus)
+    {
+        SalonService.UpdateAppointmentStatus(id, newStatus);
+        if (selectedApptDetail != null && selectedApptDetail.Id == id)
+        {
+            selectedApptDetail.Status = newStatus;
+        }
+    }
+
+    private void ReassignApptStylistFromCalendar(int id, string newStylist)
+    {
+        SalonService.ReassignAppointmentStylist(id, newStylist);
+        if (selectedApptDetail != null && selectedApptDetail.Id == id)
+        {
+            selectedApptDetail.StylistName = newStylist;
+        }
+    }
+
+    private List<CalendarDayInfo> GetCalendarGridDays()
+    {
+        var days = new List<CalendarDayInfo>();
+        var firstDayOfMonth = new DateTime(calendarMonth.Year, calendarMonth.Month, 1);
+        int daysInMonth = DateTime.DaysInMonth(calendarMonth.Year, calendarMonth.Month);
+
+        int startDayOffset = (int)firstDayOfMonth.DayOfWeek; // 0 = Sunday
+        var startDate = firstDayOfMonth.AddDays(-startDayOffset);
+
+        int totalCells = (startDayOffset + daysInMonth <= 35) ? 35 : 42;
+
+        for (int i = 0; i < totalCells; i++)
+        {
+            var date = startDate.AddDays(i);
+            bool isCurrentMonth = date.Month == calendarMonth.Month && date.Year == calendarMonth.Year;
+
+            var appts = FilteredAppointments
+                .Where(a => a.Date.Date == date.Date)
+                .OrderBy(a => SalonDataService.ParseTimeSlotToMinutes(a.TimeSlot))
+                .ToList();
+
+            days.Add(new CalendarDayInfo
+            {
+                Date = date,
+                IsCurrentMonth = isCurrentMonth,
+                Appointments = appts
+            });
+        }
+
+        return days;
     }
 
     private IEnumerable<InvoiceRecord> FilteredInvoices =>

@@ -98,7 +98,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
             ? SalonService.Appointments.FirstOrDefault(a => a.Id == selectedApptId && a.Status == "Completed" && !a.IsPaid)
             : null;
 
-    private bool HasSelectedAwaitingPayment => SelectedAppointment != null;
+    private bool HasSelectedAwaitingPayment => SelectedAppointment != null || !string.IsNullOrWhiteSpace(billingClientName);
 
     private List<AppointmentRecord> FilteredFloorAppointments
     {
@@ -209,7 +209,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
                         Total = amount,
                         AmountPaid = amount,
                         PaymentMethod = "GCash (Xendit)",
-                        Timestamp = DateTime.Now,
+                        Timestamp = DateTime.UtcNow,
                         CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
                     };
 
@@ -268,7 +268,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
                         Total = amount,
                         AmountPaid = amount,
                         PaymentMethod = "Stripe Card (Sandbox)",
-                        Timestamp = DateTime.Now,
+                        Timestamp = DateTime.UtcNow,
                         CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
                     };
 
@@ -361,7 +361,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private void SelectAppointmentForBilling(AppointmentRecord appt)
     {
-        if (appt.Status != "Completed" || appt.IsPaid)
+        if (appt.IsPaid || appt.Status != "Completed")
         {
             return;
         }
@@ -546,9 +546,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private void ProcessPayment()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName))
+        if (string.IsNullOrWhiteSpace(billingClientName))
         {
-            SetSuccessNotification("Cannot process payment: No valid completed ritual awaiting payment is selected.");
+            SetSuccessNotification("Cannot process payment: Please enter or select a client.");
             return;
         }
 
@@ -557,10 +557,10 @@ public partial class CashierPortal : ComponentBase, IDisposable
         var invoice = new InvoiceRecord
         {
             AppointmentId = selectedApptId,
-            CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
-            ClientName = billingClientName,
-            ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
-            StylistName = billingStylistName,
+            CustomerId = matchedCustomer?.Id ?? SelectedAppointment?.CustomerId,
+            ClientName = billingClientName.Trim(),
+            ServiceName = (string.IsNullOrWhiteSpace(billingServiceName) ? "Salon Service" : billingServiceName) + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
+            StylistName = string.IsNullOrWhiteSpace(billingStylistName) ? "Sofia Martinez" : billingStylistName,
             Subtotal = baseServicePrice,
             RetailAddonsTotal = addonTotal,
             Discount = calculatedDiscount,
@@ -569,9 +569,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
             LoyaltyPointsRedeemed = redeemPoints ? 200 : 0,
             LoyaltyDiscount = loyaltyDiscount,
             Total = netTotalDue,
-            AmountPaid = selectedPaymentMethod == "Cash" ? cashTendered : netTotalDue,
+            AmountPaid = selectedPaymentMethod == "Cash" ? (cashTendered >= netTotalDue ? cashTendered : netTotalDue) : netTotalDue,
             PaymentMethod = selectedPaymentMethod,
-            Timestamp = DateTime.Now,
+            Timestamp = DateTime.UtcNow,
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
 
@@ -579,7 +579,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
         lastPaidInvoice = invoice;
         SetSuccessNotification($"Invoice {invoice.InvoiceNumber} created for {invoice.ClientName} (₱{invoice.Total:N0} via {invoice.PaymentMethod}).");
 
-        var clientEmail = !string.IsNullOrWhiteSpace(stripeReceiptEmail) ? stripeReceiptEmail : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+        var clientEmail = !string.IsNullOrWhiteSpace(stripeReceiptEmail) ? stripeReceiptEmail : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
         if (!string.IsNullOrWhiteSpace(clientEmail))
         {
             _ = EmailService.SendInvoiceReceiptAsync(invoice, clientEmail);
@@ -598,9 +598,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private async Task ProcessStripeCardPayment()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
         {
-            stripeErrorMessage = "Cannot process payment: No valid completed ritual awaiting payment is selected.";
+            stripeErrorMessage = "Cannot process payment: No valid client or active ticket is selected.";
             return;
         }
 
@@ -612,7 +612,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
             var emailToUse = !string.IsNullOrWhiteSpace(stripeReceiptEmail) 
                 ? stripeReceiptEmail 
-                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+                : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
 
             var result = await StripeService.ProcessCashierCardPaymentAsync(
                 netTotalDue,
@@ -628,7 +628,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
                 var invoice = new InvoiceRecord
                 {
                     AppointmentId = selectedApptId,
-                    CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
+                    CustomerId = matchedCustomer?.Id ?? SelectedAppointment?.CustomerId,
                     ClientName = billingClientName,
                     ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
                     StylistName = billingStylistName,
@@ -642,7 +642,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
                     Total = netTotalDue,
                     AmountPaid = netTotalDue,
                     PaymentMethod = "Stripe Card (Sandbox)",
-                    Timestamp = DateTime.Now,
+                    Timestamp = DateTime.UtcNow,
                     CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
                 };
 
@@ -683,9 +683,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private async Task OpenStripeHostedCheckout()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
         {
-            stripeErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            stripeErrorMessage = "Cannot proceed: No valid client or active ticket is selected.";
             return;
         }
 
@@ -697,7 +697,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
             var emailToUse = !string.IsNullOrWhiteSpace(stripeReceiptEmail) 
                 ? stripeReceiptEmail 
-                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+                : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
 
             var checkoutUrl = await StripeService.CreateCashierCheckoutSessionAsync(
                 netTotalDue,
@@ -719,9 +719,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private async Task GenerateGcashQrCode()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
         {
-            gcashErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            gcashErrorMessage = "Cannot proceed: No valid client or active ticket is selected.";
             return;
         }
 
@@ -733,7 +733,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
             var emailToUse = !string.IsNullOrWhiteSpace(gcashReceiptEmail)
                 ? gcashReceiptEmail
-                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+                : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
 
             var invoiceResult = await XenditService.CreateGcashInvoiceAsync(
                 netTotalDue,
@@ -871,7 +871,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
             Total = netTotalDue,
             AmountPaid = netTotalDue,
             PaymentMethod = "GCash (Xendit QR)",
-            Timestamp = DateTime.Now,
+            Timestamp = DateTime.UtcNow,
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
 
@@ -908,9 +908,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private async Task OpenXenditGcashCheckout()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
         {
-            gcashErrorMessage = "Cannot proceed: No valid completed ritual awaiting payment is selected.";
+            gcashErrorMessage = "Cannot proceed: No valid client or active ticket is selected.";
             return;
         }
 
@@ -922,7 +922,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
             var emailToUse = !string.IsNullOrWhiteSpace(gcashReceiptEmail)
                 ? gcashReceiptEmail
-                : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+                : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
 
             var invoiceResult = await XenditService.CreateGcashInvoiceAsync(
                 netTotalDue,
@@ -954,9 +954,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private void ProcessManualGcashPayment()
     {
-        if (!HasSelectedAwaitingPayment || SelectedAppointment == null || string.IsNullOrWhiteSpace(billingClientName))
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName))
         {
-            gcashErrorMessage = "Cannot process payment: No valid completed ritual awaiting payment is selected.";
+            gcashErrorMessage = "Cannot process payment: No valid client or active ticket is selected.";
             return;
         }
 
@@ -965,7 +965,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
         var invoice = new InvoiceRecord
         {
             AppointmentId = selectedApptId,
-            CustomerId = matchedCustomer?.Id ?? SelectedAppointment.CustomerId,
+            CustomerId = matchedCustomer?.Id ?? SelectedAppointment?.CustomerId,
             ClientName = billingClientName,
             ServiceName = billingServiceName + (addonTotal > 0 ? $" (+ {selectedProductIds.Count} Retail Items)" : ""),
             StylistName = billingStylistName,
@@ -979,7 +979,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
             Total = netTotalDue,
             AmountPaid = netTotalDue,
             PaymentMethod = $"GCash (Ref: {gcashReferenceNumber})",
-            Timestamp = DateTime.Now,
+            Timestamp = DateTime.UtcNow,
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
 
@@ -987,7 +987,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
         lastPaidInvoice = invoice;
         SetSuccessNotification($"Invoice {invoice.InvoiceNumber} successfully logged for {invoice.ClientName} (GCash Ref: {gcashReferenceNumber} • ₱{invoice.Total:N0})");
 
-        var clientEmail = !string.IsNullOrWhiteSpace(gcashReceiptEmail) ? gcashReceiptEmail : (SelectedAppointment.ClientEmail ?? matchedCustomer?.Email);
+        var clientEmail = !string.IsNullOrWhiteSpace(gcashReceiptEmail) ? gcashReceiptEmail : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
         if (!string.IsNullOrWhiteSpace(clientEmail))
         {
             _ = EmailService.SendInvoiceReceiptAsync(invoice, clientEmail);

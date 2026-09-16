@@ -10,6 +10,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddHttpClient<FirebaseAuthService>();
 builder.Services.AddHttpClient<XenditPaymentService>();
 builder.Services.AddSingleton<SalonDataService>();
+builder.Services.AddSingleton<CloudinaryImageService>();
 builder.Services.AddScoped<StripePaymentService>();
 builder.Services.AddScoped<EmailReceiptService>();
 

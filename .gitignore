@@ -11,3 +11,4 @@ obj/
 ## Ignore local secret configs
 appsettings.Development.json
 appsettings.Local.json
+firebase-adminsdk.json 

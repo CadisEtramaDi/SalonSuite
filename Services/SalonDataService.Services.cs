@@ -12,35 +12,39 @@ public partial class SalonDataService
     public List<ServiceOfferItem> Services { get; private set; } = new();
     public List<ServicePackageItem> Packages { get; private set; } = new();
 
-    private void LoadServicesFromDb(SqlConnection conn)
+    private async Task LoadServicesFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, Number, Name, Category, Description, Price, DurationMinutes, IsActive FROM dbo.Services ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("services").GetSnapshotAsync();
             var list = new List<ServiceOfferItem>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                var id = reader.GetInt32(0);
-                var name = reader.IsDBNull(2) ? "" : reader.GetString(2);
-                var category = reader.IsDBNull(3) ? "Hair" : reader.GetString(3);
-
-                list.Add(new ServiceOfferItem
+                if (doc.Exists)
                 {
-                    Id = id,
-                    Number = reader.IsDBNull(1) ? $"{id:D2}" : reader.GetString(1),
-                    Name = name,
-                    Category = category,
-                    Description = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    Price = reader.IsDBNull(5) ? 0m : reader.GetDecimal(5),
-                    DurationMinutes = reader.IsDBNull(6) ? 45 : reader.GetInt32(6),
-                    IsActive = reader.IsDBNull(7) || reader.GetBoolean(7),
-                    ImageUrl = GetServiceImageUrl(name, category)
-                });
+                    var item = doc.ConvertTo<ServiceOfferItem>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    if (string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        item.ImageUrl = GetServiceImageUrl(item.Name, item.Category);
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Services = list;
+            if (list.Count > 0)
+            {
+                Services = list.OrderBy(s => s.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading services: {ex.Message}");
+        }
     }
 
     public void AddService(ServiceOfferItem service)
@@ -49,23 +53,16 @@ public partial class SalonDataService
         {
             service.Number = $"{Services.Count + 1:D2}";
         }
+        if (string.IsNullOrEmpty(service.ImageUrl))
+        {
+            service.ImageUrl = GetServiceImageUrl(service.Name, service.Category);
+        }
 
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Services (Number, Name, Category, Description, Price, DurationMinutes, IsActive) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@Number, @Name, @Category, @Description, @Price, @DurationMinutes, @IsActive);",
-            new SqlParameter("@Number", service.Number),
-            new SqlParameter("@Name", service.Name),
-            new SqlParameter("@Category", service.Category),
-            new SqlParameter("@Description", (object?)service.Description ?? DBNull.Value),
-            new SqlParameter("@Price", service.Price),
-            new SqlParameter("@DurationMinutes", service.DurationMinutes),
-            new SqlParameter("@IsActive", service.IsActive)
-        );
-
-        service.Id = dbId > 0 ? dbId : (Services.Count > 0 ? Services.Max(s => s.Id) + 1 : 1);
+        service.Id = Services.Count > 0 ? Services.Max(s => s.Id) + 1 : 1;
         Services.Add(service);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("services", service.Id.ToString(), service));
     }
 
     public void UpdateService(ServiceOfferItem service)
@@ -82,29 +79,17 @@ public partial class SalonDataService
             existing.ImageUrl = service.ImageUrl;
             existing.IsActive = service.IsActive;
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Services SET Number = @Number, Name = @Name, Category = @Category, " +
-                "Description = @Description, Price = @Price, DurationMinutes = @DurationMinutes, IsActive = @IsActive " +
-                "WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@Number", existing.Number),
-                new SqlParameter("@Name", existing.Name),
-                new SqlParameter("@Category", existing.Category),
-                new SqlParameter("@Description", (object?)existing.Description ?? DBNull.Value),
-                new SqlParameter("@Price", existing.Price),
-                new SqlParameter("@DurationMinutes", existing.DurationMinutes),
-                new SqlParameter("@IsActive", existing.IsActive)
-            );
-
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("services", existing.Id.ToString(), existing));
         }
     }
 
     public void DeleteService(int id)
     {
         Services.RemoveAll(s => s.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Services WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("services", id.ToString()));
     }
 
     public void AddPackage(ServicePackageItem package)

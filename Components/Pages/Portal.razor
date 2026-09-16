@@ -6,11 +6,11 @@
 <div class="portal-layout">
     <!-- Dark Editorial Admin Sidebar -->
     <aside class="portal-sidebar">
-        <div class="portal-brand-block" style="display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; border-bottom: 1px solid var(--border-dark); margin-bottom: 12px;">
-            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 0; border: 1.5px solid var(--gold-accent); flex-shrink: 0;" />
-            <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2;">
-                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em; white-space: nowrap;">BEAUTY HAIR</span>
-                <span style="font-size: 10px; font-weight: 700; color: #F59E0B; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin-top: 2px;">
+        <div class="portal-brand-block">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
+            <div class="portal-brand-text">
+                <span class="portal-brand-name">BEAUTY HAIR</span>
+                <span class="portal-brand-sub">
                     <i class="bi bi-shield-lock-fill"></i> ENTERPRISE ERP
                 </span>
             </div>
@@ -18,8 +18,11 @@
 
         <div class="portal-nav-scroll">
             <div class="portal-group-label">CORE OPERATIONS</div>
+            <button class="portal-nav-btn @(currentTab == "calendar" ? "active" : "")" @onclick='() => SwitchTab("calendar")'>
+                <i class="bi bi-calendar3"></i> Master Calendar
+            </button>
             <button class="portal-nav-btn @(currentTab == "appointments" ? "active" : "")" @onclick='() => SwitchTab("appointments")'>
-                <i class="bi bi-calendar3"></i> Master Schedule
+                <i class="bi bi-journal-text"></i> Appointment Ledger
             </button>
             <button class="portal-nav-btn @(currentTab == "customers" ? "active" : "")" @onclick='() => SwitchTab("customers")'>
                 <i class="bi bi-people-fill"></i> Customers & CRM
@@ -42,7 +45,7 @@
                 <i class="bi bi-person-badge-fill"></i> Staff & Specialists
             </button>
 
-            <div class="portal-group-label" style="margin-top: 10px;">INVENTORY & SUPPLY</div>
+            <div class="portal-group-label">INVENTORY & SUPPLY</div>
             <button class="portal-nav-btn @(currentTab == "inventory" ? "active" : "")" @onclick='() => SwitchTab("inventory")'>
                 <i class="bi bi-box-seam"></i> Product Inventory
                 @if (SalonService.Products.Count(p => p.IsLowStock) > 0)
@@ -56,7 +59,7 @@
                 <i class="bi bi-truck"></i> Suppliers & Vendors
             </button>
 
-            <div class="portal-group-label" style="margin-top: 10px;">MARKETING & LOYALTY</div>
+            <div class="portal-group-label">MARKETING & LOYALTY</div>
             <button class="portal-nav-btn @(currentTab == "promotions" ? "active" : "")" @onclick='() => SwitchTab("promotions")'>
                 <i class="bi bi-tag-fill"></i> Promotions & Vouchers
             </button>
@@ -64,7 +67,7 @@
                 <i class="bi bi-award-fill"></i> Loyalty Rewards
             </button>
 
-            <div class="portal-group-label" style="margin-top: 10px;">FINANCIALS & INSIGHTS</div>
+            <div class="portal-group-label">FINANCIALS & INSIGHTS</div>
             <button class="portal-nav-btn @(currentTab == "billing" ? "active" : "")" @onclick='() => SwitchTab("billing")'>
                 <i class="bi bi-receipt"></i> Daily Invoices & POS
             </button>
@@ -92,7 +95,8 @@
                 <h1 class="portal-page-heading">
                     @(currentTab switch
                     {
-                        "appointments" => "Master Appointment Schedule",
+                        "calendar" => "Master Salon Calendar",
+                        "appointments" => "Appointment Records & Ledger",
                         "customers" => "Customer Management & CRM",
                         "services" => serviceSubTab switch
                         {
@@ -114,7 +118,7 @@
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                @if (currentTab == "appointments")
+                @if (currentTab == "calendar" || currentTab == "appointments")
                 {
                     <button class="btn-primary-dark" @onclick="() => showNewBookingModal = true">
                         <i class="bi bi-plus-lg"></i> New Appointment
@@ -217,14 +221,125 @@
             </div>
         }
 
-        <!-- TAB 1: APPOINTMENT SCHEDULING -->
+        <!-- TAB 0: MASTER SALON CALENDAR -->
+        @if (currentTab == "calendar")
+        {
+            <div class="portal-data-card">
+                <div class="portal-card-header">
+                    <div>
+                        <h3 class="portal-card-title" style="margin: 0;">Master Salon Calendar (@FilteredAppointments.Count())</h3>
+                        <span style="font-size: 13px; color: var(--text-muted); display: block; margin-top: 4px;">@DateTime.Today.ToString("dddd, MMMM dd, yyyy") &bull; Real-time schedule sync</span>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <select class="booking-input" style="width: 140px; padding: 6px 10px; font-size: 13px;" @bind="apptStatusFilter">
+                            <option value="all">All Statuses</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+
+                        <select class="booking-input" style="width: 160px; padding: 6px 10px; font-size: 13px;" @bind="apptStylistFilter">
+                            <option value="all">All Specialists</option>
+                            @foreach (var stylist in SalonService.Stylists)
+                            {
+                                <option value="@stylist.Name">@stylist.Name</option>
+                            }
+                        </select>
+
+                        <input type="text" class="booking-input" style="width: 200px; padding: 6px 12px; font-size: 13px;" placeholder="Search client / service..." @bind="apptSearchQuery" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                <!-- Master Month Calendar View -->
+                <div class="salon-calendar-container" style="border: none; padding: 0;">
+                    <div class="calendar-header-toolbar">
+                        <div class="calendar-nav-controls">
+                            <button type="button" class="cal-nav-btn" @onclick="PrevCalendarMonth" title="Previous Month">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button type="button" class="cal-nav-btn cal-today-btn" @onclick="GoToToday">
+                                <i class="bi bi-calendar-event"></i> Today
+                            </button>
+                            <button type="button" class="cal-nav-btn" @onclick="NextCalendarMonth" title="Next Month">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                            <h4 class="calendar-month-title" style="margin: 0 0 0 8px;">@calendarMonth.ToString("MMMM yyyy")</h4>
+                        </div>
+
+                        <div class="calendar-legend">
+                            <span class="cal-legend-item"><span class="cal-legend-dot confirmed"></span> Confirmed</span>
+                            <span class="cal-legend-item"><span class="cal-legend-dot in-progress"></span> In Progress</span>
+                            <span class="cal-legend-item"><span class="cal-legend-dot completed"></span> Completed</span>
+                            <span class="cal-legend-item"><span class="cal-legend-dot cancelled"></span> Cancelled</span>
+                        </div>
+                    </div>
+
+                    <div class="calendar-month-grid">
+                        <!-- Weekday Headers -->
+                        <div class="calendar-weekday-header">Sun</div>
+                        <div class="calendar-weekday-header">Mon</div>
+                        <div class="calendar-weekday-header">Tue</div>
+                        <div class="calendar-weekday-header">Wed</div>
+                        <div class="calendar-weekday-header">Thu</div>
+                        <div class="calendar-weekday-header">Fri</div>
+                        <div class="calendar-weekday-header">Sat</div>
+
+                        <!-- Calendar Day Cells -->
+                        @foreach (var day in GetCalendarGridDays())
+                        {
+                            bool isSelected = selectedCalendarDate.HasValue && day.Date.Date == selectedCalendarDate.Value.Date;
+                            <div class="calendar-day-cell @(!day.IsCurrentMonth ? "other-month" : "") @(day.IsToday ? "is-today" : "") @(isSelected ? "is-selected" : "")"
+                                 @onclick="() => SelectCalendarDate(day.Date)">
+                                <div class="calendar-day-header">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span class="calendar-day-num">@day.Date.Day</span>
+                                        @if (day.IsToday)
+                                        {
+                                            <span class="calendar-day-today-tag">Today</span>
+                                        }
+                                    </div>
+                                    @if (day.Appointments.Any())
+                                    {
+                                        <span class="calendar-day-count-badge">@day.Appointments.Count appt@(day.Appointments.Count > 1 ? "s" : "")</span>
+                                    }
+                                </div>
+
+                                <div class="calendar-appts-wrap">
+                                    @foreach (var appt in day.Appointments)
+                                    {
+                                        string statusClass = appt.Status.ToLower().Replace(" ", "-");
+                                        <div class="cal-appt-chip @statusClass" 
+                                             @onclick:stopPropagation="true" 
+                                             @onclick="() => OpenApptDetail(appt)" 
+                                             title="Click to view details & manage booking">
+                                            <div class="cal-appt-chip-top">
+                                                <span>@appt.TimeSlot</span>
+                                                <span style="font-size: 9.5px; opacity: 0.9;">₱@appt.Price.ToString("N0")</span>
+                                            </div>
+                                            <div class="cal-appt-chip-title">@appt.ClientName</div>
+                                            <div class="cal-appt-chip-meta">
+                                                <i class="bi bi-scissors" style="font-size: 9px;"></i> @appt.StylistName &bull; @appt.ServiceName
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- TAB 1: APPOINTMENT SCHEDULING & LEDGER -->
         @if (currentTab == "appointments")
         {
             <div class="portal-data-card">
                 <div class="portal-card-header">
                     <div>
-                        <h3 class="portal-card-title">Live Master Schedule (@FilteredAppointments.Count())</h3>
-                        <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy") &bull; Real-time schedule sync</span>
+                        <h3 class="portal-card-title">Appointment Records & Ledger (@FilteredAppointments.Count())</h3>
+                        <span style="font-size: 13px; color: var(--text-muted);">@DateTime.Today.ToString("dddd, MMMM dd, yyyy") &bull; Tabular appointment history</span>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <select class="booking-input" style="width: 135px; padding: 6px 10px; font-size: 13px;" @bind="apptStatusFilter">
@@ -233,6 +348,13 @@
                             <option value="In Progress">In Progress</option>
                             <option value="Completed">Completed</option>
                             <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <select class="booking-input" style="width: 160px; padding: 6px 10px; font-size: 13px;" @bind="apptStylistFilter">
+                            <option value="all">All Specialists</option>
+                            @foreach (var stylist in SalonService.Stylists)
+                            {
+                                <option value="@stylist.Name">@stylist.Name</option>
+                            }
                         </select>
                         <select class="booking-input" style="width: 175px; padding: 6px 10px; font-size: 13px;" @bind="apptSortOrder">
                             <option value="newest">Sort: Newest First (Top)</option>
@@ -249,7 +371,7 @@
                     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
                         <thead>
                             <tr style="border-bottom: 1px solid var(--border-light); color: var(--text-muted); font-size: 12px; text-transform: uppercase;">
-                                <th style="padding: 12px 14px;">Time</th>
+                                <th style="padding: 12px 14px;">Date & Time</th>
                                 <th style="padding: 12px 14px;">Client Name</th>
                                 <th style="padding: 12px 14px;">Contact</th>
                                 <th style="padding: 12px 14px;">Service</th>
@@ -269,7 +391,10 @@
                             @foreach (var appt in PagedAppointments)
                             {
                                 <tr style="border-bottom: 1px solid var(--border-light); color: #111827;">
-                                    <td style="padding: 14px; font-weight: 700; color: #111827;">@appt.TimeSlot</td>
+                                    <td style="padding: 14px; font-weight: 700; color: #111827;">
+                                        <div>@appt.Date.ToString("MMM dd, yyyy")</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 500;">@appt.TimeSlot</div>
+                                    </td>
                                     <td style="padding: 14px; font-weight: 700; color: #111827;">@appt.ClientName</td>
                                     <td style="padding: 14px; color: #111827; font-weight: 500;">@appt.ClientPhone</td>
                                     <td style="padding: 14px; color: #111827; font-weight: 500;">@appt.ServiceName</td>
@@ -280,9 +405,12 @@
                                     </td>
                                     <td style="padding: 14px; text-align: right;">
                                         <div style="display: inline-flex; gap: 4px;">
+                                            <button style="background: #F3F4F6; color: #111827; border: 1px solid #E5E7EB; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="View Details" @onclick="() => OpenApptDetail(appt)">
+                                                <i class="bi bi-eye"></i> Details
+                                            </button>
                                             @if (appt.Status == "Confirmed")
                                             {
-                                                <button style="background: #F3F4F6; color: #111827; border: 1px solid #E5E7EB; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
+                                                <button style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
                                             }
                                             else if (appt.Status == "In Progress")
                                             {
@@ -1904,6 +2032,84 @@
             <button class="btn-primary-dark" style="width: 100%; justify-content: center; margin-top: 14px;" @onclick="SaveReward" disabled="@(string.IsNullOrWhiteSpace(rewardForm.Title))">
                 Add Reward to Catalog
             </button>
+        </div>
+    </div>
+}
+
+<!-- Modal: Appointment Quick Details & Management -->
+@if (selectedApptDetail != null)
+{
+    <div class="booking-modal-backdrop" @onclick="CloseApptDetail">
+        <div class="booking-modal-card" style="max-width: 540px;" @onclick:stopPropagation="true">
+            <div class="modal-title-row">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 class="modal-h3" style="margin: 0;">Appointment #@selectedApptDetail.Id</h3>
+                        <span class="badge-status @selectedApptDetail.Status.ToLower().Replace(" ", "-")">@selectedApptDetail.Status</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--text-muted);">@selectedApptDetail.Date.ToString("dddd, MMMM dd, yyyy") &bull; @selectedApptDetail.TimeSlot</span>
+                </div>
+                <button class="btn-close-modal" @onclick="CloseApptDetail"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; font-weight: 700;">Client</span>
+                        <div style="font-weight: 700; color: #111827; font-size: 14px;">@selectedApptDetail.ClientName</div>
+                        <div style="color: var(--text-muted); font-size: 12px;">@selectedApptDetail.ClientPhone</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; font-weight: 700;">Service</span>
+                        <div style="font-weight: 700; color: #111827;">@selectedApptDetail.ServiceName</div>
+                        <div style="font-weight: 800; color: #926C2A; font-size: 14px;">₱@selectedApptDetail.Price.ToString("N0") <span style="font-size: 11px; font-weight: 600; color: @(selectedApptDetail.IsPaid ? "#059669" : "#D97706");">(@(selectedApptDetail.IsPaid ? "Paid" : "Pending POS"))</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="booking-form-grid">
+                <div class="form-full">
+                    <label class="booking-label">Assigned Specialist</label>
+                    <select class="booking-input" value="@selectedApptDetail.StylistName" @onchange='(e) => ReassignApptStylistFromCalendar(selectedApptDetail.Id, e.Value?.ToString() ?? "")'>
+                        @foreach (var member in SalonService.Stylists)
+                        {
+                            <option value="@member.Name">@member.Name (@member.Role)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-full">
+                    <label class="booking-label">Update Booking Status</label>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn-portal-secondary" style="@(selectedApptDetail.Status == "Confirmed" ? "background: #EFF6FF; border-color: #3B82F6; color: #1D4ED8; font-weight: 700;" : "")" @onclick='() => UpdateApptStatusFromCalendar(selectedApptDetail.Id, "Confirmed")'>
+                            Confirmed
+                        </button>
+                        <button type="button" class="btn-portal-secondary" style="@(selectedApptDetail.Status == "In Progress" ? "background: #FFFBEB; border-color: #F59E0B; color: #B45309; font-weight: 700;" : "")" @onclick='() => UpdateApptStatusFromCalendar(selectedApptDetail.Id, "In Progress")'>
+                            In Progress
+                        </button>
+                        <button type="button" class="btn-portal-secondary" style="@(selectedApptDetail.Status == "Completed" ? "background: #ECFDF5; border-color: #10B981; color: #047857; font-weight: 700;" : "")" @onclick='() => UpdateApptStatusFromCalendar(selectedApptDetail.Id, "Completed")'>
+                            Completed
+                        </button>
+                        <button type="button" class="btn-portal-secondary" style="@(selectedApptDetail.Status == "Cancelled" ? "background: #FEF2F2; border-color: #EF4444; color: #B91C1C; font-weight: 700;" : "")" @onclick='() => UpdateApptStatusFromCalendar(selectedApptDetail.Id, "Cancelled")'>
+                            Cancelled
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-full">
+                    <label class="booking-label">Service Notes & Formulas</label>
+                    <textarea class="booking-input" rows="2" placeholder="e.g. 50g 7.1 + 6% developer, toner after balayage..." @bind="selectedApptDetail.Notes" @bind:after="() => SalonService.UpdateAppointmentNotes(selectedApptDetail.Id, selectedApptDetail.Notes ?? string.Empty)"></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-light);">
+                <button type="button" style="background: #FEF2F2; border: 1px solid #FCA5A5; color: #DC2626; padding: 7px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" @onclick="() => { int id = selectedApptDetail.Id; CloseApptDetail(); SalonService.DeleteAppointment(id); }">
+                    <i class="bi bi-trash"></i> Delete Booking
+                </button>
+                <button type="button" class="btn-primary-dark" @onclick="CloseApptDetail">
+                    Done
+                </button>
+            </div>
         </div>
     </div>
 }

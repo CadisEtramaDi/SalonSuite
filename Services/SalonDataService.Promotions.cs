@@ -11,54 +11,52 @@ public partial class SalonDataService
 {
     public List<PromotionItem> Promotions { get; private set; } = new();
 
-    private void LoadPromotionsFromDb(SqlConnection conn)
+    private async Task LoadPromotionsFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, Code, Title, DiscountType, DiscountValue, MinSpend, StartDate, EndDate, IsActive, UsageCount FROM dbo.Promotions ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("promotions").GetSnapshotAsync();
             var list = new List<PromotionItem>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new PromotionItem
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    Code = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    Title = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    DiscountType = reader.IsDBNull(3) ? "Percentage" : reader.GetString(3),
-                    DiscountValue = reader.IsDBNull(4) ? 0m : reader.GetDecimal(4),
-                    MinSpend = reader.IsDBNull(5) ? 0m : reader.GetDecimal(5),
-                    StartDate = reader.IsDBNull(6) ? DateTime.Today : reader.GetDateTime(6),
-                    EndDate = reader.IsDBNull(7) ? DateTime.Today.AddMonths(1) : reader.GetDateTime(7),
-                    IsActive = reader.IsDBNull(8) || reader.GetBoolean(8),
-                    UsageCount = reader.IsDBNull(9) ? 0 : reader.GetInt32(9)
-                });
+                    var item = doc.ConvertTo<PromotionItem>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Promotions = list;
+            if (list.Count > 0)
+            {
+                Promotions = list.OrderBy(p => p.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading promotions: {ex.Message}");
+        }
     }
 
     public void AddPromotion(PromotionItem promo)
     {
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Promotions (Code, Title, DiscountType, DiscountValue, MinSpend, StartDate, EndDate, IsActive, UsageCount) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@Code, @Title, @DiscountType, @DiscountValue, @MinSpend, @StartDate, @EndDate, @IsActive, @UsageCount);",
-            new SqlParameter("@Code", promo.Code),
-            new SqlParameter("@Title", promo.Title),
-            new SqlParameter("@DiscountType", promo.DiscountType),
-            new SqlParameter("@DiscountValue", promo.DiscountValue),
-            new SqlParameter("@MinSpend", promo.MinSpend),
-            new SqlParameter("@StartDate", promo.StartDate.Date),
-            new SqlParameter("@EndDate", promo.EndDate.Date),
-            new SqlParameter("@IsActive", promo.IsActive),
-            new SqlParameter("@UsageCount", promo.UsageCount)
-        );
-
-        promo.Id = dbId > 0 ? dbId : (Promotions.Count > 0 ? Promotions.Max(p => p.Id) + 1 : 1);
+        promo.Id = Promotions.Count > 0 ? Promotions.Max(p => p.Id) + 1 : 1;
+        if (promo.StartDate.Kind != DateTimeKind.Utc)
+        {
+            promo.StartDate = DateTime.SpecifyKind(promo.StartDate, DateTimeKind.Utc);
+        }
+        if (promo.EndDate.Kind != DateTimeKind.Utc)
+        {
+            promo.EndDate = DateTime.SpecifyKind(promo.EndDate, DateTimeKind.Utc);
+        }
         Promotions.Add(promo);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("promotions", promo.Id.ToString(), promo));
     }
 
     public void UpdatePromotion(PromotionItem promo)
@@ -71,34 +69,25 @@ public partial class SalonDataService
             existing.DiscountType = promo.DiscountType;
             existing.DiscountValue = promo.DiscountValue;
             existing.MinSpend = promo.MinSpend;
-            existing.StartDate = promo.StartDate;
-            existing.EndDate = promo.EndDate;
+            existing.StartDate = promo.StartDate.Kind != DateTimeKind.Utc
+                ? DateTime.SpecifyKind(promo.StartDate, DateTimeKind.Utc)
+                : promo.StartDate;
+            existing.EndDate = promo.EndDate.Kind != DateTimeKind.Utc
+                ? DateTime.SpecifyKind(promo.EndDate, DateTimeKind.Utc)
+                : promo.EndDate;
             existing.IsActive = promo.IsActive;
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Promotions SET Code = @Code, Title = @Title, DiscountType = @DiscountType, " +
-                "DiscountValue = @DiscountValue, MinSpend = @MinSpend, StartDate = @StartDate, EndDate = @EndDate, " +
-                "IsActive = @IsActive WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@Code", existing.Code),
-                new SqlParameter("@Title", existing.Title),
-                new SqlParameter("@DiscountType", existing.DiscountType),
-                new SqlParameter("@DiscountValue", existing.DiscountValue),
-                new SqlParameter("@MinSpend", existing.MinSpend),
-                new SqlParameter("@StartDate", existing.StartDate.Date),
-                new SqlParameter("@EndDate", existing.EndDate.Date),
-                new SqlParameter("@IsActive", existing.IsActive)
-            );
-
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("promotions", existing.Id.ToString(), existing));
         }
     }
 
     public void DeletePromotion(int id)
     {
         Promotions.RemoveAll(p => p.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Promotions WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("promotions", id.ToString()));
     }
 
     public (bool IsValid, decimal DiscountAmount, string Message) ValidatePromo(string code, decimal subtotal)
@@ -141,8 +130,8 @@ public partial class SalonDataService
             DiscountType = "Percentage",
             DiscountValue = 10,
             MinSpend = 500,
-            StartDate = DateTime.Today.AddDays(-30),
-            EndDate = DateTime.Today.AddMonths(3),
+            StartDate = DateTime.SpecifyKind(DateTime.Today.AddDays(-30), DateTimeKind.Utc),
+            EndDate = DateTime.SpecifyKind(DateTime.Today.AddMonths(3), DateTimeKind.Utc),
             IsActive = true,
             UsageCount = 14
         },
@@ -154,8 +143,8 @@ public partial class SalonDataService
             DiscountType = "Fixed",
             DiscountValue = 200,
             MinSpend = 1500,
-            StartDate = DateTime.Today.AddDays(-15),
-            EndDate = DateTime.Today.AddMonths(2),
+            StartDate = DateTime.SpecifyKind(DateTime.Today.AddDays(-15), DateTimeKind.Utc),
+            EndDate = DateTime.SpecifyKind(DateTime.Today.AddMonths(2), DateTimeKind.Utc),
             IsActive = true,
             UsageCount = 28
         },
@@ -167,8 +156,8 @@ public partial class SalonDataService
             DiscountType = "Percentage",
             DiscountValue = 15,
             MinSpend = 2500,
-            StartDate = DateTime.Today.AddDays(-7),
-            EndDate = DateTime.Today.AddMonths(1),
+            StartDate = DateTime.SpecifyKind(DateTime.Today.AddDays(-7), DateTimeKind.Utc),
+            EndDate = DateTime.SpecifyKind(DateTime.Today.AddMonths(1), DateTimeKind.Utc),
             IsActive = true,
             UsageCount = 9
         }

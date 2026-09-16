@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
+using Google.Cloud.Firestore;
 using SalonSuite.Models;
 
 namespace SalonSuite.Services;
@@ -11,59 +11,52 @@ public partial class SalonDataService
 {
     public List<CustomerRecord> Customers { get; private set; } = new();
 
-    private void LoadCustomersFromDb(SqlConnection conn)
+    private async Task LoadCustomersFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, FullName, Email, Phone, LoyaltyPoints, Tier, TotalSpent, VisitsCount, LastVisit, Notes, CreatedAt FROM dbo.Customers ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("customers").GetSnapshotAsync();
             var list = new List<CustomerRecord>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new CustomerRecord
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    FullName = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    Email = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    Phone = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    LoyaltyPoints = reader.IsDBNull(4) ? 0 : reader.GetInt32(4),
-                    Tier = reader.IsDBNull(5) ? "Bronze" : reader.GetString(5),
-                    TotalSpent = reader.IsDBNull(6) ? 0m : reader.GetDecimal(6),
-                    VisitsCount = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
-                    LastVisit = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                    Notes = reader.IsDBNull(9) ? null : reader.GetString(9),
-                    CreatedAt = reader.IsDBNull(10) ? DateTime.Now : reader.GetDateTime(10)
-                });
+                    var item = doc.ConvertTo<CustomerRecord>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Customers = list;
+            if (list.Count > 0)
+            {
+                Customers = list.OrderBy(c => c.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading customers: {ex.Message}");
+        }
     }
 
     public void AddCustomer(CustomerRecord customer)
     {
-        customer.CreatedAt = DateTime.Now;
+        customer.CreatedAt = DateTime.UtcNow;
         customer.Tier = CalculateTier(customer.TotalSpent);
+        customer.Id = Customers.Count > 0 ? Customers.Max(c => c.Id) + 1 : 1;
 
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Customers (FullName, Email, Phone, LoyaltyPoints, Tier, TotalSpent, VisitsCount, LastVisit, Notes, CreatedAt) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@FullName, @Email, @Phone, @LoyaltyPoints, @Tier, @TotalSpent, @VisitsCount, @LastVisit, @Notes, @CreatedAt);",
-            new SqlParameter("@FullName", customer.FullName),
-            new SqlParameter("@Email", (object?)customer.Email ?? DBNull.Value),
-            new SqlParameter("@Phone", customer.Phone),
-            new SqlParameter("@LoyaltyPoints", customer.LoyaltyPoints),
-            new SqlParameter("@Tier", customer.Tier),
-            new SqlParameter("@TotalSpent", customer.TotalSpent),
-            new SqlParameter("@VisitsCount", customer.VisitsCount),
-            new SqlParameter("@LastVisit", (object?)customer.LastVisit ?? DBNull.Value),
-            new SqlParameter("@Notes", (object?)customer.Notes ?? DBNull.Value),
-            new SqlParameter("@CreatedAt", customer.CreatedAt)
-        );
+        if (customer.LastVisit.HasValue && customer.LastVisit.Value.Kind != DateTimeKind.Utc)
+        {
+            customer.LastVisit = DateTime.SpecifyKind(customer.LastVisit.Value, DateTimeKind.Utc);
+        }
 
-        customer.Id = dbId > 0 ? dbId : (Customers.Count > 0 ? Customers.Max(c => c.Id) + 1 : 1);
         Customers.Add(customer);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("customers", customer.Id.ToString(), customer));
     }
 
     public void UpdateCustomer(CustomerRecord customer)
@@ -76,33 +69,29 @@ public partial class SalonDataService
             existing.Email = customer.Email;
             existing.Notes = customer.Notes;
             existing.LoyaltyPoints = customer.LoyaltyPoints;
+            existing.TotalSpent = customer.TotalSpent;
+            existing.VisitsCount = customer.VisitsCount;
+            existing.LastVisit = customer.LastVisit.HasValue && customer.LastVisit.Value.Kind != DateTimeKind.Utc
+                ? DateTime.SpecifyKind(customer.LastVisit.Value, DateTimeKind.Utc)
+                : customer.LastVisit;
             existing.Tier = CalculateTier(existing.TotalSpent);
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Customers SET FullName = @FullName, Email = @Email, Phone = @Phone, " +
-                "LoyaltyPoints = @LoyaltyPoints, Tier = @Tier, TotalSpent = @TotalSpent, VisitsCount = @VisitsCount, " +
-                "Notes = @Notes, LastVisit = @LastVisit WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@FullName", existing.FullName),
-                new SqlParameter("@Email", (object?)existing.Email ?? DBNull.Value),
-                new SqlParameter("@Phone", existing.Phone),
-                new SqlParameter("@LoyaltyPoints", existing.LoyaltyPoints),
-                new SqlParameter("@Tier", existing.Tier),
-                new SqlParameter("@TotalSpent", existing.TotalSpent),
-                new SqlParameter("@VisitsCount", existing.VisitsCount),
-                new SqlParameter("@Notes", (object?)existing.Notes ?? DBNull.Value),
-                new SqlParameter("@LastVisit", (object?)existing.LastVisit ?? DBNull.Value)
-            );
+            if (existing.CreatedAt.Kind != DateTimeKind.Utc)
+            {
+                existing.CreatedAt = DateTime.SpecifyKind(existing.CreatedAt, DateTimeKind.Utc);
+            }
 
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("customers", existing.Id.ToString(), existing));
         }
     }
 
     public void DeleteCustomer(int id)
     {
         Customers.RemoveAll(c => c.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Customers WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("customers", id.ToString()));
     }
 
     public CustomerRecord EnsureCustomer(string name, string phone = "", string email = "", string? notes = null)
@@ -166,7 +155,7 @@ public partial class SalonDataService
             Tier = "Bronze",
             TotalSpent = 0,
             VisitsCount = 0,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.UtcNow
         };
         AddCustomer(newCust);
         return newCust;

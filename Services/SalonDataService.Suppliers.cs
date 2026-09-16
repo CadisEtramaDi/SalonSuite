@@ -11,52 +11,44 @@ public partial class SalonDataService
 {
     public List<SupplierRecord> Suppliers { get; private set; } = new();
 
-    private void LoadSuppliersFromDb(SqlConnection conn)
+    private async Task LoadSuppliersFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, CompanyName, ContactPerson, Email, Phone, Address, SuppliedCategory, PaymentTerms, IsActive FROM dbo.Suppliers ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("suppliers").GetSnapshotAsync();
             var list = new List<SupplierRecord>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new SupplierRecord
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    CompanyName = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    ContactPerson = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    Email = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    Phone = reader.IsDBNull(4) ? "" : reader.GetString(4),
-                    Address = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                    SuppliedCategory = reader.IsDBNull(6) ? "" : reader.GetString(6),
-                    PaymentTerms = reader.IsDBNull(7) ? "Net 30" : reader.GetString(7),
-                    IsActive = reader.IsDBNull(8) || reader.GetBoolean(8)
-                });
+                    var item = doc.ConvertTo<SupplierRecord>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Suppliers = list;
+            if (list.Count > 0)
+            {
+                Suppliers = list.OrderBy(s => s.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading suppliers: {ex.Message}");
+        }
     }
 
     public void AddSupplier(SupplierRecord supplier)
     {
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Suppliers (CompanyName, ContactPerson, Email, Phone, Address, SuppliedCategory, PaymentTerms, IsActive) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@CompanyName, @ContactPerson, @Email, @Phone, @Address, @SuppliedCategory, @PaymentTerms, @IsActive);",
-            new SqlParameter("@CompanyName", supplier.CompanyName),
-            new SqlParameter("@ContactPerson", supplier.ContactPerson),
-            new SqlParameter("@Email", (object?)supplier.Email ?? DBNull.Value),
-            new SqlParameter("@Phone", supplier.Phone),
-            new SqlParameter("@Address", (object?)supplier.Address ?? DBNull.Value),
-            new SqlParameter("@SuppliedCategory", supplier.SuppliedCategory),
-            new SqlParameter("@PaymentTerms", supplier.PaymentTerms),
-            new SqlParameter("@IsActive", supplier.IsActive)
-        );
-
-        supplier.Id = dbId > 0 ? dbId : (Suppliers.Count > 0 ? Suppliers.Max(s => s.Id) + 1 : 1);
+        supplier.Id = Suppliers.Count > 0 ? Suppliers.Max(s => s.Id) + 1 : 1;
         Suppliers.Add(supplier);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("suppliers", supplier.Id.ToString(), supplier));
     }
 
     public void UpdateSupplier(SupplierRecord supplier)
@@ -73,30 +65,17 @@ public partial class SalonDataService
             existing.PaymentTerms = supplier.PaymentTerms;
             existing.IsActive = supplier.IsActive;
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Suppliers SET CompanyName = @CompanyName, ContactPerson = @ContactPerson, Email = @Email, " +
-                "Phone = @Phone, Address = @Address, SuppliedCategory = @SuppliedCategory, PaymentTerms = @PaymentTerms, " +
-                "IsActive = @IsActive WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@CompanyName", existing.CompanyName),
-                new SqlParameter("@ContactPerson", existing.ContactPerson),
-                new SqlParameter("@Email", (object?)existing.Email ?? DBNull.Value),
-                new SqlParameter("@Phone", existing.Phone),
-                new SqlParameter("@Address", (object?)existing.Address ?? DBNull.Value),
-                new SqlParameter("@SuppliedCategory", existing.SuppliedCategory),
-                new SqlParameter("@PaymentTerms", existing.PaymentTerms),
-                new SqlParameter("@IsActive", existing.IsActive)
-            );
-
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("suppliers", existing.Id.ToString(), existing));
         }
     }
 
     public void DeleteSupplier(int id)
     {
         Suppliers.RemoveAll(s => s.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Suppliers WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("suppliers", id.ToString()));
     }
 
     public static List<SupplierRecord> GetDefaultSuppliers() => new()

@@ -11,33 +11,35 @@ public partial class SalonDataService
 {
     public List<ProductItem> Products { get; private set; } = new();
 
-    private void LoadProductsFromDb(SqlConnection conn)
+    private async Task LoadProductsFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, SKU, Name, Category, CostPrice, RetailPrice, StockQuantity, ReorderLevel, SupplierId, SupplierName, Unit FROM dbo.Products ORDER BY Id DESC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("products").GetSnapshotAsync();
             var list = new List<ProductItem>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new ProductItem
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    SKU = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    Name = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    Category = reader.IsDBNull(3) ? "Retail" : reader.GetString(3),
-                    CostPrice = reader.IsDBNull(4) ? 0m : reader.GetDecimal(4),
-                    RetailPrice = reader.IsDBNull(5) ? 0m : reader.GetDecimal(5),
-                    StockQuantity = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
-                    ReorderLevel = reader.IsDBNull(7) ? 5 : reader.GetInt32(7),
-                    SupplierId = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                    SupplierName = reader.IsDBNull(9) ? "" : reader.GetString(9),
-                    Unit = reader.IsDBNull(10) ? "Bottle" : reader.GetString(10)
-                });
+                    var item = doc.ConvertTo<ProductItem>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Products = list;
+            if (list.Count > 0)
+            {
+                Products = list.OrderByDescending(p => p.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading products: {ex.Message}");
+        }
     }
 
     public void AddProduct(ProductItem product)
@@ -47,25 +49,11 @@ public partial class SalonDataService
             product.SKU = $"SKU-PRD-{Products.Count + 1:D3}";
         }
 
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Products (SKU, Name, Category, CostPrice, RetailPrice, StockQuantity, ReorderLevel, SupplierId, SupplierName, Unit) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@SKU, @Name, @Category, @CostPrice, @RetailPrice, @StockQuantity, @ReorderLevel, @SupplierId, @SupplierName, @Unit);",
-            new SqlParameter("@SKU", product.SKU),
-            new SqlParameter("@Name", product.Name),
-            new SqlParameter("@Category", product.Category),
-            new SqlParameter("@CostPrice", product.CostPrice),
-            new SqlParameter("@RetailPrice", product.RetailPrice),
-            new SqlParameter("@StockQuantity", product.StockQuantity),
-            new SqlParameter("@ReorderLevel", product.ReorderLevel),
-            new SqlParameter("@SupplierId", (object?)product.SupplierId ?? DBNull.Value),
-            new SqlParameter("@SupplierName", (object?)product.SupplierName ?? DBNull.Value),
-            new SqlParameter("@Unit", product.Unit)
-        );
-
-        product.Id = dbId > 0 ? dbId : (Products.Count > 0 ? Products.Max(p => p.Id) + 1 : 1);
+        product.Id = Products.Count > 0 ? Products.Max(p => p.Id) + 1 : 1;
         Products.Insert(0, product);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("products", product.Id.ToString(), product));
     }
 
     public void UpdateProduct(ProductItem product)
@@ -83,25 +71,11 @@ public partial class SalonDataService
             existing.SupplierId = product.SupplierId;
             existing.SupplierName = product.SupplierName;
             existing.Unit = product.Unit;
-
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Products SET SKU = @SKU, Name = @Name, Category = @Category, CostPrice = @CostPrice, " +
-                "RetailPrice = @RetailPrice, StockQuantity = @StockQuantity, ReorderLevel = @ReorderLevel, " +
-                "SupplierId = @SupplierId, SupplierName = @SupplierName, Unit = @Unit WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@SKU", existing.SKU),
-                new SqlParameter("@Name", existing.Name),
-                new SqlParameter("@Category", existing.Category),
-                new SqlParameter("@CostPrice", existing.CostPrice),
-                new SqlParameter("@RetailPrice", existing.RetailPrice),
-                new SqlParameter("@StockQuantity", existing.StockQuantity),
-                new SqlParameter("@ReorderLevel", existing.ReorderLevel),
-                new SqlParameter("@SupplierId", (object?)existing.SupplierId ?? DBNull.Value),
-                new SqlParameter("@SupplierName", (object?)existing.SupplierName ?? DBNull.Value),
-                new SqlParameter("@Unit", existing.Unit)
-            );
+            existing.ImageUrl = product.ImageUrl;
 
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("products", existing.Id.ToString(), existing));
         }
     }
 
@@ -111,18 +85,17 @@ public partial class SalonDataService
         if (product != null)
         {
             product.StockQuantity = Math.Max(0, product.StockQuantity + quantityDelta);
-            ExecuteSqlNonQuery("UPDATE dbo.Products SET StockQuantity = @StockQuantity WHERE Id = @Id;",
-                new SqlParameter("@Id", id),
-                new SqlParameter("@StockQuantity", product.StockQuantity));
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("products", product.Id.ToString(), product));
         }
     }
 
     public void DeleteProduct(int id)
     {
         Products.RemoveAll(p => p.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Products WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("products", id.ToString()));
     }
 
     public static List<ProductItem> GetDefaultProducts() => new()

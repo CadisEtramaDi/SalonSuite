@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
+using Google.Cloud.Firestore;
 using SalonSuite.Models;
 
 namespace SalonSuite.Services;
@@ -54,30 +54,63 @@ public partial class SalonDataService
         }
     }
 
-    private void PersistInitialSeedToDb(SqlConnection conn)
+    private async Task PersistInitialSeedToFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
             foreach (var cust in Customers)
             {
-                using var cmd = new SqlCommand(
-                    "IF NOT EXISTS (SELECT 1 FROM dbo.Customers WHERE Phone = @Phone) " +
-                    "INSERT INTO dbo.Customers (FullName, Email, Phone, LoyaltyPoints, Tier, TotalSpent, VisitsCount, LastVisit, Notes, CreatedAt) " +
-                    "VALUES (@FullName, @Email, @Phone, @LoyaltyPoints, @Tier, @TotalSpent, @VisitsCount, @LastVisit, @Notes, @CreatedAt);", conn);
-                cmd.Parameters.AddWithValue("@FullName", cust.FullName);
-                cmd.Parameters.AddWithValue("@Email", (object?)cust.Email ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Phone", cust.Phone);
-                cmd.Parameters.AddWithValue("@LoyaltyPoints", cust.LoyaltyPoints);
-                cmd.Parameters.AddWithValue("@Tier", cust.Tier);
-                cmd.Parameters.AddWithValue("@TotalSpent", cust.TotalSpent);
-                cmd.Parameters.AddWithValue("@VisitsCount", cust.VisitsCount);
-                cmd.Parameters.AddWithValue("@LastVisit", (object?)cust.LastVisit ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@Notes", (object?)cust.Notes ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@CreatedAt", cust.CreatedAt);
-                cmd.ExecuteNonQuery();
+                await SaveDocAsync("customers", cust.Id.ToString(), cust);
             }
+
+            foreach (var emp in Team)
+            {
+                await SaveDocAsync("employees", emp.Id.ToString(), emp);
+            }
+
+            foreach (var sup in Suppliers)
+            {
+                await SaveDocAsync("suppliers", sup.Id.ToString(), sup);
+            }
+
+            foreach (var srv in Services)
+            {
+                await SaveDocAsync("services", srv.Id.ToString(), srv);
+            }
+
+            foreach (var prd in Products)
+            {
+                await SaveDocAsync("products", prd.Id.ToString(), prd);
+            }
+
+            foreach (var prm in Promotions)
+            {
+                await SaveDocAsync("promotions", prm.Id.ToString(), prm);
+            }
+
+            foreach (var rwd in LoyaltyRewards)
+            {
+                await SaveDocAsync("loyaltyRewards", rwd.Id.ToString(), rwd);
+            }
+
+            foreach (var appt in Appointments)
+            {
+                await SaveDocAsync("appointments", appt.Id.ToString(), appt);
+            }
+
+            foreach (var inv in Invoices)
+            {
+                await SaveDocAsync("invoices", inv.Id.ToString(), inv);
+            }
+
+            Console.WriteLine("[Firebase] Successfully initialized and seeded Firestore collections.");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Notice seeding Firestore: {ex.Message}");
+        }
     }
 
     private void SeedData()
@@ -95,9 +128,9 @@ public partial class SalonDataService
                 Tier = "Gold",
                 TotalSpent = 14500,
                 VisitsCount = 6,
-                LastVisit = DateTime.Today.AddDays(-2),
+                LastVisit = DateTime.SpecifyKind(DateTime.Today.AddDays(-2), DateTimeKind.Utc),
                 Notes = "Prefers cool ash blonde balayage, sensitive scalp.",
-                CreatedAt = DateTime.Today.AddMonths(-4)
+                CreatedAt = DateTime.SpecifyKind(DateTime.Today.AddMonths(-4), DateTimeKind.Utc)
             },
             new()
             {
@@ -109,9 +142,9 @@ public partial class SalonDataService
                 Tier = "Silver",
                 TotalSpent = 4200,
                 VisitsCount = 3,
-                LastVisit = DateTime.Today.AddDays(-5),
+                LastVisit = DateTime.SpecifyKind(DateTime.Today.AddDays(-5), DateTimeKind.Utc),
                 Notes = "Executive cut with beard line sculpting.",
-                CreatedAt = DateTime.Today.AddMonths(-3)
+                CreatedAt = DateTime.SpecifyKind(DateTime.Today.AddMonths(-3), DateTimeKind.Utc)
             },
             new()
             {
@@ -123,9 +156,9 @@ public partial class SalonDataService
                 Tier = "Platinum",
                 TotalSpent = 28900,
                 VisitsCount = 9,
-                LastVisit = DateTime.Today.AddDays(-1),
+                LastVisit = DateTime.SpecifyKind(DateTime.Today.AddDays(-1), DateTimeKind.Utc),
                 Notes = "VIP client. Always books Signature package with Sofia.",
-                CreatedAt = DateTime.Today.AddMonths(-6)
+                CreatedAt = DateTime.SpecifyKind(DateTime.Today.AddMonths(-6), DateTimeKind.Utc)
             },
             new()
             {
@@ -137,9 +170,9 @@ public partial class SalonDataService
                 Tier = "Bronze",
                 TotalSpent = 2450,
                 VisitsCount = 2,
-                LastVisit = DateTime.Today.AddDays(-10),
+                LastVisit = DateTime.SpecifyKind(DateTime.Today.AddDays(-10), DateTimeKind.Utc),
                 Notes = "Weekend styling and scalp massage ritual.",
-                CreatedAt = DateTime.Today.AddMonths(-1)
+                CreatedAt = DateTime.SpecifyKind(DateTime.Today.AddMonths(-1), DateTimeKind.Utc)
             }
         };
 
@@ -176,7 +209,7 @@ public partial class SalonDataService
                 ClientEmail = "alexandra.r@gmail.com",
                 ServiceName = "Signature Package",
                 StylistName = "Sofia Martinez",
-                Date = DateTime.Today,
+                Date = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc),
                 TimeSlot = "10:30 AM",
                 Price = 3990,
                 Status = "Completed",
@@ -192,7 +225,7 @@ public partial class SalonDataService
                 ClientEmail = "natalia.kim@fashion.ph",
                 ServiceName = "Ultimate Package",
                 StylistName = "James Anderson",
-                Date = DateTime.Today,
+                Date = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc),
                 TimeSlot = "02:30 PM",
                 Price = 5990,
                 Status = "In Progress",
@@ -208,7 +241,7 @@ public partial class SalonDataService
                 ClientEmail = "m.thompson@corp.ph",
                 ServiceName = "01 Precision Haircut",
                 StylistName = "Isabella Chen",
-                Date = DateTime.Today,
+                Date = DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Utc),
                 TimeSlot = "04:00 PM",
                 Price = 850,
                 Status = "Confirmed",
@@ -238,7 +271,7 @@ public partial class SalonDataService
                 Total = 3990,
                 AmountPaid = 4000,
                 PaymentMethod = "GCash",
-                Timestamp = DateTime.Today.AddHours(11).AddMinutes(45),
+                Timestamp = DateTime.SpecifyKind(DateTime.Today.AddHours(11).AddMinutes(45), DateTimeKind.Utc),
                 CashierName = "Clara Santos"
             }
         };

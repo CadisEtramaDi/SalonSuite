@@ -6,11 +6,12 @@
 <div class="portal-layout">
     <!-- Dark POS Sidebar -->
     <aside class="portal-sidebar">
-        <div class="portal-brand-block" style="display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; border-bottom: 1px solid var(--border-dark); margin-bottom: 12px;">
-            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-bottom: 0; border: 1.5px solid var(--gold-accent); flex-shrink: 0;" />
-            <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2;">
-                <span style="font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.04em; white-space: nowrap;">BEAUTY HAIR</span>
-                <span style="font-size: 10px; font-weight: 700; color: #F59E0B; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin-top: 2px;">
+        <div class="portal-brand-block">
+            <img src="images/logo.png" alt="Beauty Hair Logo" class="sidebar-logo-img" />
+            <div class="portal-brand-text">
+                <span class="portal-brand-name">BEAUTY HAIR</span>
+                <span class="portal-brand-sub" style="color: #34D399;">
+                    <i class="bi bi-calculator-fill"></i> FRONT DESK & POS
                 </span>
             </div>
         </div>
@@ -133,10 +134,10 @@
                     <div class="portal-card-header">
                         <div>
                             <h3 class="portal-card-title">1. Select Appointment to Bill</h3>
-                            <span style="font-size: 12px; color: var(--text-muted);">Completed rituals ready for checkout</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">Active rituals & appointments ready for checkout</span>
                         </div>
                         <span style="font-size: 12px; background: #FEF3C7; color: #92400E; padding: 4px 8px; border-radius: 4px; font-weight: 700;">
-                            @SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid) Ready to Bill
+                            @SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid) Finished Rituals
                         </span>
                     </div>
 
@@ -155,7 +156,9 @@
                                     <span><i class="bi bi-person"></i> @appt.StylistName</span>
                                 </div>
                                 <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="badge-status completed">Ritual Done</span>
+                                    <span class="badge-status completed">
+                                        Ritual Done
+                                    </span>
                                     <span style="font-size: 12px; color: var(--text-muted);">Slot: @appt.TimeSlot</span>
                                 </div>
                             </div>
@@ -164,11 +167,11 @@
                         @if (!SalonService.Appointments.Any(a => a.Status == "Completed" && !a.IsPaid))
                         {
                             <div style="text-align: center; padding: 36px 20px; color: var(--text-muted); background: #FAF9F6; border: 1px dashed var(--border-light); border-radius: 6px;">
-                                <i class="bi bi-hourglass-split" style="font-size: 28px; color: var(--gold-accent);"></i>
-                                <p style="margin: 8px 0 2px 0; font-weight: 700; color: var(--text-dark);">No Completed Rituals Awaiting Payment</p>
-                                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">Clients will appear here once the specialist clicks <strong>'Finish Ritual (Done)'</strong>.</p>
-                                <button class="btn-primary-dark" style="font-size: 12px; padding: 8px 14px;" @onclick='() => currentTab = "checkin"'>
-                                    <i class="bi bi-person-check"></i> Walk-in Check-in
+                                <i class="bi bi-check2-all" style="font-size: 28px; color: #10B981;"></i>
+                                <p style="margin: 8px 0 2px 0; font-weight: 700; color: var(--text-dark);">No Completed Rituals Pending Checkout</p>
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">Rituals appear here once marked as 'Finish Ritual (Done)' on the Floor Monitor.</p>
+                                <button class="btn-primary-dark" style="font-size: 12px; padding: 8px 14px;" @onclick='() => currentTab = "floor"'>
+                                    <i class="bi bi-display"></i> View Floor & Chair Monitor
                                 </button>
                             </div>
                         }
@@ -188,6 +191,12 @@
                                 TICKET #@SelectedAppointment.Id ACTIVE
                             </span>
                         }
+                        else if (!string.IsNullOrWhiteSpace(billingClientName))
+                        {
+                            <span style="font-size: 12px; font-weight: 700; color: #3B82F6; background: #EFF6FF; padding: 4px 8px; border-radius: 4px;">
+                                DIRECT POS SALE
+                            </span>
+                        }
                         else if (HasAwaitingPayments)
                         {
                             <span style="font-size: 12px; font-weight: 700; color: #D97706; background: #FEF3C7; padding: 4px 8px; border-radius: 4px;">
@@ -197,31 +206,22 @@
                         else
                         {
                             <span style="font-size: 12px; font-weight: 700; color: #6B7280; background: #F3F4F6; padding: 4px 8px; border-radius: 4px;">
-                                STANDBY &bull; NO AWAITING PAYMENT
+                                STANDBY &bull; NO UNPAID TICKETS
                             </span>
                         }
                     </div>
 
-                    @if (!HasAwaitingPayments)
+                    @if (!HasSelectedAwaitingPayment && !HasAwaitingPayments && string.IsNullOrWhiteSpace(billingClientName))
                     {
                         <!-- Standby State: No appointments awaiting payment -->
                         <div style="padding: 48px 24px; text-align: center;">
                             <div style="width: 64px; height: 64px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
                                 <i class="bi bi-shield-check" style="font-size: 30px; color: var(--gold-accent);"></i>
                             </div>
-                            <h4 style="font-size: 17px; font-weight: 800; color: var(--text-dark); margin: 0 0 8px 0;">No Rituals Awaiting Payment</h4>
+                            <h4 style="font-size: 17px; font-weight: 800; color: var(--text-dark); margin: 0 0 8px 0;">No Active Tickets Pending Payment</h4>
                             <p style="font-size: 13.5px; color: var(--text-muted); max-width: 440px; margin: 0 auto 20px auto; line-height: 1.5;">
-                                The billing register is on standby. Payment can only be tendered once a specialist marks a client's ritual as completed on the floor.
+                                The billing register is on standby. You can check in a walk-in client or seat a client from the floor monitor.
                             </p>
-                            <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 6px; padding: 14px 18px; max-width: 440px; margin: 0 auto 24px auto; text-align: left; font-size: 12.5px; color: var(--text-muted);">
-                                <strong style="color: var(--text-dark); display: block; margin-bottom: 6px;">Salon Floor Lifecycle:</strong>
-                                <div style="display: flex; flex-direction: column; gap: 4px;">
-                                    <span>1. <strong>Check-in</strong> &bull; Client arrives or checks in at reception</span>
-                                    <span>2. <strong>In Progress</strong> &bull; Specialist seats client and performs ritual</span>
-                                    <span>3. <strong>Ritual Done</strong> &bull; Specialist completes service on floor</span>
-                                    <span>4. <strong>Checkout</strong> &bull; Ticket unlocks here for tender settlement</span>
-                                </div>
-                            </div>
                             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                                 <button class="btn-primary-dark" style="font-size: 13px; padding: 9px 18px;" @onclick='() => currentTab = "floor"'>
                                     <i class="bi bi-display"></i> View Salon Floor & Queue
@@ -232,7 +232,7 @@
                             </div>
                         </div>
                     }
-                    else if (!HasSelectedAwaitingPayment)
+                    else if (!HasSelectedAwaitingPayment && string.IsNullOrWhiteSpace(billingClientName))
                     {
                         <!-- Awaiting Selection State -->
                         <div style="padding: 48px 24px; text-align: center;">
@@ -241,7 +241,7 @@
                             </div>
                             <h4 style="font-size: 17px; font-weight: 800; color: var(--text-dark); margin: 0 0 8px 0;">Select a Ticket to Proceed</h4>
                             <p style="font-size: 13.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 20px auto; line-height: 1.5;">
-                                There are <strong>@SalonService.Appointments.Count(a => a.Status == "Completed" && !a.IsPaid)</strong> completed ritual(s) ready for billing. Please click an appointment from the queue on the left to review invoice details and tender payment.
+                                There are <strong>@SalonService.Appointments.Count(a => !a.IsPaid && a.Status != "Cancelled")</strong> active unpaid ticket(s). Click an appointment on the left to review invoice details and tender payment.
                             </p>
                         </div>
                     }
@@ -250,22 +250,44 @@
                         <!-- Active Billing Form for Selected Awaiting Payment Ticket -->
                         <div style="padding: 16px 0;">
                             <!-- Active Ticket Info Banner -->
-                            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                <div>
-                                    <span style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.04em;">
-                                        <i class="bi bi-check2-circle"></i> COMPLETED RITUAL READY FOR PAYMENT
+                            @if (SelectedAppointment != null)
+                            {
+                                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <div>
+                                        <span style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.04em;">
+                                            <i class="bi bi-check2-circle"></i> APPOINTMENT TICKET READY FOR PAYMENT
+                                        </span>
+                                        <div style="font-size: 15px; font-weight: 800; color: #14532D; margin-top: 2px;">
+                                            @SelectedAppointment.ClientName &bull; @SelectedAppointment.ServiceName
+                                        </div>
+                                        <div style="font-size: 12px; color: #15803D; margin-top: 2px;">
+                                            Specialist: <strong>@SelectedAppointment.StylistName</strong> &bull; Slot: <strong>@SelectedAppointment.TimeSlot</strong>
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 18px; font-weight: 900; color: #15803D;">
+                                        ₱@SelectedAppointment.Price.ToString("N0")
                                     </span>
-                                    <div style="font-size: 15px; font-weight: 800; color: #14532D; margin-top: 2px;">
-                                        @SelectedAppointment!.ClientName &bull; @SelectedAppointment.ServiceName
-                                    </div>
-                                    <div style="font-size: 12px; color: #15803D; margin-top: 2px;">
-                                        Specialist: <strong>@SelectedAppointment.StylistName</strong> &bull; Slot: <strong>@SelectedAppointment.TimeSlot</strong>
-                                    </div>
                                 </div>
-                                <span style="font-size: 18px; font-weight: 900; color: #15803D;">
-                                    ₱@SelectedAppointment.Price.ToString("N0")
-                                </span>
-                            </div>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(billingClientName))
+                            {
+                                <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                    <div>
+                                        <span style="font-size: 11px; font-weight: 800; color: #1D4ED8; text-transform: uppercase; letter-spacing: 0.04em;">
+                                            <i class="bi bi-cart-check-fill"></i> DIRECT POS SALE / WALK-IN TICKET
+                                        </span>
+                                        <div style="font-size: 15px; font-weight: 800; color: #1E40AF; margin-top: 2px;">
+                                            @billingClientName &bull; @(string.IsNullOrWhiteSpace(billingServiceName) ? "Direct Sale" : billingServiceName)
+                                        </div>
+                                        <div style="font-size: 12px; color: #2563EB; margin-top: 2px;">
+                                            Stylist: <strong>@(string.IsNullOrWhiteSpace(billingStylistName) ? "Sofia Martinez" : billingStylistName)</strong>
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 18px; font-weight: 900; color: #1D4ED8;">
+                                        ₱@baseServicePrice.ToString("N0")
+                                    </span>
+                                </div>
+                            }
 
                             <!-- Client & Service Info -->
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">

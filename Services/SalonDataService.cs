@@ -1,79 +1,153 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
+using System.IO;
 using System.Linq;
-using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
+using Google.Cloud.Firestore;
 using Microsoft.Extensions.Configuration;
 using SalonSuite.Models;
 
 namespace SalonSuite.Services;
 
 /// <summary>
-/// Core SalonDataService partial class managing database connection, state synchronization, 
-/// and user authentication session. Modular entity features are decomposed into partial class files.
+/// Core SalonDataService partial class managing Firebase Cloud Firestore synchronization, 
+/// state notifications, and user authentication session.
 /// </summary>
 public partial class SalonDataService
 {
     public event Action? OnChange;
 
-    private readonly string _connectionString;
-    private bool _dbConnected = false;
+    private readonly FirestoreDb? _firestoreDb;
+    private readonly bool _dbConnected = false;
+    private readonly string _projectId;
 
     public UserSession CurrentUser { get; private set; } = new();
     public bool IsDatabaseConnected => _dbConnected;
+    public FirestoreDb? Firestore => _firestoreDb;
 
     public SalonDataService(IConfiguration? configuration = null)
     {
-        _connectionString = configuration?.GetConnectionString("DefaultConnection") 
-            ?? "Server=.\\SQLEXPRESS;Database=SalonSuiteDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+        _projectId = configuration?["Firebase:ProjectId"] ?? "beautysalonsuite";
+        string credFile = configuration?["Firebase:CredentialsFile"] ?? "firebase-adminsdk.json";
 
-        // Initialize from SQL Server database or fall back to seed data
-        InitializeDatabaseOrSeed();
-    }
-
-    private void NotifyStateChanged() => OnChange?.Invoke();
-
-    #region Database Initialization & Sync
-    public void InitializeDatabaseOrSeed()
-    {
         try
         {
-            using var conn = new SqlConnection(_connectionString);
-            conn.Open();
-            _dbConnected = true;
-
-            // Load records from SQL Server tables
-            LoadCustomersFromDb(conn);
-            LoadEmployeesFromDb(conn);
-            LoadSuppliersFromDb(conn);
-            LoadServicesFromDb(conn);
-            LoadProductsFromDb(conn);
-            LoadPromotionsFromDb(conn);
-            LoadLoyaltyRewardsFromDb(conn);
-            LoadAppointmentsFromDb(conn);
-            LoadInvoicesFromDb(conn);
-
-            // If SQL Server database is freshly created and empty, populate with seed data
-            if (Customers.Count == 0 && Appointments.Count == 0 && Services.Count == 0)
+            // Search for firebase-adminsdk.json in standard directories
+            string[] searchPaths =
             {
-                SeedData();
-                PersistInitialSeedToDb(conn);
+                Path.Combine(AppContext.BaseDirectory, credFile),
+                Path.Combine(Directory.GetCurrentDirectory(), credFile),
+                Path.GetFullPath(credFile)
+            };
+
+            string? resolvedCredPath = searchPaths.FirstOrDefault(File.Exists);
+
+            if (!string.IsNullOrEmpty(resolvedCredPath))
+            {
+                Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", resolvedCredPath);
+                
+                try
+                {
+                    var jsonContent = File.ReadAllText(resolvedCredPath);
+                    using var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonContent);
+                    if (jsonDoc.RootElement.TryGetProperty("project_id", out var projProp) && !string.IsNullOrWhiteSpace(projProp.GetString()))
+                    {
+                        _projectId = projProp.GetString()!;
+                    }
+                }
+                catch { }
+
+                var builder = new FirestoreDbBuilder
+                {
+                    ProjectId = _projectId,
+                    ConverterRegistry = new ConverterRegistry { new FirestoreDecimalConverter() }
+                };
+                _firestoreDb = builder.Build();
+                _dbConnected = true;
+                Console.WriteLine($"[Firebase] Firestore connected successfully to project '{_projectId}' with credentials: {resolvedCredPath}");
+            }
+            else if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")))
+            {
+                var builder = new FirestoreDbBuilder
+                {
+                    ProjectId = _projectId,
+                    ConverterRegistry = new ConverterRegistry { new FirestoreDecimalConverter() }
+                };
+                _firestoreDb = builder.Build();
+                _dbConnected = true;
+                Console.WriteLine("[Firebase] Firestore connected using GOOGLE_APPLICATION_CREDENTIALS environment variable.");
             }
             else
             {
-                // Populate static packages / reviews if not in DB
-                InitStaticContent();
-                SyncAllDataRelationships();
+                _dbConnected = false;
+                Console.WriteLine("[Firebase] firebase-adminsdk.json not found. Operating in local in-memory mode with seed data.");
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             _dbConnected = false;
+            Console.WriteLine($"[Firebase] Firestore initialization notice: {ex.Message}. Falling back to in-memory mode.");
+        }
+
+        // Initialize from Firebase Firestore or seed data
+        InitializeDatabaseOrSeed();
+    }
+
+    public void NotifyStateChanged() => OnChange?.Invoke();
+
+    #region Firebase Firestore Initialization & Sync
+    public void InitializeDatabaseOrSeed()
+    {
+        if (_dbConnected && _firestoreDb != null)
+        {
+            try
+            {
+                // Synchronously wait for initial load during startup
+                Task.Run(async () => await LoadAllFromFirestoreAsync()).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Firebase] Initial Firestore sync warning: {ex.Message}");
+                if (Customers.Count == 0)
+                {
+                    SeedData();
+                }
+            }
+        }
+        else
+        {
             if (Customers.Count == 0)
             {
                 SeedData();
             }
         }
+    }
+
+    private async Task LoadAllFromFirestoreAsync()
+    {
+        await LoadCustomersFromFirestoreAsync();
+        await LoadEmployeesFromFirestoreAsync();
+        await LoadSuppliersFromFirestoreAsync();
+        await LoadServicesFromFirestoreAsync();
+        await LoadProductsFromFirestoreAsync();
+        await LoadPromotionsFromFirestoreAsync();
+        await LoadLoyaltyRewardsFromFirestoreAsync();
+        await LoadAppointmentsFromFirestoreAsync();
+        await LoadInvoicesFromFirestoreAsync();
+
+        // If Firestore is freshly connected and has no records, populate it with seed data
+        if (Customers.Count == 0 && Appointments.Count == 0 && Services.Count == 0)
+        {
+            SeedData();
+            await PersistInitialSeedToFirestoreAsync();
+        }
+        else
+        {
+            InitStaticContent();
+            SyncAllDataRelationships();
+        }
+
+        NotifyStateChanged();
     }
 
     public void EnsureSeedData()
@@ -85,35 +159,52 @@ public partial class SalonDataService
         }
     }
 
-    private int ExecuteSqlScalar(string sql, params SqlParameter[] parameters)
+    /// <summary>
+    /// Fire-and-forget helper to execute Firestore document operations without blocking UI
+    /// </summary>
+    public void RunBackgroundTask(Func<Task> asyncAction)
     {
-        try
+        if (!_dbConnected || _firestoreDb == null) return;
+
+        _ = Task.Run(async () =>
         {
-            using var conn = new SqlConnection(_connectionString);
-            conn.Open();
-            using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddRange(parameters);
-            var result = cmd.ExecuteScalar();
-            if (result != null && int.TryParse(result.ToString(), out int id))
+            try
             {
-                return id;
+                await asyncAction();
             }
-        }
-        catch { }
-        return 0;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Firebase] Background operation error: {ex.Message}");
+            }
+        });
     }
 
-    private void ExecuteSqlNonQuery(string sql, params SqlParameter[] parameters)
+    public async Task SaveDocAsync<T>(string collectionName, string documentId, T data)
     {
+        if (!_dbConnected || _firestoreDb == null) return;
         try
         {
-            using var conn = new SqlConnection(_connectionString);
-            conn.Open();
-            using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddRange(parameters);
-            cmd.ExecuteNonQuery();
+            var docRef = _firestoreDb.Collection(collectionName).Document(documentId);
+            await docRef.SetAsync(data, SetOptions.Overwrite);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error saving {collectionName}/{documentId}: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteDocAsync(string collectionName, string documentId)
+    {
+        if (!_dbConnected || _firestoreDb == null) return;
+        try
+        {
+            var docRef = _firestoreDb.Collection(collectionName).Document(documentId);
+            await docRef.DeleteAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error deleting {collectionName}/{documentId}: {ex.Message}");
+        }
     }
     #endregion
 
@@ -137,3 +228,4 @@ public partial class SalonDataService
     }
     #endregion
 }
+

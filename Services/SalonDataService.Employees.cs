@@ -24,52 +24,44 @@ public partial class SalonDataService
         !t.Role.Contains("Staff", StringComparison.OrdinalIgnoreCase)
     ).ToList();
 
-    private void LoadEmployeesFromDb(SqlConnection conn)
+    private async Task LoadEmployeesFromFirestoreAsync()
     {
+        if (!_dbConnected || _firestoreDb == null) return;
+
         try
         {
-            using var cmd = new SqlCommand("SELECT Id, Name, Role, Specialization, CommissionRate, Phone, Email, ImageUrl, IsActive FROM dbo.Employees ORDER BY Id ASC", conn);
-            using var reader = cmd.ExecuteReader();
+            var snapshot = await _firestoreDb.Collection("employees").GetSnapshotAsync();
             var list = new List<TeamMemberItem>();
-            while (reader.Read())
+            foreach (var doc in snapshot.Documents)
             {
-                list.Add(new TeamMemberItem
+                if (doc.Exists)
                 {
-                    Id = reader.GetInt32(0),
-                    Name = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    Role = reader.IsDBNull(2) ? "Senior Stylist" : reader.GetString(2),
-                    Specialization = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    CommissionRate = reader.IsDBNull(4) ? 0.25m : reader.GetDecimal(4),
-                    Phone = reader.IsDBNull(5) ? "" : reader.GetString(5),
-                    Email = reader.IsDBNull(6) ? "" : reader.GetString(6),
-                    ImageUrl = reader.IsDBNull(7) ? "" : reader.GetString(7),
-                    IsActive = reader.IsDBNull(8) || reader.GetBoolean(8)
-                });
+                    var item = doc.ConvertTo<TeamMemberItem>();
+                    if (item.Id == 0 && int.TryParse(doc.Id, out int parsedId))
+                    {
+                        item.Id = parsedId;
+                    }
+                    list.Add(item);
+                }
             }
-            if (list.Count > 0) Team = list;
+            if (list.Count > 0)
+            {
+                Team = list.OrderBy(t => t.Id).ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Firebase] Error loading employees: {ex.Message}");
+        }
     }
 
     public void AddTeamMember(TeamMemberItem member)
     {
-        int dbId = ExecuteSqlScalar(
-            "INSERT INTO dbo.Employees (Name, Role, Specialization, CommissionRate, Phone, Email, ImageUrl, IsActive) " +
-            "OUTPUT INSERTED.Id " +
-            "VALUES (@Name, @Role, @Specialization, @CommissionRate, @Phone, @Email, @ImageUrl, @IsActive);",
-            new SqlParameter("@Name", member.Name),
-            new SqlParameter("@Role", member.Role),
-            new SqlParameter("@Specialization", member.Specialization),
-            new SqlParameter("@CommissionRate", member.CommissionRate),
-            new SqlParameter("@Phone", (object?)member.Phone ?? DBNull.Value),
-            new SqlParameter("@Email", (object?)member.Email ?? DBNull.Value),
-            new SqlParameter("@ImageUrl", (object?)member.ImageUrl ?? DBNull.Value),
-            new SqlParameter("@IsActive", member.IsActive)
-        );
-
-        member.Id = dbId > 0 ? dbId : (Team.Count > 0 ? Team.Max(t => t.Id) + 1 : 1);
+        member.Id = Team.Count > 0 ? Team.Max(t => t.Id) + 1 : 1;
         Team.Add(member);
         NotifyStateChanged();
+
+        RunBackgroundTask(async () => await SaveDocAsync("employees", member.Id.ToString(), member));
     }
 
     public void UpdateTeamMember(TeamMemberItem member)
@@ -86,30 +78,17 @@ public partial class SalonDataService
             existing.ImageUrl = member.ImageUrl;
             existing.IsActive = member.IsActive;
 
-            ExecuteSqlNonQuery(
-                "UPDATE dbo.Employees SET Name = @Name, Role = @Role, Specialization = @Specialization, " +
-                "CommissionRate = @CommissionRate, Phone = @Phone, Email = @Email, ImageUrl = @ImageUrl, IsActive = @IsActive " +
-                "WHERE Id = @Id;",
-                new SqlParameter("@Id", existing.Id),
-                new SqlParameter("@Name", existing.Name),
-                new SqlParameter("@Role", existing.Role),
-                new SqlParameter("@Specialization", existing.Specialization),
-                new SqlParameter("@CommissionRate", existing.CommissionRate),
-                new SqlParameter("@Phone", (object?)existing.Phone ?? DBNull.Value),
-                new SqlParameter("@Email", (object?)existing.Email ?? DBNull.Value),
-                new SqlParameter("@ImageUrl", (object?)existing.ImageUrl ?? DBNull.Value),
-                new SqlParameter("@IsActive", existing.IsActive)
-            );
-
             NotifyStateChanged();
+
+            RunBackgroundTask(async () => await SaveDocAsync("employees", existing.Id.ToString(), existing));
         }
     }
 
     public void DeleteTeamMember(int id)
     {
         Team.RemoveAll(t => t.Id == id);
-        ExecuteSqlNonQuery("DELETE FROM dbo.Employees WHERE Id = @Id;", new SqlParameter("@Id", id));
         NotifyStateChanged();
+        RunBackgroundTask(async () => await DeleteDocAsync("employees", id.ToString()));
     }
 
     public TeamMemberItem EnsureEmployeeExists(string name, string email, string role = "Senior Stylist")

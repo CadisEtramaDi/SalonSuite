@@ -59,45 +59,6 @@
     </div>
 </header>
 
-<!-- Loyalty Hero Banner -->
-<section class="catalog-hero-section" style="padding: 48px 0 36px 0; background: linear-gradient(135deg, #111827 0%, #1F2937 100%); color: #FFFFFF;">
-    <div class="container-custom">
-        <div style="max-width: 720px;">
-            <div class="badge-gold-pill" style="background: rgba(217, 119, 6, 0.2); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.4); display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 11.5px; font-weight: 700; margin-bottom: 14px;">
-                <i class="bi bi-gem"></i> VIP PRIVILEGE PROGRAM
-            </div>
-            <h1 style="font-size: 36px; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 12px 0; color: white;">Client Rewards & Loyalty Lounge</h1>
-            <p style="font-size: 15px; color: #9CA3AF; line-height: 1.6; margin: 0 0 24px 0;">
-                Every salon ritual rewards you. Earn <strong>1 Loyalty Point for every ₱100 spent</strong>, unlock elite tier privileges, and redeem points for complimentary treatments and exclusive discounts.
-            </p>
-
-            <!-- Quick Client Lookup Bar -->
-            <div style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 16px 20px; border-radius: 8px;">
-                <label style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #E5E7EB; margin-bottom: 8px;">
-                    <i class="bi bi-search" style="color: #FBBF24;"></i> Check Your Loyalty Balance & Appointments
-                </label>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="text" 
-                           class="booking-input" 
-                           style="flex: 1; min-width: 240px; background: #FFFFFF; color: #111827; border: none; font-size: 14px; padding: 10px 14px;" 
-                           placeholder="Enter your Mobile Phone (e.g. 0917-555-0192) or Full Name..." 
-                           @bind="searchPhoneInput" 
-                           @onkeyup="HandleSearchKeyUp" />
-                    <button class="btn-primary-dark" style="background: #D97706; color: #FFFFFF; border: none; padding: 10px 22px; font-weight: 700;" @onclick="LookupCustomer">
-                        <i class="bi bi-person-check-fill"></i> View My Rewards
-                    </button>
-                </div>
-                @if (!string.IsNullOrEmpty(lookupMessage))
-                {
-                    <div style="margin-top: 8px; font-size: 13px; color: @(activeCustomer != null ? "#34D399" : "#F87171"); font-weight: 600;">
-                        <i class="bi @(activeCustomer != null ? "bi-check-circle-fill" : "bi-exclamation-circle-fill")" style="margin-right: 4px;"></i>@lookupMessage
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</section>
-
 <!-- Main Loyalty Dashboard Content -->
 <main style="padding: 40px 0 60px 0; background: #F9FAFB;">
     <div class="container-custom">
