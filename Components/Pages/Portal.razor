@@ -406,19 +406,19 @@
                                     <td style="padding: 14px; text-align: right;">
                                         <div style="display: inline-flex; gap: 4px;">
                                             <button style="background: #F3F4F6; color: #111827; border: 1px solid #E5E7EB; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="View Details" @onclick="() => OpenApptDetail(appt)">
-                                                <i class="bi bi-eye"></i> Details
+                                                <i class="bi bi-eye"></i>
                                             </button>
                                             @if (appt.Status == "Confirmed")
                                             {
-                                                <button style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'>Start</button>
+                                                <button style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Start Service" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "In Progress")'><i class="bi bi-play-fill"></i></button>
                                             }
                                             else if (appt.Status == "In Progress")
                                             {
-                                                <button style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'>Done</button>
+                                                <button style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Mark Completed" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Completed")'><i class="bi bi-check-lg"></i></button>
                                             }
                                             @if (appt.Status != "Cancelled")
                                             {
-                                                <button style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Cancel Booking" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Cancelled")'>Cancel</button>
+                                                <button style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Cancel Booking" @onclick='() => SalonService.UpdateAppointmentStatus(appt.Id, "Cancelled")'><i class="bi bi-x-lg"></i></button>
                                             }
                                             <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #4B5563; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;" title="Delete" @onclick="() => SalonService.DeleteAppointment(appt.Id)"><i class="bi bi-trash"></i></button>
                                         </div>
@@ -517,8 +517,10 @@
                                     <td style="padding: 14px; font-weight: 600; color: #111827;">@cust.VisitsCount visits</td>
                                     <td style="padding: 14px; color: #111827; font-size: 13px;">@(cust.LastVisit?.ToString("MMM dd, yyyy") ?? "Never")</td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #111827; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => EditCustomer(cust)">Edit</button>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeleteCustomer(cust.Id)">Del</button>
+                                        <div style="display: inline-flex; gap: 4px;">
+                                            <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #111827; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Edit Client" @onclick="() => EditCustomer(cust)"><i class="bi bi-pencil"></i></button>
+                                            <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Delete Client" @onclick="() => SalonService.DeleteCustomer(cust.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -658,9 +660,10 @@
                                         <strong style="font-size: 16px; font-weight: 800; color: var(--gold-accent);">
                                             @svc.PriceFormatted
                                         </strong>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center;"
+                                                title="Delete Service"
                                                 @onclick="() => SalonService.DeleteService(svc.Id)">
-                                            <i class="bi bi-trash"></i> Delete
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -781,9 +784,10 @@
                                         <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">
                                             <i class="bi bi-clock"></i> ~@pkg.DurationMinutes mins session
                                         </span>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center;"
+                                                title="Delete Package"
                                                 @onclick="() => SalonService.DeletePackage(pkg.Id)">
-                                            <i class="bi bi-trash"></i> Delete
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -925,14 +929,16 @@
                             <div style="display: flex; gap: 8px; justify-content: space-between; border-top: 1px solid var(--border-light); padding-top: 12px;">
                                 @if (!string.IsNullOrWhiteSpace(member.Email))
                                 {
-                                    <button style="background: #F3F4F6; color: var(--text-dark); border: 1px solid var(--border-light); padding: 5px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;"
+                                    <button style="background: #F3F4F6; color: var(--text-dark); border: 1px solid var(--border-light); padding: 5px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center;"
+                                            title="Reset Password"
                                             @onclick="() => HandleResetStaffPassword(member.Email)">
-                                        <i class="bi bi-key-fill"></i> Reset Password
+                                        <i class="bi bi-key-fill"></i>
                                     </button>
                                 }
                                 <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer; margin-left: auto;" 
+                                        title="Remove Staff"
                                         @onclick="() => SalonService.DeleteTeamMember(member.Id)">
-                                    <i class="bi bi-trash"></i> Remove
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
@@ -1091,8 +1097,8 @@
                                 <div><i class="bi bi-geo-alt"></i> @sup.Address</div>
                             </div>
 
-                            <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%;" @onclick="() => SalonService.DeleteSupplier(sup.Id)">
-                                Remove Supplier
+                            <button style="background: #FEE2E2; color: #B91C1C; border: none; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center;" title="Remove Supplier" @onclick="() => SalonService.DeleteSupplier(sup.Id)">
+                                <i class="bi bi-trash"></i>
                             </button>
                         </div>
                     }
@@ -1177,8 +1183,10 @@
                                         </span>
                                     </td>
                                     <td style="padding: 14px; text-align: right;">
-                                        <button style="background: #F3F4F6; border: 1px solid #E5E7EB; color: #111827; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;" @onclick="() => { promo.IsActive = !promo.IsActive; SalonService.UpdatePromotion(promo); }">Toggle</button>
-                                        <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" @onclick="() => SalonService.DeletePromotion(promo.Id)">Del</button>
+                                        <div style="display: inline-flex; gap: 4px;">
+                                            <button style="background: @(promo.IsActive ? "#ECFDF5" : "#F3F4F6"); border: 1px solid @(promo.IsActive ? "#A7F3D0" : "#E5E7EB"); color: @(promo.IsActive ? "#059669" : "#6B7280"); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="@(promo.IsActive ? "Deactivate Promo" : "Activate Promo")" @onclick="() => { promo.IsActive = !promo.IsActive; SalonService.UpdatePromotion(promo); }"><i class="bi @(promo.IsActive ? "bi-toggle-on" : "bi-toggle-off")"></i></button>
+                                            <button style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;" title="Delete Promo" @onclick="() => SalonService.DeletePromotion(promo.Id)"><i class="bi bi-trash"></i></button>
+                                        </div>
                                     </td>
                                 </tr>
                             }

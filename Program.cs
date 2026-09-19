@@ -1,5 +1,7 @@
 using SalonSuite.Components;
 using SalonSuite.Services;
+// Load environment variables from .env file (if present) before building app configuration
+EnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

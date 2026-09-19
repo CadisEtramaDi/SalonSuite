@@ -8,7 +8,10 @@ obj/
 .idea/
 *.log
 
-## Ignore local secret configs
+## Ignore local secret configs and environment files
+.env
+.env.*
+!.env.example
 appsettings.Development.json
 appsettings.Local.json
-firebase-adminsdk.json 
+firebase-adminsdk.json
