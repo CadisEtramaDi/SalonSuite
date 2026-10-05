@@ -16,6 +16,39 @@ public partial class Portal : ComponentBase, IDisposable
     [Inject] public NavigationManager Navigation { get; set; } = default!;
     [Inject] public IJSRuntime JSRuntime { get; set; } = default!;
 
+    private bool IsAuthorizedAdmin =>
+        SalonService.CurrentUser.IsLoggedIn &&
+        (SalonService.CurrentUser.Role.Contains("Admin", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase));
+
+    protected override void OnInitialized()
+    {
+        SalonService.OnChange += HandleDataChanged;
+        SalonService.EnsureSeedData();
+
+        if (!IsAuthorizedAdmin)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+    }
+
+    private void HandleDataChanged()
+    {
+        if (!IsAuthorizedAdmin)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SalonService.OnChange -= HandleDataChanged;
+    }
+
     private string currentTab = "calendar";
     private string serviceSubTab = "services";
     private string customerSearchQuery = "";
@@ -147,20 +180,6 @@ public partial class Portal : ComponentBase, IDisposable
     private PromotionItem promoForm = new() { DiscountType = "Percentage", DiscountValue = 10, MinSpend = 500 };
     private LoyaltyRewardItem rewardForm = new() { PointsRequired = 200, DiscountValue = 350 };
 
-    protected override void OnInitialized()
-    {
-        SalonService.OnChange += HandleDataChanged;
-    }
-
-    private void HandleDataChanged()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        SalonService.OnChange -= HandleDataChanged;
-    }
 
     private decimal TodayRevenue => SalonService.Invoices
         .Where(i => i.Timestamp.Date == DateTime.Today)
@@ -317,7 +336,7 @@ public partial class Portal : ComponentBase, IDisposable
     private void HandleLogout()
     {
         SalonService.Logout();
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 
     private void OnCRMServiceChanged()
@@ -340,12 +359,19 @@ public partial class Portal : ComponentBase, IDisposable
     private void SaveCRMBooking()
     {
         if (string.IsNullOrWhiteSpace(newAppt.ClientName)) return;
+
+        if (string.IsNullOrWhiteSpace(newAppt.StylistName) ||
+            newAppt.StylistName.Contains("Any", StringComparison.OrdinalIgnoreCase))
+        {
+            newAppt.StylistName = SalonService.FindAvailableStylist(newAppt.Date, newAppt.TimeSlot);
+        }
+
         SalonService.AddAppointment(newAppt);
         showNewBookingModal = false;
         newAppt = new()
         {
             ServiceName = "Signature Package",
-            StylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            StylistName = "",
             Date = DateTime.Today,
             TimeSlot = "02:00 PM",
             Price = 3990,

@@ -12,34 +12,104 @@ public partial class ClientPortal : ComponentBase, IDisposable
 {
     [Inject] public SalonDataService SalonService { get; set; } = default!;
     [Inject] public NavigationManager Navigation { get; set; } = default!;
+    [Inject] public EmailReceiptService EmailService { get; set; } = default!;
+
+    [SupplyParameterFromQuery] public string? phone { get; set; }
+    [SupplyParameterFromQuery] public string? email { get; set; }
+    [SupplyParameterFromQuery] public string? appt_id { get; set; }
+    [SupplyParameterFromQuery] public string? query { get; set; }
 
     private string searchPhoneInput = "";
     private string lookupMessage = "";
     private CustomerRecord? activeCustomer;
+
+    private AppointmentRecord? apptToCancel = null;
+    private string cancelReason = "Change of schedule";
+    private bool isCancellingAppt = false;
+    private string? portalActionFeedback = null;
+    private bool isPortalFeedbackSuccess = true;
 
     protected override void OnInitialized()
     {
         SalonService.OnChange += HandleDataChanged;
         SalonService.EnsureSeedData();
 
-        // 1. If customer is currently logged in, auto-load their profile
-        if (SalonService.CurrentUser.IsLoggedIn)
+        // 1. Direct query parameter lookup (e.g. ?appt_id=12 or ?email=user@example.com)
+        string? initialLookup = !string.IsNullOrWhiteSpace(query) ? query : (!string.IsNullOrWhiteSpace(email) ? email : phone);
+        if (!string.IsNullOrWhiteSpace(initialLookup))
         {
-            activeCustomer = SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Email) ??
-                             SalonService.FindCustomerByPhoneOrName(SalonService.CurrentUser.Name);
-            if (activeCustomer != null)
+            searchPhoneInput = initialLookup.Trim();
+            LookupCustomer();
+            if (activeCustomer != null) return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(appt_id) && int.TryParse(appt_id, out int parsedApptId))
+        {
+            var matched = SalonService.Appointments.FirstOrDefault(a => a.Id == parsedApptId);
+            if (matched != null)
             {
-                lookupMessage = $"Welcome back, {activeCustomer.FullName}! Your loyalty rewards are active.";
+                activeCustomer = (matched.CustomerId.HasValue ? SalonService.Customers.FirstOrDefault(c => c.Id == matched.CustomerId.Value) : null) ??
+                                 SalonService.FindCustomerByPhoneOrName(matched.ClientEmail) ??
+                                 SalonService.FindCustomerByPhoneOrName(matched.ClientPhone) ??
+                                 SalonService.EnsureCustomer(matched.ClientName, matched.ClientPhone, matched.ClientEmail);
+                if (activeCustomer != null)
+                {
+                    lookupMessage = $"Showing appointment records for {activeCustomer.FullName}.";
+                    return;
+                }
             }
         }
-        
-        // 2. If no logged in user, default to the first VIP customer as demonstration
+
+        // 2. If customer is currently logged in, auto-load or ensure their profile
+        if (SalonService.CurrentUser.IsLoggedIn)
+        {
+            var userEmail = SalonService.CurrentUser.Email?.Trim() ?? "";
+            var userName = SalonService.CurrentUser.Name?.Trim() ?? "";
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                activeCustomer = SalonService.FindCustomerByPhoneOrName(userEmail);
+            }
+            if (activeCustomer == null && !string.IsNullOrEmpty(userName))
+            {
+                activeCustomer = SalonService.FindCustomerByPhoneOrName(userName);
+            }
+
+            // Ensure profile exists for the logged in user
+            if (activeCustomer == null && !string.IsNullOrEmpty(userName))
+            {
+                activeCustomer = SalonService.EnsureCustomer(userName, "", userEmail);
+            }
+
+            if (activeCustomer != null)
+            {
+                lookupMessage = $"Welcome back, {activeCustomer.FullName}! Here are your scheduled rituals and loyalty rewards.";
+                return;
+            }
+        }
+
+        // 3. If not logged in, check for the most recent appointment booked in this session
+        var latestAppt = SalonService.Appointments.OrderByDescending(a => a.Id).FirstOrDefault();
+        if (latestAppt != null && !string.IsNullOrWhiteSpace(latestAppt.ClientName))
+        {
+            activeCustomer = (latestAppt.CustomerId.HasValue ? SalonService.Customers.FirstOrDefault(c => c.Id == latestAppt.CustomerId.Value) : null) ??
+                             SalonService.FindCustomerByPhoneOrName(latestAppt.ClientEmail) ??
+                             SalonService.FindCustomerByPhoneOrName(latestAppt.ClientPhone) ??
+                             SalonService.FindCustomerByPhoneOrName(latestAppt.ClientName);
+            if (activeCustomer != null)
+            {
+                lookupMessage = $"Viewing latest appointment records for {activeCustomer.FullName}.";
+                return;
+            }
+        }
+
+        // 4. Default preview profile for demonstration
         if (activeCustomer == null && SalonService.Customers.Any())
         {
             activeCustomer = SalonService.Customers.FirstOrDefault(c => c.Tier == "Platinum") ?? 
                              SalonService.Customers.FirstOrDefault(c => c.Tier == "Gold") ?? 
                              SalonService.Customers.First();
-            lookupMessage = $"Showing VIP profile for {activeCustomer.FullName}. Enter your phone or name above to search.";
+            lookupMessage = $"Showing preview profile for {activeCustomer.FullName}. Enter your phone or email above to view your bookings.";
         }
     }
 
@@ -69,12 +139,29 @@ public partial class ClientPortal : ComponentBase, IDisposable
     {
         if (string.IsNullOrWhiteSpace(searchPhoneInput))
         {
-            lookupMessage = "Please enter your mobile phone number, name, or client code.";
+            lookupMessage = "Please enter your mobile phone number, email address, or full name.";
             return;
         }
 
         SalonService.EnsureSeedData();
-        var found = SalonService.FindCustomerByPhoneOrName(searchPhoneInput.Trim());
+        var q = searchPhoneInput.Trim();
+        var found = SalonService.FindCustomerByPhoneOrName(q);
+
+        // If not found directly in Customers, check if any appointment matches the query
+        if (found == null)
+        {
+            var normQ = SalonDataService.NormalizePhoneNumber(q);
+            var apptMatch = SalonService.Appointments.FirstOrDefault(a =>
+                (!string.IsNullOrWhiteSpace(a.ClientEmail) && a.ClientEmail.Equals(q, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(a.ClientPhone) && !string.IsNullOrEmpty(normQ) && normQ.Length >= 4 && SalonDataService.NormalizePhoneNumber(a.ClientPhone).Contains(normQ)) ||
+                (!string.IsNullOrWhiteSpace(a.ClientName) && a.ClientName.Equals(q, StringComparison.OrdinalIgnoreCase)));
+
+            if (apptMatch != null)
+            {
+                found = SalonService.EnsureCustomer(apptMatch.ClientName, apptMatch.ClientPhone, apptMatch.ClientEmail);
+            }
+        }
+
         if (found != null)
         {
             activeCustomer = found;
@@ -82,24 +169,80 @@ public partial class ClientPortal : ComponentBase, IDisposable
         }
         else
         {
-            lookupMessage = $"No loyalty profile found matching '{searchPhoneInput}'. Book an appointment or register to start earning rewards!";
+            lookupMessage = $"No customer or appointments found matching '{searchPhoneInput}'. You can book an appointment anytime!";
         }
     }
 
-    private IEnumerable<AppointmentRecord> CustomerAppointments =>
-        activeCustomer != null
-            ? SalonService.Appointments.Where(a => (a.CustomerId.HasValue && a.CustomerId.Value == activeCustomer.Id) ||
-                                                   (!string.IsNullOrEmpty(a.ClientPhone) && !string.IsNullOrEmpty(activeCustomer.Phone) && SalonDataService.NormalizePhoneNumber(a.ClientPhone) == SalonDataService.NormalizePhoneNumber(activeCustomer.Phone)) ||
-                                                   a.ClientName.Equals(activeCustomer.FullName, StringComparison.OrdinalIgnoreCase))
-                                       .OrderByDescending(a => a.Date)
-            : Enumerable.Empty<AppointmentRecord>();
+    private void ClearSearch()
+    {
+        searchPhoneInput = "";
+        if (SalonService.CurrentUser.IsLoggedIn)
+        {
+            var userEmail = SalonService.CurrentUser.Email?.Trim() ?? "";
+            var userName = SalonService.CurrentUser.Name?.Trim() ?? "";
+            activeCustomer = (!string.IsNullOrEmpty(userEmail) ? SalonService.FindCustomerByPhoneOrName(userEmail) : null) ??
+                             (!string.IsNullOrEmpty(userName) ? SalonService.FindCustomerByPhoneOrName(userName) : null);
+            lookupMessage = activeCustomer != null ? $"Viewing profile for {activeCustomer.FullName}" : "";
+        }
+        else
+        {
+            lookupMessage = "";
+        }
+    }
 
-    private IEnumerable<InvoiceRecord> CustomerInvoices =>
-        activeCustomer != null
-            ? SalonService.Invoices.Where(i => (i.CustomerId.HasValue && i.CustomerId.Value == activeCustomer.Id) ||
-                                               i.ClientName.Equals(activeCustomer.FullName, StringComparison.OrdinalIgnoreCase))
-                                   .OrderByDescending(i => i.Timestamp)
-            : Enumerable.Empty<InvoiceRecord>();
+    private IEnumerable<AppointmentRecord> CustomerAppointments
+    {
+        get
+        {
+            if (activeCustomer == null && !SalonService.CurrentUser.IsLoggedIn)
+            {
+                return Enumerable.Empty<AppointmentRecord>();
+            }
+
+            var activePhone = activeCustomer?.Phone ?? "";
+            var normalizedActivePhone = SalonDataService.NormalizePhoneNumber(activePhone);
+            var activeEmail = activeCustomer?.Email?.Trim() ?? "";
+            var activeName = activeCustomer?.FullName?.Trim() ?? "";
+            var activeId = activeCustomer?.Id ?? -1;
+
+            var userEmail = SalonService.CurrentUser.IsLoggedIn ? (SalonService.CurrentUser.Email?.Trim() ?? "") : "";
+            var userName = SalonService.CurrentUser.IsLoggedIn ? (SalonService.CurrentUser.Name?.Trim() ?? "") : "";
+
+            return SalonService.Appointments
+                .Where(a =>
+                    (activeId > 0 && a.CustomerId.HasValue && a.CustomerId.Value == activeId) ||
+                    (!string.IsNullOrEmpty(activeEmail) && !string.IsNullOrEmpty(a.ClientEmail) && a.ClientEmail.Equals(activeEmail, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(a.ClientEmail) && a.ClientEmail.Equals(userEmail, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(normalizedActivePhone) && !string.IsNullOrEmpty(a.ClientPhone) && SalonDataService.NormalizePhoneNumber(a.ClientPhone) == normalizedActivePhone) ||
+                    (!string.IsNullOrEmpty(activeName) && !string.IsNullOrEmpty(a.ClientName) && a.ClientName.Equals(activeName, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(a.ClientName) && a.ClientName.Equals(userName, StringComparison.OrdinalIgnoreCase)))
+                .OrderByDescending(a => a.Date >= DateTime.Today && !a.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(a => a.Date)
+                .ThenByDescending(a => a.Id);
+        }
+    }
+
+    private IEnumerable<InvoiceRecord> CustomerInvoices
+    {
+        get
+        {
+            if (activeCustomer == null && !SalonService.CurrentUser.IsLoggedIn)
+            {
+                return Enumerable.Empty<InvoiceRecord>();
+            }
+
+            var activeName = activeCustomer?.FullName?.Trim() ?? "";
+            var activeId = activeCustomer?.Id ?? -1;
+            var userName = SalonService.CurrentUser.IsLoggedIn ? (SalonService.CurrentUser.Name?.Trim() ?? "") : "";
+
+            return SalonService.Invoices
+                .Where(i =>
+                    (activeId > 0 && i.CustomerId.HasValue && i.CustomerId.Value == activeId) ||
+                    (!string.IsNullOrEmpty(activeName) && !string.IsNullOrEmpty(i.ClientName) && i.ClientName.Equals(activeName, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(i.ClientName) && i.ClientName.Equals(userName, StringComparison.OrdinalIgnoreCase)))
+                .OrderByDescending(i => i.Timestamp);
+        }
+    }
 
     private (string NextTier, decimal TargetSpend, int ProgressPercent) GetTierProgress(decimal totalSpent)
     {
@@ -123,6 +266,56 @@ public partial class ClientPortal : ComponentBase, IDisposable
             return ("Platinum", 25000, Math.Min(100, Math.Max(5, pct)));
         }
         return ("", 25000, 100);
+    }
+
+    private void PromptCancelAppt(AppointmentRecord appt)
+    {
+        apptToCancel = appt;
+        portalActionFeedback = null;
+    }
+
+    private void AbortCancelAppt()
+    {
+        apptToCancel = null;
+    }
+
+    private async Task ConfirmPortalCancelAppointment()
+    {
+        if (apptToCancel == null) return;
+        isCancellingAppt = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(cancelReason))
+            {
+                var reasonTag = $"[Cancelled by Client: {cancelReason}]";
+                var updatedNotes = string.IsNullOrWhiteSpace(apptToCancel.Notes)
+                    ? reasonTag
+                    : $"{apptToCancel.Notes} | {reasonTag}";
+                SalonService.UpdateAppointmentNotes(apptToCancel.Id, updatedNotes);
+            }
+
+            SalonService.UpdateAppointmentStatus(apptToCancel.Id, "Cancelled");
+            apptToCancel.Status = "Cancelled";
+
+            if (!string.IsNullOrWhiteSpace(apptToCancel.ClientEmail))
+            {
+                _ = EmailService.SendBookingCancellationAsync(apptToCancel, apptToCancel.ClientEmail, cancelReason);
+            }
+
+            portalActionFeedback = $"Appointment #APT-{apptToCancel.Id:D5} for {apptToCancel.ServiceName} was successfully cancelled.";
+            isPortalFeedbackSuccess = true;
+            apptToCancel = null;
+        }
+        catch (Exception ex)
+        {
+            portalActionFeedback = $"Error cancelling appointment: {ex.Message}";
+            isPortalFeedbackSuccess = false;
+        }
+        finally
+        {
+            isCancellingAppt = false;
+            StateHasChanged();
+        }
     }
 
     private void HandleLogout()

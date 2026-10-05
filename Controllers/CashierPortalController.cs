@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Hosting;
 using SalonSuite.Models;
 using SalonSuite.Services;
 
@@ -16,6 +19,28 @@ public partial class CashierPortal : ComponentBase, IDisposable
     [Inject] public StripePaymentService StripeService { get; set; } = default!;
     [Inject] public XenditPaymentService XenditService { get; set; } = default!;
     [Inject] public EmailReceiptService EmailService { get; set; } = default!;
+    [Inject] public CloudinaryImageService CloudinaryService { get; set; } = default!;
+    [Inject] public IWebHostEnvironment WebHostEnvironment { get; set; } = default!;
+
+    private bool IsAuthorizedCashier =>
+        SalonService.CurrentUser.IsLoggedIn &&
+        (SalonService.CurrentUser.Role.Contains("Cashier", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Front Desk", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Admin", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase));
+
+    protected override void OnInitialized()
+    {
+        SalonService.OnChange += HandleDataChanged;
+        SalonService.EnsureSeedData();
+
+        if (!IsAuthorizedCashier)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+    }
 
     // Page state
     private string currentTab = "register";
@@ -61,6 +86,18 @@ public partial class CashierPortal : ComponentBase, IDisposable
     private string? gcashCheckNotice = null;
     private bool isCheckingGcashStatus = false;
     private CancellationTokenSource? _gcashPollCts;
+
+    // GCash Receipt Picture Upload & Validation Fields
+    private string gcashPaymentMode = "manual"; // "manual" (Counter QR & Proof Upload) or "xendit" (Dynamic Gateway QR)
+    private string? gcashReceiptPreviewUrl = null;
+    private string? gcashReceiptUploadedUrl = null;
+    private string? gcashReceiptFileName = null;
+    private long gcashReceiptFileSize = 0;
+    private bool isUploadingGcashReceipt = false;
+    private string? gcashReceiptUploadError = null;
+    private string? gcashValidationMessage = null;
+    private bool showGcashReceiptViewerModal = false;
+    private string? receiptModalProofImageUrl = null;
 
     private string? successNotification = null;
     private InvoiceRecord? lastPaidInvoice = null;
@@ -319,6 +356,12 @@ public partial class CashierPortal : ComponentBase, IDisposable
 
     private void HandleDataChanged()
     {
+        if (!IsAuthorizedCashier)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
         if (selectedApptId > 0 && !SalonService.Appointments.Any(a => a.Id == selectedApptId && a.Status == "Completed" && !a.IsPaid))
         {
             var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
@@ -390,6 +433,8 @@ public partial class CashierPortal : ComponentBase, IDisposable
         gcashReceiptEmail = appt.ClientEmail ?? matchedCustomer?.Email ?? "";
         gcashReferenceNumber = "";
         gcashErrorMessage = null;
+        gcashValidationMessage = null;
+        RemoveGcashReceiptImage();
         redeemPoints = false;
         loyaltyDiscount = 0;
         CalculateTotals();
@@ -427,6 +472,8 @@ public partial class CashierPortal : ComponentBase, IDisposable
         gcashReceiptEmail = "";
         gcashReferenceNumber = "";
         gcashErrorMessage = null;
+        gcashValidationMessage = null;
+        RemoveGcashReceiptImage();
         redeemPoints = false;
         loyaltyDiscount = 0;
         netTotalDue = 0;
@@ -871,6 +918,7 @@ public partial class CashierPortal : ComponentBase, IDisposable
             Total = netTotalDue,
             AmountPaid = netTotalDue,
             PaymentMethod = "GCash (Xendit QR)",
+            ReceiptImageUrl = gcashReceiptUploadedUrl ?? gcashReceiptPreviewUrl,
             Timestamp = DateTime.UtcNow,
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
@@ -884,6 +932,9 @@ public partial class CashierPortal : ComponentBase, IDisposable
         {
             _ = EmailService.SendInvoiceReceiptAsync(invoice, targetEmail);
         }
+
+        RemoveGcashReceiptImage();
+        gcashValidationMessage = null;
 
         var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
         if (nextUnpaid != null)
@@ -952,15 +1003,155 @@ public partial class CashierPortal : ComponentBase, IDisposable
         }
     }
 
+    private async Task HandleGcashReceiptUpload(InputFileChangeEventArgs e)
+    {
+        gcashReceiptUploadError = null;
+        gcashValidationMessage = null;
+
+        var file = e.File;
+        if (file == null) return;
+
+        // 1. Validate File Format (Images only)
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif" };
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        var isImageMime = !string.IsNullOrEmpty(file.ContentType) && file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        var isImageExt = allowedExtensions.Contains(ext);
+
+        if (!isImageMime && !isImageExt)
+        {
+            gcashReceiptUploadError = "Invalid file type. Please upload an image file of the GCash receipt (JPG, PNG, WEBP).";
+            return;
+        }
+
+        // 2. Validate File Size (Max 5MB)
+        const long maxSizeBytes = 5 * 1024 * 1024;
+        if (file.Size > maxSizeBytes)
+        {
+            gcashReceiptUploadError = $"The uploaded picture is too large ({(file.Size / (1024.0 * 1024.0)):N1} MB). Maximum allowed size is 5 MB.";
+            return;
+        }
+
+        if (file.Size == 0)
+        {
+            gcashReceiptUploadError = "The selected picture file is empty. Please choose a valid receipt image.";
+            return;
+        }
+
+        isUploadingGcashReceipt = true;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: maxSizeBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            var mime = !string.IsNullOrWhiteSpace(file.ContentType) ? file.ContentType : "image/jpeg";
+            gcashReceiptPreviewUrl = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+            gcashReceiptFileName = file.Name;
+            gcashReceiptFileSize = file.Size;
+
+            string? uploadedUrl = null;
+
+            // 1. Attempt Cloudinary cloud upload
+            if (CloudinaryService != null && CloudinaryService.IsConfigured)
+            {
+                try
+                {
+                    ms.Position = 0;
+                    uploadedUrl = await CloudinaryService.UploadStreamAsync(ms, $"gcash_rcpt_{DateTime.UtcNow.Ticks}_{file.Name}", "salonsuite/gcash_receipts");
+                }
+                catch
+                {
+                    uploadedUrl = null;
+                }
+            }
+
+            // 2. Fallback to local wwwroot or data URI
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+            {
+                try
+                {
+                    if (WebHostEnvironment?.WebRootPath != null)
+                    {
+                        var folder = Path.Combine(WebHostEnvironment.WebRootPath, "uploads", "receipts");
+                        Directory.CreateDirectory(folder);
+                        var safeName = $"gcash_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}{ext}";
+                        var fullPath = Path.Combine(folder, safeName);
+                        await File.WriteAllBytesAsync(fullPath, bytes);
+                        uploadedUrl = $"/uploads/receipts/{safeName}";
+                    }
+                }
+                catch
+                {
+                    uploadedUrl = gcashReceiptPreviewUrl;
+                }
+            }
+
+            gcashReceiptUploadedUrl = uploadedUrl ?? gcashReceiptPreviewUrl;
+        }
+        catch (Exception ex)
+        {
+            gcashReceiptUploadError = $"Failed to process picture: {ex.Message}";
+        }
+        finally
+        {
+            isUploadingGcashReceipt = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveGcashReceiptImage()
+    {
+        gcashReceiptPreviewUrl = null;
+        gcashReceiptUploadedUrl = null;
+        gcashReceiptFileName = null;
+        gcashReceiptFileSize = 0;
+        gcashReceiptUploadError = null;
+    }
+
+    private void OpenProofViewer(string? imageUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(imageUrl))
+        {
+            receiptModalProofImageUrl = imageUrl;
+            showGcashReceiptViewerModal = true;
+        }
+    }
+
+    private void CloseProofViewer()
+    {
+        showGcashReceiptViewerModal = false;
+        receiptModalProofImageUrl = null;
+    }
+
     private void ProcessManualGcashPayment()
     {
-        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName))
+        gcashValidationMessage = null;
+
+        if (!HasSelectedAwaitingPayment || string.IsNullOrWhiteSpace(billingClientName) || netTotalDue <= 0)
         {
-            gcashErrorMessage = "Cannot process payment: No valid client or active ticket is selected.";
+            gcashValidationMessage = "Cannot process payment: No valid client ticket is selected or balance is zero.";
+            return;
+        }
+
+        // VALIDATION: Picture upload required for manual GCash validation
+        if (string.IsNullOrWhiteSpace(gcashReceiptUploadedUrl) && string.IsNullOrWhiteSpace(gcashReceiptPreviewUrl))
+        {
+            gcashValidationMessage = "Validation Error: Please upload a picture of the GCash transaction receipt or screenshot for payment verification.";
+            return;
+        }
+
+        // VALIDATION: GCash Reference Number required
+        if (string.IsNullOrWhiteSpace(gcashReferenceNumber))
+        {
+            gcashValidationMessage = "Validation Error: Please enter the GCash Reference Number from the customer receipt.";
             return;
         }
 
         var purchasedList = selectedProductIds.Select(id => (ProductId: id, Qty: 1)).ToList();
+        var proofUrl = gcashReceiptUploadedUrl ?? gcashReceiptPreviewUrl;
 
         var invoice = new InvoiceRecord
         {
@@ -978,20 +1169,25 @@ public partial class CashierPortal : ComponentBase, IDisposable
             LoyaltyDiscount = loyaltyDiscount,
             Total = netTotalDue,
             AmountPaid = netTotalDue,
-            PaymentMethod = $"GCash (Ref: {gcashReferenceNumber})",
+            PaymentMethod = $"GCash (Ref: {gcashReferenceNumber.Trim()})",
+            ReceiptImageUrl = proofUrl,
             Timestamp = DateTime.UtcNow,
             CashierName = SalonService.CurrentUser.IsLoggedIn ? SalonService.CurrentUser.Name : "Clara Santos"
         };
 
         SalonService.AddInvoice(invoice, purchasedList);
         lastPaidInvoice = invoice;
-        SetSuccessNotification($"Invoice {invoice.InvoiceNumber} successfully logged for {invoice.ClientName} (GCash Ref: {gcashReferenceNumber} • ₱{invoice.Total:N0})");
+        SetSuccessNotification($"GCash Payment of ₱{invoice.Total:N0} successfully verified & recorded for {invoice.ClientName}! (Invoice: {invoice.InvoiceNumber}, Ref: {gcashReferenceNumber.Trim()})");
 
         var clientEmail = !string.IsNullOrWhiteSpace(gcashReceiptEmail) ? gcashReceiptEmail : (SelectedAppointment?.ClientEmail ?? matchedCustomer?.Email);
         if (!string.IsNullOrWhiteSpace(clientEmail))
         {
             _ = EmailService.SendInvoiceReceiptAsync(invoice, clientEmail);
         }
+
+        RemoveGcashReceiptImage();
+        gcashReferenceNumber = "";
+        gcashValidationMessage = null;
 
         var nextUnpaid = SalonService.Appointments.FirstOrDefault(a => a.Status == "Completed" && !a.IsPaid);
         if (nextUnpaid != null)
@@ -1120,6 +1316,6 @@ public partial class CashierPortal : ComponentBase, IDisposable
     private void HandleLogout()
     {
         SalonService.Logout();
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }

@@ -455,13 +455,20 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="booking-label"><i class="bi bi-person-badge"></i> Preferred Specialist</label>
+                    <label class="booking-label"><i class="bi bi-person-badge"></i> Preferred Specialist <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">(Optional)</span></label>
                     <select class="booking-input" @bind="newAppt.StylistName">
+                        <option value="">✨ Any Available Specialist (Auto-Assign)</option>
                         @foreach (var team in SalonService.Stylists)
                         {
                             <option value="@team.Name">@team.Name — @team.Role</option>
                         }
                     </select>
+                    @if (string.IsNullOrWhiteSpace(newAppt.StylistName) || newAppt.StylistName.Contains("Any", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <span style="display: block; font-size: 11.5px; color: #059669; margin-top: 4px; font-weight: 600;">
+                            <i class="bi bi-magic"></i> Auto-assigns the best free specialist.
+                        </span>
+                    }
                 </div>
 
                 <div class="form-group">

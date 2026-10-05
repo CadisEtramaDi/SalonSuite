@@ -3,6 +3,19 @@
 
 <PageTitle>Beauty Hair ERP & CRM | Management Suite</PageTitle>
 
+@if (!IsAuthorizedAdmin)
+{
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 80vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0F172A; color: #F8FAFC;">
+        <div style="text-align: center; padding: 40px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; backdrop-filter: blur(8px); max-width: 440px;">
+            <div class="spinner-border" style="width: 2.5rem; height: 2.5rem; color: #F59E0B; margin-bottom: 18px;" role="status"></div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">Access Restricted</h3>
+            <p style="font-size: 13.5px; color: #94A3B8; margin: 0 0 16px 0;">Please sign in with administrator credentials to access the ERP suite. Redirecting to landing page...</p>
+            <a href="/" class="btn-primary-dark" style="display: inline-flex; text-decoration: none; padding: 8px 16px; font-size: 13px;">Return to Landing Page</a>
+        </div>
+    </div>
+    return;
+}
+
 <div class="portal-layout">
     <!-- Dark Editorial Admin Sidebar -->
     <aside class="portal-sidebar">
@@ -1335,7 +1348,6 @@
                             <option value="all">All Tenders</option>
                             <option value="Cash">Cash</option>
                             <option value="GCash">GCash</option>
-                            <option value="Maya">Maya</option>
                             <option value="Credit Card">Credit Card</option>
                         </select>
                         <input type="text" class="booking-input" style="width: 210px; padding: 6px 12px; font-size: 13px;" placeholder="Search invoice / client / stylist..." @bind="billingSearchQuery" @bind:event="oninput" />
@@ -1589,8 +1601,9 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="booking-label">Specialist</label>
+                    <label class="booking-label">Specialist <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">(Optional)</span></label>
                     <select class="booking-input" @bind="newAppt.StylistName">
+                        <option value="">✨ Any Available Specialist (Auto-Assign)</option>
                         @foreach (var member in SalonService.Stylists)
                         {
                             <option value="@member.Name">@member.Name</option>

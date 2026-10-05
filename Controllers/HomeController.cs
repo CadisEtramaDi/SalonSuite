@@ -127,7 +127,7 @@ public partial class Home : ComponentBase, IDisposable
         newAppt = new AppointmentRecord
         {
             ServiceName = resolvedService,
-            StylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            StylistName = "",
             Date = DateTime.Today.AddDays(1),
             TimeSlot = "10:30 AM",
             Price = GetPriceForSelectedService(resolvedService),
@@ -185,6 +185,13 @@ public partial class Home : ComponentBase, IDisposable
     private void ConfirmBooking()
     {
         if (string.IsNullOrWhiteSpace(newAppt.ClientName)) return;
+
+        if (string.IsNullOrWhiteSpace(newAppt.StylistName) ||
+            newAppt.StylistName.Contains("Any", StringComparison.OrdinalIgnoreCase) ||
+            newAppt.StylistName.Contains("No Preference", StringComparison.OrdinalIgnoreCase))
+        {
+            newAppt.StylistName = SalonService.FindAvailableStylist(newAppt.Date, newAppt.TimeSlot);
+        }
 
         SalonService.AddAppointment(newAppt);
         bookingConfirmed = true;

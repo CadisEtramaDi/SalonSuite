@@ -68,4 +68,7 @@ public class InvoiceRecord
     public string CashierName { get; set; } = "Front Desk";
 
     public int PointsEarned => (int)(Total / 100); // 1 point per ₱100 spend
+
+    [FirestoreProperty]
+    public string? ReceiptImageUrl { get; set; }
 }

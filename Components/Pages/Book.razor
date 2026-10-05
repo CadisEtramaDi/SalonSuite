@@ -533,28 +533,143 @@
                     <span class="booking-modal-eyebrow">RESERVATION DESK</span>
                     <h3 class="modal-h3">Book Your Appointment</h3>
                 </div>
-                <button class="btn-close-modal" @onclick="() => showBookingModal = false">
+                <button class="btn-close-modal" @onclick="CloseBookingModal">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
 
-            @if (bookingConfirmed)
+            @if (bookingCancelled)
+            {
+                <div class="confirmation-success-panel">
+                    <div class="confirm-icon-circle" style="background: #FEF2F2; color: #DC2626; border: 2px solid #FCA5A5;">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </div>
+                    <span style="background: #FEE2E2; color: #991B1B; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 9999px; border: 1px solid #FECACA; display: inline-block; margin-bottom: 12px;">
+                        RESERVATION CANCELLED
+                    </span>
+                    <h3 class="confirm-title" style="color: #991B1B;">Appointment Cancelled</h3>
+                    <p class="confirm-subtitle">Your reservation <strong>#APT-@newAppt.Id</strong> has been cancelled. No cancellation fees apply.</p>
+
+                    <div class="confirm-details-box" style="border-left: 4px solid #EF4444;">
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Booking Reference</span>
+                            <span class="c-val" style="font-family: monospace;">#APT-@newAppt.Id</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Service / Package</span>
+                            <span class="c-val">@newAppt.ServiceName</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Originally Scheduled</span>
+                            <span class="c-val" style="color: #6B7280; text-decoration: line-through;">@newAppt.Date.ToString("MMMM dd, yyyy") at @newAppt.TimeSlot</span>
+                        </div>
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Status</span>
+                            <span style="background: #FEE2E2; color: #991B1B; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 4px; display: inline-block;">Cancelled</span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(newAppt.ClientEmail))
+                    {
+                        <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 18px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="bi bi-envelope-x-fill" style="font-size: 16px; color: #DC2626;"></i>
+                            <span>Cancellation confirmation email sent to <strong>@newAppt.ClientEmail</strong></span>
+                        </div>
+                    }
+
+                    <div class="confirm-actions-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn-primary-dark" style="flex: 1; justify-content: center; min-width: 180px;" @onclick="StartNewBookingFromCancelled">
+                            <i class="bi bi-calendar-plus"></i> Book Another Ritual
+                        </button>
+                        <button type="button" class="btn-cancel-modal" style="flex: 1; justify-content: center; min-width: 140px; border: 1px solid var(--border-light);" @onclick="CloseBookingModal">
+                            <i class="bi bi-x-lg"></i> Close
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (isCancellingConfirmedAppt)
+            {
+                <div class="confirmation-success-panel">
+                    <div class="confirm-icon-circle" style="background: #FEF3C7; color: #D97706; border: 2px solid #FDE68A;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <span style="background: #FEF3C7; color: #92400E; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 9999px; border: 1px solid #FDE68A; display: inline-block; margin-bottom: 12px;">
+                        CONFIRM CANCELLATION
+                    </span>
+                    <h3 class="confirm-title">Cancel Reservation?</h3>
+                    <p class="confirm-subtitle">
+                        Are you sure you want to cancel your appointment for <strong>@newAppt.ServiceName</strong> on <strong>@newAppt.Date.ToString("MMM dd, yyyy") at @newAppt.TimeSlot</strong>?
+                    </p>
+
+                    @if (!string.IsNullOrEmpty(cancelErrorMessage))
+                    {
+                        <div class="auth-error-box" style="margin-bottom: 16px;">
+                            <i class="bi bi-exclamation-circle-fill"></i> @cancelErrorMessage
+                        </div>
+                    }
+
+                    <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 8px; padding: 16px; margin-bottom: 20px; text-align: left;">
+                        <label class="booking-label" style="margin-bottom: 6px; display: block; font-size: 12.5px;">
+                            Reason for cancellation (optional):
+                        </label>
+                        <select class="booking-input" style="font-size: 13.5px;" @bind="cancelReason">
+                            <option value="Change of schedule">Change of schedule / Conflict</option>
+                            <option value="Booked incorrect date or time">Booked incorrect date or time</option>
+                            <option value="Need to choose a different service">Need to choose a different service</option>
+                            <option value="Personal emergency">Personal emergency</option>
+                            <option value="Other reasons">Other reasons</option>
+                        </select>
+                    </div>
+
+                    <div class="confirm-actions-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn-cancel-modal" style="flex: 1; justify-content: center; border: 1px solid var(--border-light); font-weight: 600;" @onclick="AbortCancelBooking" disabled="@isProcessingCancellation">
+                            <i class="bi bi-arrow-left"></i> No, Keep Appointment
+                        </button>
+                        <button type="button" class="btn-primary-dark" style="flex: 1; justify-content: center; background: #DC2626; border-color: #DC2626; color: #FFF; font-weight: 700;" @onclick="ConfirmCancelAppointment" disabled="@isProcessingCancellation">
+                            @if (isProcessingCancellation)
+                            {
+                                <span><i class="bi bi-arrow-repeat spin"></i> Processing...</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-trash3-fill"></i> Yes, Cancel Appointment</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            }
+            else if (bookingConfirmed)
             {
                 <div class="confirmation-success-panel">
                     <div class="confirm-icon-circle">
                         <i class="bi bi-check2-circle"></i>
                     </div>
+                    <span style="background: #ECFDF5; color: #065F46; font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 9999px; border: 1px solid #A7F3D0; display: inline-block; margin-bottom: 12px;">
+                        RESERVATION CONFIRMED
+                    </span>
                     <h3 class="confirm-title">Reservation Confirmed!</h3>
                     <p class="confirm-subtitle">Thank you, <strong>@newAppt.ClientName</strong>. We look forward to seeing you at Salon Studio.</p>
 
                     <div class="confirm-details-box">
+                        <div class="confirm-detail-row">
+                            <span class="c-label">Booking Reference</span>
+                            <span class="c-val" style="font-family: monospace;">#APT-@newAppt.Id</span>
+                        </div>
                         <div class="confirm-detail-row">
                             <span class="c-label">Service / Package</span>
                             <span class="c-val">@newAppt.ServiceName</span>
                         </div>
                         <div class="confirm-detail-row">
                             <span class="c-label">Specialist</span>
-                            <span class="c-val">@newAppt.StylistName</span>
+                            <span class="c-val">
+                                @newAppt.StylistName
+                                @if (wasAutoAssigned)
+                                {
+                                    <span style="display: inline-block; font-size: 11px; color: #059669; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 4px; padding: 2px 7px; margin-left: 6px; font-weight: 700;">
+                                        <i class="bi bi-magic"></i> Auto-Assigned
+                                    </span>
+                                }
+                            </span>
                         </div>
                         <div class="confirm-detail-row">
                             <span class="c-label">Date & Time</span>
@@ -574,10 +689,19 @@
                         </div>
                     }
 
-                    <div class="confirm-actions-row">
-                        <button class="btn-primary-dark" style="width: 100%; justify-content: center;" @onclick="() => showBookingModal = false">
-                            Done
+                    <div class="confirm-actions-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="loyalty?appt_id=@newAppt.Id" class="btn-primary-dark" style="flex: 1.2; justify-content: center; min-width: 150px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="bi bi-calendar-check"></i> View in Loyalty Lounge
+                        </a>
+                        <button type="button" class="btn-cancel-appt-action" style="flex: 1; justify-content: center; min-width: 150px; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 13.5px; border: 1px solid #FCA5A5; background: #FEF2F2; color: #DC2626; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;" @onclick="PromptCancelBooking">
+                            <i class="bi bi-x-circle"></i> Cancel Appointment
                         </button>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 14px;">
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            Made a mistake or changed plans? You can cancel right here or manage bookings in your <a href="loyalty?appt_id=@newAppt.Id" style="color: var(--gold-accent); text-decoration: underline; font-weight: 600;">VIP Loyalty Lounge</a>.
+                        </span>
                     </div>
                 </div>
             }
@@ -611,38 +735,38 @@
                 }
 
                 <div class="booking-form-grid">
-                    <!-- Service / Package Dropdown -->
-                    <div class="form-full">
-                        <label class="booking-label">
-                            <i class="bi bi-stars gold-icon"></i> Selected Offering
-                        </label>
-                        <select class="booking-input" @bind="newAppt.ServiceName" @bind:after="OnServiceSelectionChanged">
-                            <optgroup label="All-Inclusive Packages">
-                                @foreach (var pkg in SalonService.Packages)
-                                {
-                                    <option value="@($"{pkg.Name} Package")">@pkg.Name Package (₱@pkg.Price.ToString("N0") • @pkg.DurationMinutes mins)</option>
-                                }
-                            </optgroup>
-                            <optgroup label="Hairstyles, Cuts & Individual Treatments">
-                                @foreach (var svc in SalonService.Services)
-                                {
-                                    <option value="@($"{svc.Number} {svc.Name}")">@svc.Number @svc.Name (₱@svc.Price.ToString("N0") • @svc.DurationMinutes mins)</option>
-                                }
-                            </optgroup>
-                        </select>
+                    <!-- Chosen Offering (Read-Only Confirmation) -->
+                    <div class="form-full" style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: #FDE68A; color: #B45309; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                                <i class="bi bi-stars"></i>
+                            </div>
+                            <div>
+                                <span style="font-size: 10.5px; text-transform: uppercase; font-weight: 800; color: #92400E; letter-spacing: 0.05em; display: block;">Selected Offering</span>
+                                <strong style="font-size: 14.5px; color: #78350F;">@newAppt.ServiceName</strong>
+                            </div>
+                        </div>
+                        <span style="font-size: 15px; font-weight: 800; color: #92400E;">₱@newAppt.Price.ToString("N0")</span>
                     </div>
 
                     <!-- Specialist Selection -->
                     <div class="form-group">
                         <label class="booking-label">
-                            <i class="bi bi-person-badge"></i> Preferred Specialist
+                            <i class="bi bi-person-badge"></i> Preferred Specialist <span style="font-size: 11px; font-weight: 500; color: var(--text-muted);">(Optional)</span>
                         </label>
                         <select class="booking-input" @bind="newAppt.StylistName">
+                            <option value="">✨ Any Available Specialist (Auto-Assign)</option>
                             @foreach (var team in SalonService.Stylists)
                             {
                                 <option value="@team.Name">@team.Name — @team.Role</option>
                             }
                         </select>
+                        @if (string.IsNullOrWhiteSpace(newAppt.StylistName) || newAppt.StylistName.Contains("Any", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <span style="display: block; font-size: 11.5px; color: #059669; margin-top: 4px; font-weight: 600;">
+                                <i class="bi bi-magic"></i> We'll automatically assign the best free specialist for this slot.
+                            </span>
+                        }
                     </div>
 
                     <!-- Appointment Date -->
@@ -710,7 +834,7 @@
                 <div class="booking-summary-strip">
                     <div class="summary-left">
                         <span class="summary-label">Estimated Service Total</span>
-                        <span class="summary-sub">Pay in salon via Cash, GCash, Maya, or Card at Cashier</span>
+                        <span class="summary-sub">Pay in salon via Cash, GCash, or Card at Cashier</span>
                     </div>
                     <div class="summary-price">
                         ₱@newAppt.Price.ToString("N0")

@@ -352,7 +352,7 @@ public class EmailReceiptService
             <div class='price-highlight'>
                 <div>
                     <div class='price-label'>ESTIMATED SERVICE TOTAL</div>
-                    <div class='pay-notice'>Pay in-salon upon arrival (Cash, GCash, Maya, or Card at Cashier)</div>
+                    <div class='pay-notice'>Pay in-salon upon arrival (Cash, GCash, or Card at Cashier)</div>
                 </div>
                 <div class='price-amount'>₱{appointment.Price:N2}</div>
             </div>
@@ -368,6 +368,162 @@ public class EmailReceiptService
         <div class='receipt-footer'>
             <div class='footer-brand'>Beauty Hair Studio &bull; Luxury Haircare & Spa Rituals</div>
             <div>Thank you for choosing us! We look forward to seeing you.</div>
+        </div>
+    </div>
+</body>
+</html>");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Sends an official HTML cancellation confirmation email to the client when a reservation is cancelled.
+    /// </summary>
+    public async Task<(bool Sent, string? Message)> SendBookingCancellationAsync(AppointmentRecord appointment, string? recipientEmail, string reason = "")
+    {
+        if (string.IsNullOrWhiteSpace(recipientEmail) || !recipientEmail.Contains("@"))
+        {
+            _logger.LogWarning("Cannot send booking cancellation for appointment {ApptId}: No valid recipient email provided.", appointment.Id);
+            return (false, "No valid email address provided.");
+        }
+
+        recipientEmail = recipientEmail.Trim();
+
+        if (!IsConfigured)
+        {
+            _logger.LogInformation(
+                "SMTP not configured with real credentials. Booking cancellation for appointment #{ApptId} was simulated for {RecipientEmail}.",
+                appointment.Id, recipientEmail);
+            return (false, $"SMTP settings not configured. Please add your SMTP/Gmail credentials to appsettings.json to deliver real emails to {recipientEmail}.");
+        }
+
+        try
+        {
+            var htmlBody = GenerateBookingCancellationHtml(appointment, recipientEmail, reason);
+
+            using var message = new MailMessage
+            {
+                From = new MailAddress(SenderEmail, SenderName),
+                Subject = $"Appointment Cancelled: {appointment.ServiceName} ({appointment.Date:MMM dd, yyyy}) - Beauty Hair Studio",
+                Body = htmlBody,
+                IsBodyHtml = true,
+                BodyEncoding = Encoding.UTF8
+            };
+
+            message.To.Add(new MailAddress(recipientEmail, appointment.ClientName));
+
+            using var client = new SmtpClient(Host, Port)
+            {
+                EnableSsl = EnableSsl,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(Username.Trim(), Password.Replace(" ", "").Trim()),
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                Timeout = 15000
+            };
+
+            await client.SendMailAsync(message);
+            _logger.LogInformation("Booking cancellation for appointment #{ApptId} successfully sent to {RecipientEmail}", appointment.Id, recipientEmail);
+            return (true, $"Booking cancellation sent to {recipientEmail}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send booking cancellation to {RecipientEmail}: {Message}", recipientEmail, ex.Message);
+            return (false, $"Failed to send email: {ex.Message}");
+        }
+    }
+
+    private string GenerateBookingCancellationHtml(AppointmentRecord appointment, string recipientEmail, string reason)
+    {
+        var sb = new StringBuilder();
+        sb.Append($@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f7f7; margin: 0; padding: 24px; color: #1f2937; }}
+        .receipt-card {{ max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.07); border: 1px solid #e5e7eb; }}
+        .receipt-header {{ background: #1f2937; color: #ffffff; padding: 36px 28px; text-align: center; }}
+        .receipt-brand {{ font-size: 24px; font-weight: 800; letter-spacing: 0.05em; margin: 0; color: #f59e0b; text-transform: uppercase; }}
+        .receipt-title {{ font-size: 14px; margin: 6px 0 0 0; color: #f87171; letter-spacing: 0.03em; font-weight: 700; }}
+        .receipt-body {{ padding: 30px 28px; }}
+        .status-pill-cancelled {{ display: inline-block; background: #fef2f2; color: #b91c1c; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 9999px; border: 1px solid #fecaca; margin-bottom: 22px; }}
+        .greeting {{ font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 12px; }}
+        .intro-text {{ font-size: 14px; color: #4b5563; line-height: 1.5; margin-bottom: 24px; }}
+        .meta-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; border: 1px solid #f3f4f6; background: #fafafa; border-radius: 10px; padding: 18px; }}
+        .meta-label {{ font-size: 11px; text-transform: uppercase; color: #6b7280; font-weight: 700; display: block; }}
+        .meta-value {{ font-size: 14px; font-weight: 700; color: #111827; margin-top: 2px; }}
+        .notice-card {{ background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 16px; margin-bottom: 24px; font-size: 13px; color: #9f1239; line-height: 1.6; }}
+        .receipt-footer {{ background: #111827; color: #9ca3af; padding: 22px 28px; text-align: center; font-size: 12px; }}
+        .footer-brand {{ color: #ffffff; font-weight: 700; margin-bottom: 4px; }}
+    </style>
+</head>
+<body>
+    <div class='receipt-card'>
+        <div class='receipt-header'>
+            <h1 class='receipt-brand'>Beauty Hair Studio</h1>
+            <p class='receipt-title'>Reservation Cancellation Notice</p>
+        </div>
+        <div class='receipt-body'>
+            <div style='text-align: center;'>
+                <span class='status-pill-cancelled'>✕ APPOINTMENT CANCELLED</span>
+            </div>
+
+            <div class='greeting'>Hello {appointment.ClientName},</div>
+            <p class='intro-text'>
+                This email confirms that your salon appointment <strong>#APT-{appointment.Id}</strong> has been cancelled. No cancellation fees have been charged.
+            </p>
+
+            <div class='meta-grid'>
+                <div>
+                    <span class='meta-label'>Cancelled Service</span>
+                    <div class='meta-value' style='color: #991b1b;'>{appointment.ServiceName}</div>
+                </div>
+                <div>
+                    <span class='meta-label'>Originally Assigned Specialist</span>
+                    <div class='meta-value'>{appointment.StylistName}</div>
+                </div>
+                <div>
+                    <span class='meta-label'>Original Date</span>
+                    <div class='meta-value'>{appointment.Date:dddd, MMMM dd, yyyy}</div>
+                </div>
+                <div>
+                    <span class='meta-label'>Original Time Slot</span>
+                    <div class='meta-value'>{appointment.TimeSlot}</div>
+                </div>
+                <div>
+                    <span class='meta-label'>Reference ID</span>
+                    <div class='meta-value' style='font-family: monospace;'>APT-{appointment.Id}</div>
+                </div>
+                <div>
+                    <span class='meta-label'>Cancellation Status</span>
+                    <div class='meta-value' style='color: #dc2626;'>Cancelled</div>
+                </div>
+            </div>");
+
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            sb.Append($@"
+            <div style='background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #374151;'>
+                <strong>Reason provided:</strong> {reason}
+            </div>");
+        }
+
+        sb.Append($@"
+            <div class='notice-card'>
+                <strong>Need to reschedule?</strong> We would love to welcome you back at a time that works better for you. You can browse our package menu and book a new appointment anytime on our website or by contacting our reception desk.
+            </div>
+
+            <div style='text-align: center; margin-bottom: 12px;'>
+                <a href='https://beautyhairstudio.com/book' style='display: inline-block; background: #111827; color: #ffffff; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 8px; font-size: 14px;'>
+                    Book Another Ritual
+                </a>
+            </div>
+        </div>
+
+        <div class='receipt-footer'>
+            <div class='footer-brand'>Beauty Hair Studio &bull; Luxury Haircare & Spa Rituals</div>
+            <div>Questions? Contact us at +63 917 123 4567 or visit our salon studio.</div>
         </div>
     </div>
 </body>

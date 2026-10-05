@@ -133,9 +133,9 @@ public partial class SalonDataService
         {
             if (!string.IsNullOrWhiteSpace(trimmedName) && !existing.FullName.Equals(trimmedName, StringComparison.OrdinalIgnoreCase))
                 existing.FullName = trimmedName;
-            if (string.IsNullOrWhiteSpace(existing.Phone) && !string.IsNullOrWhiteSpace(rawPhone))
+            if (!string.IsNullOrWhiteSpace(rawPhone) && (string.IsNullOrWhiteSpace(existing.Phone) || existing.Phone != rawPhone))
                 existing.Phone = rawPhone;
-            if (string.IsNullOrWhiteSpace(existing.Email) && !string.IsNullOrWhiteSpace(trimmedEmail))
+            if (!string.IsNullOrWhiteSpace(trimmedEmail) && (string.IsNullOrWhiteSpace(existing.Email) || !existing.Email.Equals(trimmedEmail, StringComparison.OrdinalIgnoreCase)))
                 existing.Email = trimmedEmail;
             if (string.IsNullOrWhiteSpace(existing.Notes) && !string.IsNullOrWhiteSpace(notes))
                 existing.Notes = notes.Trim();
@@ -167,9 +167,32 @@ public partial class SalonDataService
         EnsureSeedData();
 
         var trimmed = query.Trim();
-        var normalizedQueryPhone = NormalizePhoneNumber(trimmed);
 
-        // 1. Match by Phone Number if numeric
+        // 1. If query contains '@', match by Email first
+        if (trimmed.Contains('@'))
+        {
+            var byEmail = Customers.FirstOrDefault(c =>
+                !string.IsNullOrEmpty(c.Email) &&
+                c.Email.Trim().Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+            if (byEmail != null) return byEmail;
+
+            var byPartialEmail = Customers.FirstOrDefault(c =>
+                !string.IsNullOrEmpty(c.Email) &&
+                c.Email.Contains(trimmed, StringComparison.OrdinalIgnoreCase));
+            if (byPartialEmail != null) return byPartialEmail;
+        }
+
+        // 2. If query starts with "VIP-", match by Client Code
+        if (trimmed.StartsWith("VIP-", StringComparison.OrdinalIgnoreCase))
+        {
+            var byCode = Customers.FirstOrDefault(c =>
+                !string.IsNullOrEmpty(c.ClientCode) &&
+                c.ClientCode.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+            if (byCode != null) return byCode;
+        }
+
+        // 3. Match by Phone Number if numeric digits exist
+        var normalizedQueryPhone = NormalizePhoneNumber(trimmed);
         if (!string.IsNullOrEmpty(normalizedQueryPhone) && normalizedQueryPhone.Length >= 4)
         {
             var byPhone = Customers.FirstOrDefault(c =>
@@ -178,40 +201,36 @@ public partial class SalonDataService
             if (byPhone != null) return byPhone;
         }
 
-        // 2. Exact Full Name match
+        // 4. Exact Full Name match
         var byExactName = Customers.FirstOrDefault(c =>
             !string.IsNullOrEmpty(c.FullName) &&
             c.FullName.Trim().Equals(trimmed, StringComparison.OrdinalIgnoreCase));
         if (byExactName != null) return byExactName;
 
-        // 3. Partial or substring Full Name match
-        var byPartialName = Customers.FirstOrDefault(c =>
-            !string.IsNullOrEmpty(c.FullName) &&
-            (c.FullName.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
-             trimmed.Contains(c.FullName, StringComparison.OrdinalIgnoreCase)));
-        if (byPartialName != null) return byPartialName;
-
-        // 4. Word-by-word match
-        var searchWords = trimmed.Split(new[] { ' ', ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
-        if (searchWords.Length > 0)
+        // 5. Partial or substring Full Name match (only if not an email)
+        if (!trimmed.Contains('@'))
         {
-            var byWords = Customers.FirstOrDefault(c =>
+            var byPartialName = Customers.FirstOrDefault(c =>
                 !string.IsNullOrEmpty(c.FullName) &&
-                searchWords.All(w => c.FullName.Contains(w, StringComparison.OrdinalIgnoreCase)));
-            if (byWords != null) return byWords;
+                (c.FullName.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                 trimmed.Contains(c.FullName, StringComparison.OrdinalIgnoreCase)));
+            if (byPartialName != null) return byPartialName;
+
+            var searchWords = trimmed.Split(new[] { ' ', ',', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            if (searchWords.Length > 0)
+            {
+                var byWords = Customers.FirstOrDefault(c =>
+                    !string.IsNullOrEmpty(c.FullName) &&
+                    searchWords.All(w => c.FullName.Contains(w, StringComparison.OrdinalIgnoreCase)));
+                if (byWords != null) return byWords;
+            }
         }
 
-        // 5. Match by Email
-        var byEmail = Customers.FirstOrDefault(c =>
-            !string.IsNullOrEmpty(c.Email) &&
-            c.Email.Contains(trimmed, StringComparison.OrdinalIgnoreCase));
-        if (byEmail != null) return byEmail;
-
-        // 6. Match by Client Code
-        var byCode = Customers.FirstOrDefault(c =>
+        // 6. Match by Client Code fallback
+        var byCodeFallback = Customers.FirstOrDefault(c =>
             !string.IsNullOrEmpty(c.ClientCode) &&
             c.ClientCode.Contains(trimmed, StringComparison.OrdinalIgnoreCase));
-        if (byCode != null) return byCode;
+        if (byCodeFallback != null) return byCodeFallback;
 
         // 7. Match by raw phone string
         return Customers.FirstOrDefault(c =>

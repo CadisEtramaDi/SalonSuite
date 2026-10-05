@@ -35,6 +35,12 @@ public partial class Book : ComponentBase, IDisposable
 
     private bool showBookingModal = false;
     private bool bookingConfirmed = false;
+    private bool isCancellingConfirmedAppt = false;
+    private bool bookingCancelled = false;
+    private string cancelReason = "Change of schedule";
+    private bool isProcessingCancellation = false;
+    private string? cancelErrorMessage = null;
+    private bool wasAutoAssigned = false;
     private AppointmentRecord newAppt = new();
 
     private readonly List<string> availableTimeSlots = new()
@@ -410,6 +416,9 @@ public partial class Book : ComponentBase, IDisposable
 
         showLoginRequiredModal = false;
         bookingConfirmed = false;
+        bookingCancelled = false;
+        isCancellingConfirmedAppt = false;
+        cancelErrorMessage = null;
         var resolvedService = ResolveServiceSelection(initialServiceName);
         
         var profile = CurrentLoggedInCustomer;
@@ -424,7 +433,7 @@ public partial class Book : ComponentBase, IDisposable
         newAppt = new AppointmentRecord
         {
             ServiceName = resolvedService,
-            StylistName = SalonService.Stylists.FirstOrDefault()?.Name ?? "Sofia Martinez",
+            StylistName = "",
             Date = DateTime.Today.AddDays(1),
             TimeSlot = "10:30 AM",
             Price = GetPriceForSelectedService(resolvedService),
@@ -433,6 +442,7 @@ public partial class Book : ComponentBase, IDisposable
             ClientEmail = SalonService.CurrentUser.Email,
             ClientPhone = customerPhone ?? ""
         };
+        wasAutoAssigned = false;
         showBookingModal = true;
     }
 
@@ -484,7 +494,76 @@ public partial class Book : ComponentBase, IDisposable
 
     private void CloseBookingModalBackdrop()
     {
+        CloseBookingModal();
+    }
+
+    private void PromptCancelBooking()
+    {
+        isCancellingConfirmedAppt = true;
+        cancelErrorMessage = null;
+    }
+
+    private void AbortCancelBooking()
+    {
+        isCancellingConfirmedAppt = false;
+        cancelErrorMessage = null;
+    }
+
+    private async Task ConfirmCancelAppointment()
+    {
+        if (newAppt == null || newAppt.Id == 0) return;
+
+        isProcessingCancellation = true;
+        cancelErrorMessage = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(cancelReason))
+            {
+                var reasonTag = $"[Cancelled by Client: {cancelReason}]";
+                var updatedNotes = string.IsNullOrWhiteSpace(newAppt.Notes)
+                    ? reasonTag
+                    : $"{newAppt.Notes} | {reasonTag}";
+                SalonService.UpdateAppointmentNotes(newAppt.Id, updatedNotes);
+            }
+
+            SalonService.UpdateAppointmentStatus(newAppt.Id, "Cancelled");
+            newAppt.Status = "Cancelled";
+
+            if (!string.IsNullOrWhiteSpace(newAppt.ClientEmail))
+            {
+                _ = EmailService.SendBookingCancellationAsync(newAppt, newAppt.ClientEmail, cancelReason);
+            }
+
+            bookingCancelled = true;
+            isCancellingConfirmedAppt = false;
+        }
+        catch (Exception ex)
+        {
+            cancelErrorMessage = $"Failed to cancel appointment: {ex.Message}";
+        }
+        finally
+        {
+            isProcessingCancellation = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseBookingModal()
+    {
         showBookingModal = false;
+        bookingConfirmed = false;
+        bookingCancelled = false;
+        isCancellingConfirmedAppt = false;
+        cancelErrorMessage = null;
+    }
+
+    private void StartNewBookingFromCancelled()
+    {
+        bookingConfirmed = false;
+        bookingCancelled = false;
+        isCancellingConfirmedAppt = false;
+        cancelErrorMessage = null;
+        OpenBookingModal("");
     }
 
     private void ConfirmBooking()
@@ -499,6 +578,18 @@ public partial class Book : ComponentBase, IDisposable
         if (string.IsNullOrWhiteSpace(newAppt.ClientName) || string.IsNullOrWhiteSpace(newAppt.ClientPhone))
         {
             return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newAppt.StylistName) ||
+            newAppt.StylistName.Contains("Any", StringComparison.OrdinalIgnoreCase) ||
+            newAppt.StylistName.Contains("No Preference", StringComparison.OrdinalIgnoreCase))
+        {
+            newAppt.StylistName = SalonService.FindAvailableStylist(newAppt.Date, newAppt.TimeSlot);
+            wasAutoAssigned = true;
+        }
+        else
+        {
+            wasAutoAssigned = false;
         }
 
         newAppt.IsPaid = false;

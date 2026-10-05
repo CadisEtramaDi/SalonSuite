@@ -80,7 +80,7 @@ public class XenditPaymentService
                     given_names = clientName,
                     email = !string.IsNullOrWhiteSpace(clientEmail) ? clientEmail : "client@salonsuite.ph"
                 },
-                payment_methods = new[] { "GCASH" },
+                payment_methods = new[] { "GCASH", "QRPH" },
                 success_redirect_url = $"{domain}/{returnPath}?xendit_id={externalId}&status=success&appt_id={appointmentId}",
                 failure_redirect_url = $"{domain}/{returnPath}?status=failed"
             };

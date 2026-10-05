@@ -62,6 +62,55 @@
 <!-- Main Loyalty Dashboard Content -->
 <main style="padding: 40px 0 60px 0; background: #F9FAFB;">
     <div class="container-custom">
+        <!-- Client Lookup & Session Header Bar -->
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 12px; padding: 20px 24px; margin-bottom: 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+            <div style="flex: 1; min-width: 280px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <span style="font-size: 11.5px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; color: var(--gold-accent);">
+                        <i class="bi bi-search"></i> Find Your Appointments & Rewards
+                    </span>
+                    @if (SalonService.CurrentUser.IsLoggedIn)
+                    {
+                        <span style="font-size: 11px; background: #ECFDF5; color: #065F46; padding: 2px 10px; border-radius: 9999px; font-weight: 600;">
+                            <i class="bi bi-person-check-fill"></i> Logged in as: @SalonService.CurrentUser.Name
+                        </span>
+                    }
+                </div>
+                <div style="display: flex; gap: 10px; max-width: 680px;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;"></i>
+                        <input type="text"
+                               class="booking-input"
+                               style="padding-left: 38px; height: 42px; margin: 0; font-size: 13.5px;"
+                               placeholder="Search your bookings by phone, email, or name..."
+                               @bind="searchPhoneInput"
+                               @bind:event="oninput"
+                               @onkeyup="HandleSearchKeyUp" />
+                    </div>
+                    <button type="button" class="btn-primary-dark" style="padding: 0 20px; height: 42px; font-size: 13.5px; white-space: nowrap;" @onclick="LookupCustomer">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(searchPhoneInput))
+                    {
+                        <button type="button" class="btn-cancel-appt" style="padding: 0 14px; height: 42px; font-size: 13px;" @onclick="ClearSearch" title="Clear search">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(lookupMessage))
+                {
+                    <span style="display: block; font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+                        <i class="bi bi-info-circle-fill" style="color: var(--gold-accent);"></i> @lookupMessage
+                    </span>
+                }
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="book" class="btn-gold" style="padding: 10px 18px; font-size: 13.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;">
+                    <i class="bi bi-calendar-plus"></i> Book New Ritual
+                </a>
+            </div>
+        </div>
+
         @if (activeCustomer != null)
         {
             <!-- Customer Digital VIP Card & Tier Progress Grid -->
@@ -194,6 +243,19 @@
                         </div>
                     </div>
 
+                    @if (!string.IsNullOrEmpty(portalActionFeedback))
+                    {
+                        <div style="background: @(isPortalFeedbackSuccess ? "#ECFDF5" : "#FEF2F2"); border: 1px solid @(isPortalFeedbackSuccess ? "#A7F3D0" : "#FECACA"); color: @(isPortalFeedbackSuccess ? "#065F46" : "#991B1B"); padding: 10px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="bi @(isPortalFeedbackSuccess ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-danger")"></i>
+                                <span>@portalActionFeedback</span>
+                            </div>
+                            <button type="button" @onclick="() => portalActionFeedback = null" style="background: none; border: none; cursor: pointer; color: inherit; font-size: 14px;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    }
+
                     @if (!CustomerAppointments.Any())
                     {
                         <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13.5px;">
@@ -211,6 +273,7 @@
                                         <th style="padding: 10px 12px;">Specialist</th>
                                         <th style="padding: 10px 12px;">Price</th>
                                         <th style="padding: 10px 12px;">Status</th>
+                                        <th style="padding: 10px 12px; text-align: right;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -226,6 +289,22 @@
                                             <td style="padding: 12px; font-weight: 700;">₱@appt.Price.ToString("N0")</td>
                                             <td style="padding: 12px;">
                                                 <span class="badge-status @appt.Status.ToLower().Replace(" ", "-")">@appt.Status</span>
+                                            </td>
+                                            <td style="padding: 12px; text-align: right;">
+                                                @if (!appt.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) && !appt.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <button type="button" class="btn-cancel-portal-appt" @onclick="() => PromptCancelAppt(appt)" title="Cancel this appointment">
+                                                        <i class="bi bi-x-circle"></i> Cancel
+                                                    </button>
+                                                }
+                                                else if (appt.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+                                                {
+                                                    <span style="font-size: 11.5px; color: #9CA3AF; font-style: italic;">Cancelled</span>
+                                                }
+                                                else
+                                                {
+                                                    <span style="font-size: 11.5px; color: #059669; font-weight: 600;"><i class="bi bi-check2"></i> Completed</span>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -275,8 +354,23 @@
                 </div>
             </div>
         }
-
-        <!-- Redeemable Loyalty Rewards Catalog Section -->
+        else
+        {
+            <div class="portal-data-card" style="text-align: center; padding: 48px 24px; margin-bottom: 36px;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 16px auto;">
+                    <i class="bi bi-calendar-heart"></i>
+                </div>
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-dark);">No Client Profile Selected</h3>
+                <p style="font-size: 13.5px; color: var(--text-muted); max-width: 480px; margin: 0 auto 20px auto; line-height: 1.6;">
+                    Please enter your mobile phone number, email address, or full name in the search box above to load your scheduled appointments and loyalty rewards history.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 12px;">
+                    <a href="book" class="btn-gold" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 13.5px; text-decoration: none; border-radius: 6px;">
+                        <i class="bi bi-calendar2-plus"></i> Book a Salon Ritual
+                    </a>
+                </div>
+            </div>
+        }
         <div class="portal-data-card" style="margin-bottom: 36px;">
             <div class="portal-card-header">
                 <div>
@@ -359,6 +453,68 @@
         </div>
     </div>
 </main>
+
+<!-- Cancel Appointment Modal Dialog -->
+@if (apptToCancel != null)
+{
+    <div class="booking-modal-backdrop" @onclick="AbortCancelAppt">
+        <div class="booking-modal-card" style="max-width: 480px; padding: 28px; border-radius: 14px;" @onclick:stopPropagation>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 12px auto; border: 2px solid #FDE68A;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <h3 style="font-size: 20px; font-weight: 800; color: var(--text-dark); margin: 0 0 6px 0;">Cancel Appointment?</h3>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin: 0;">
+                    Are you sure you want to cancel your reservation for <strong>@apptToCancel.ServiceName</strong>?
+                </p>
+            </div>
+
+            <div style="background: #F9FAFB; border: 1px solid var(--border-light); border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: var(--text-muted);">Reference:</span>
+                    <strong style="font-family: monospace;">#APT-@apptToCancel.Id.ToString("D5")</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: var(--text-muted);">Specialist:</span>
+                    <strong>@apptToCancel.StylistName</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Scheduled Date:</span>
+                    <strong>@apptToCancel.Date.ToString("MMM dd, yyyy") &bull; @apptToCancel.TimeSlot</strong>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px; text-align: left;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 6px;">
+                    Reason for cancellation (optional):
+                </label>
+                <select class="booking-input" style="font-size: 13.5px; width: 100%;" @bind="cancelReason">
+                    <option value="Change of schedule">Change of schedule / Conflict</option>
+                    <option value="Booked incorrect date or time">Booked incorrect date or time</option>
+                    <option value="Need to choose a different service">Need to choose a different service</option>
+                    <option value="Personal emergency">Personal emergency</option>
+                    <option value="Other reasons">Other reasons</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-cancel-modal" style="flex: 1; justify-content: center; border: 1px solid var(--border-light); font-weight: 600;" @onclick="AbortCancelAppt" disabled="@isCancellingAppt">
+                    <i class="bi bi-arrow-left"></i> No, Keep It
+                </button>
+                <button type="button" class="btn-primary-dark" style="flex: 1; justify-content: center; background: #DC2626; border-color: #DC2626; color: #FFF; font-weight: 700;" @onclick="ConfirmPortalCancelAppointment" disabled="@isCancellingAppt">
+                    @if (isCancellingAppt)
+                    {
+                        <span><i class="bi bi-arrow-repeat spin"></i> Cancelling...</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-trash3-fill"></i> Yes, Cancel</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Footer -->
 <footer class="editorial-footer">

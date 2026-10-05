@@ -13,6 +13,7 @@ public partial class BookingSuccess : ComponentBase, IDisposable
     [Inject] public XenditPaymentService XenditService { get; set; } = default!;
     [Inject] public SalonDataService SalonService { get; set; } = default!;
     [Inject] public NavigationManager Navigation { get; set; } = default!;
+    [Inject] public EmailReceiptService EmailService { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     public string? session_id { get; set; }
@@ -31,6 +32,11 @@ public partial class BookingSuccess : ComponentBase, IDisposable
     private bool isSimulated = false;
     private string? errorMessage;
     private AppointmentRecord? matchedAppt;
+
+    private bool showCancelModal = false;
+    private bool isCancelling = false;
+    private string cancelReason = "Change of schedule";
+    private string? cancelSuccessFeedback;
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,6 +210,53 @@ public partial class BookingSuccess : ComponentBase, IDisposable
         finally
         {
             isVerifying = false;
+        }
+    }
+
+    private void PromptCancelReceiptAppt()
+    {
+        showCancelModal = true;
+    }
+
+    private void AbortCancelReceiptAppt()
+    {
+        showCancelModal = false;
+    }
+
+    private async Task ConfirmCancelReceiptAppointment()
+    {
+        if (matchedAppt == null) return;
+        isCancelling = true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(cancelReason))
+            {
+                var reasonTag = $"[Cancelled by Client: {cancelReason}]";
+                var updatedNotes = string.IsNullOrWhiteSpace(matchedAppt.Notes)
+                    ? reasonTag
+                    : $"{matchedAppt.Notes} | {reasonTag}";
+                SalonService.UpdateAppointmentNotes(matchedAppt.Id, updatedNotes);
+            }
+
+            SalonService.UpdateAppointmentStatus(matchedAppt.Id, "Cancelled");
+            matchedAppt.Status = "Cancelled";
+
+            if (!string.IsNullOrWhiteSpace(matchedAppt.ClientEmail))
+            {
+                _ = EmailService.SendBookingCancellationAsync(matchedAppt, matchedAppt.ClientEmail, cancelReason);
+            }
+
+            cancelSuccessFeedback = $"Appointment #APT-{matchedAppt.Id:D5} has been cancelled. Our reception desk will process your refund.";
+            showCancelModal = false;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error cancelling appointment: {ex.Message}";
+        }
+        finally
+        {
+            isCancelling = false;
+            StateHasChanged();
         }
     }
 

@@ -25,8 +25,23 @@ public partial class EmployeePortal : ComponentBase
         Status = "In Progress"
     };
 
+    private bool IsAuthorizedEmployee =>
+        SalonService.CurrentUser.IsLoggedIn &&
+        (SalonService.CurrentUser.Role.Contains("Stylist", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Specialist", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Staff", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Admin", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Owner", StringComparison.OrdinalIgnoreCase) ||
+         SalonService.CurrentUser.Role.Contains("Manager", StringComparison.OrdinalIgnoreCase));
+
     protected override void OnInitialized()
     {
+        if (!IsAuthorizedEmployee)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
         if (SalonService.CurrentUser.IsLoggedIn && !string.IsNullOrWhiteSpace(SalonService.CurrentUser.Name))
         {
             currentStylistName = SalonService.CurrentUser.Name;
@@ -84,6 +99,6 @@ public partial class EmployeePortal : ComponentBase
     private void HandleLogout()
     {
         SalonService.Logout();
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }
