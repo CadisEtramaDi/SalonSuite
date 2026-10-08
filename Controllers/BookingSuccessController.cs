@@ -32,6 +32,7 @@ public partial class BookingSuccess : ComponentBase, IDisposable
     private bool isSimulated = false;
     private string? errorMessage;
     private AppointmentRecord? matchedAppt;
+    private bool isMobileNavOpen = false;
 
     private bool showCancelModal = false;
     private bool isCancelling = false;

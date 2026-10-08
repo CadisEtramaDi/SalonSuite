@@ -3052,53 +3052,394 @@ button {
     font-size: 16px;
 }
 
-/* Responsive Rules */
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsive Design System
+   ========================================================================== */
+
+/* Mobile Navigation Toggle Button */
+.mobile-nav-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    font-size: 26px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-nav-toggle:hover {
+    color: var(--gold-accent);
+    transform: scale(1.05);
+}
+
+/* Mobile Nav Drawer Overlay & Panel */
+.mobile-nav-drawer {
+    position: fixed;
+    top: 76px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 12, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 999;
+    overflow-y: auto;
+    animation: fadeInMobileNav 0.22s ease-out;
+}
+
+@keyframes fadeInMobileNav {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-nav-drawer-content {
+    background: #141416;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 20px 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.55);
+}
+
+.mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    color: #E5E7EB;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+}
+
+.mobile-nav-link:hover, .mobile-nav-link:active, .mobile-nav-link.active-nav-link {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--gold-accent);
+}
+
+.mobile-nav-link i {
+    font-size: 17px;
+    color: var(--gold-accent);
+}
+
+.mobile-nav-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 10px 0;
+}
+
+/* Responsive Section Flex Header */
+.section-header-flex {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+}
+
+/* 1. Tablet Breakpoint (max-width: 992px) */
 @media (max-width: 992px) {
+    .public-navbar {
+        height: 68px;
+    }
+    .mobile-nav-drawer {
+        top: 68px;
+    }
+    .mobile-nav-toggle {
+        display: inline-flex;
+    }
+    .nav-menu-links {
+        display: none !important;
+    }
+    .brand-logo {
+        font-size: 17px;
+        gap: 8px;
+    }
+    .brand-logo-img {
+        width: 36px;
+        height: 36px;
+    }
+    .container-custom {
+        padding: 0 20px;
+    }
+
+    /* Grids to 2 Columns or 1 Column */
     .hero-grid, .why-us-grid, .footer-top-grid, .login-split-page, .hero-full-grid {
         grid-template-columns: 1fr;
-        gap: 36px;
+        gap: 32px;
     }
     .services-cards-grid, .portal-kpi-grid, .packages-cards-grid, .services-cards-grid-modern, .reassurance-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
     }
     .gallery-grid, .team-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
     }
     .hero-title, .hero-title-light {
-        font-size: 48px;
+        font-size: 42px;
+    }
+    .hero-section.hero-full-slideshow {
+        padding: 100px 0 60px;
+        min-height: auto;
+        margin-top: -68px;
+    }
+    .hero-full-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
     }
     .hero-full-arrow.prev-arrow {
-        left: 10px;
+        left: 8px;
     }
     .hero-full-arrow.next-arrow {
-        right: 10px;
+        right: 8px;
     }
-    .nav-menu-links {
-        display: none;
+    .hero-ritual-floating-card {
+        margin-top: 16px;
     }
     .time-slots-picker-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    /* Portal Layout on Tablets & Mobile */
+    .portal-layout {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+    .portal-sidebar {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 100 !important;
+        padding: 10px 16px !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-dark) !important;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+        background: #111111 !important;
+    }
+    .portal-brand-block {
+        padding: 0 0 8px 0 !important;
+        margin-bottom: 8px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .portal-nav-scroll {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        gap: 6px !important;
+        padding-bottom: 6px !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    .portal-nav-scroll::-webkit-scrollbar {
+        height: 3px !important;
+    }
+    .portal-group-label {
+        display: none !important;
+    }
+    .portal-nav-btn {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        padding: 7px 12px !important;
+        font-size: 12.5px !important;
+    }
+    .portal-user-footer {
+        display: none !important;
+    }
+    .portal-main-body {
+        height: auto !important;
+        max-height: none !important;
+        padding: 20px 16px !important;
+        overflow-y: visible !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .portal-top-bar {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 14px !important;
+        margin-bottom: 20px !important;
+    }
+    .portal-top-bar > div:last-child {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .portal-top-bar .btn-primary-dark,
+    .portal-top-bar button {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+    }
+    .portal-data-card {
+        padding: 18px 14px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    .portal-data-card table {
+        min-width: 540px !important;
+    }
+
+    /* Inline Grids in POS & ERP Pages */
+    div[style*="grid-template-columns: 1.1fr 1.4fr"],
+    div[style*="grid-template-columns: 1.6fr 1fr"],
+    div[style*="grid-template-columns: 1fr 1.2fr"],
+    div[style*="grid-template-columns: 1.3fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 18px !important;
+    }
 }
 
-@media (max-width: 640px) {
+/* 2. Mobile Landscape / Small Tablet Breakpoint (max-width: 768px) */
+@media (max-width: 768px) {
+    .container-custom {
+        padding: 0 16px;
+    }
+    .section-title {
+        font-size: 28px;
+        margin-bottom: 24px;
+    }
+    .section-header-flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .gallery-grid, .team-grid {
+        grid-template-columns: 1fr;
+    }
+    .why-us-img {
+        height: 240px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .login-editorial-panel {
+        padding: 32px 20px;
+        min-height: auto;
+    }
+    .login-hero-heading {
+        font-size: 26px;
+    }
+    .login-features-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .login-form-panel {
+        padding: 32px 20px;
+    }
+    .booking-modal-card {
+        padding: 24px 18px;
+        max-height: 94vh;
+        border-radius: var(--radius-md);
+    }
+    .booking-form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .auth-modal-tabs {
+        grid-template-columns: 1fr 1fr;
+    }
+    .hero-stats-row, .hero-stats-light {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .stat-huge, .stat-huge-light {
+        font-size: 24px;
+    }
+    .stat-label-muted, .stat-label-light {
+        font-size: 11px;
+    }
+    .hero-cta-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .hero-cta-group a {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+    .salon-calendar-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 12px;
+    }
+    .calendar-header-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .calendar-nav-controls {
+        justify-content: space-between;
+    }
+
+    div[style*="grid-template-columns: repeat(3, 1fr)"],
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+}
+
+/* 3. Smartphone Breakpoint (max-width: 576px) */
+@media (max-width: 576px) {
+    .public-navbar {
+        height: 62px;
+    }
+    .mobile-nav-drawer {
+        top: 62px;
+    }
+    .brand-logo span {
+        font-size: 15px;
+    }
+    .brand-logo-img {
+        width: 32px;
+        height: 32px;
+    }
+    .btn-book-nav {
+        padding: 6px 11px;
+        font-size: 12px;
+        gap: 5px;
+    }
+    .btn-staff-nav {
+        padding: 6px 9px;
+        font-size: 12px;
+    }
+    .navbar-actions {
+        gap: 6px;
+    }
     .services-cards-grid, .reviews-grid, .portal-kpi-grid, .quick-demo-roles-grid, .login-features-grid, .packages-cards-grid, .services-cards-grid-modern, .reassurance-grid {
         grid-template-columns: 1fr;
     }
-    .hero-stats-row, .hero-stats-light {
-        gap: 24px;
-        flex-wrap: wrap;
-    }
     .hero-title, .hero-title-light {
-        font-size: 38px;
+        font-size: 30px;
+    }
+    .hero-desc, .hero-desc-light {
+        font-size: 13.5px;
+        line-height: 1.55;
     }
     .hero-full-top-bar {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
+        gap: 10px;
     }
     .catalog-page-title {
-        font-size: 32px;
+        font-size: 26px;
+    }
+    .catalog-page-desc {
+        font-size: 13.5px;
     }
     .search-input-box {
         width: 100%;
@@ -3110,6 +3451,51 @@ button {
     }
     .time-slots-picker-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    .booking-modal-backdrop {
+        padding: 8px;
+    }
+    .booking-modal-card {
+        padding: 18px 14px;
+        width: 100%;
+    }
+    .booking-modal-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+        width: 100%;
+    }
+    .booking-modal-actions button,
+    .booking-modal-actions a {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+    .booking-summary-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .footer-bottom-bar {
+        flex-direction: column;
+        gap: 6px;
+        text-align: center;
+        font-size: 12px;
+    }
+    .portal-page-heading {
+        font-size: 20px;
+    }
+    .portal-kpi-card {
+        padding: 14px 16px;
+    }
+    .portal-kpi-num {
+        font-size: 22px;
+    }
+    .category-pills-scroll {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 6px;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
     }
 }
 

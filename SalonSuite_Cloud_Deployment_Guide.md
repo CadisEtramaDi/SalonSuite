@@ -1,6 +1,6 @@
 # SalonSuite — Cloud Deployment Guide
 
-SalonSuite is a desktop-oriented salon appointment management system developed using ASP.NET Core / .NET 10 and deployed to Amazon Web Services (AWS).
+SalonSuite is a fully responsive salon appointment management and ERP system developed using ASP.NET Core / .NET 10 (with comprehensive mobile, tablet, and desktop layouts) and deployed to Amazon Web Services (AWS).
 
 ## 1. Cloud Deployment Overview
 
@@ -286,7 +286,7 @@ Before presenting SalonSuite, verify:
 - [ ] Nginx configuration passes `nginx -t`.
 - [ ] Nginx is running.
 - [ ] `https://salonsuite.ddns.net` opens successfully.
-- [ ] Desktop homepage displays correctly.
+- [ ] Responsive desktop, tablet, and mobile layouts display and operate correctly.
 - [ ] CSS and JavaScript load correctly.
 - [ ] Firebase Authentication works with the production domain.
 - [ ] Firestore is accessible by the application.

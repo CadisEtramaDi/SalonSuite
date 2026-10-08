@@ -58,6 +58,7 @@ public partial class Home : ComponentBase, IDisposable
     private int currentSlideIndex = 0;
     private System.Threading.Timer? autoSlideTimer;
     private bool isHovered = false;
+    private bool isMobileNavOpen = false;
 
     private bool showBookingModal = false;
     private bool bookingConfirmed = false;

@@ -28,6 +28,7 @@ public partial class ClientPortal : ComponentBase, IDisposable
     private bool isCancellingAppt = false;
     private string? portalActionFeedback = null;
     private bool isPortalFeedbackSuccess = true;
+    private bool isMobileNavOpen = false;
 
     protected override void OnInitialized()
     {

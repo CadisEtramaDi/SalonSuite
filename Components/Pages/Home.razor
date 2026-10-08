@@ -58,9 +58,42 @@
                     <i class="bi bi-person-circle"></i> Login
                 </a>
             }
+            <button class="mobile-nav-toggle" @onclick="() => isMobileNavOpen = !isMobileNavOpen" aria-label="Toggle navigation menu">
+                <i class="bi @(isMobileNavOpen ? "bi-x-lg" : "bi-list")"></i>
+            </button>
         </div>
     </div>
 </header>
+
+@if (isMobileNavOpen)
+{
+    <div class="mobile-nav-drawer" @onclick="() => isMobileNavOpen = false">
+        <div class="mobile-nav-drawer-content" @onclick:stopPropagation>
+            <a href="/" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-house"></i> Home</a>
+            <a href="book" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-scissors"></i> Packages & Services</a>
+            <a href="loyalty" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-stars"></i> Loyalty & Rewards</a>
+            <a href="#our-work" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-images"></i> Our Work</a>
+            <a href="#team" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-people"></i> Team</a>
+            <a href="#contact" class="mobile-nav-link" @onclick="() => isMobileNavOpen = false"><i class="bi bi-geo-alt"></i> Contact</a>
+            <div class="mobile-nav-divider"></div>
+            <a href="book" class="btn-book-nav" style="justify-content: center; width: 100%;" @onclick="() => isMobileNavOpen = false">
+                <i class="bi bi-calendar2-check"></i> Book Appointment
+            </a>
+            @if (SalonService.CurrentUser.IsLoggedIn)
+            {
+                <button class="btn-staff-nav" style="justify-content: center; width: 100%; text-align: center; margin-top: 8px;" @onclick="HandleLogout">
+                    <i class="bi bi-box-arrow-right"></i> Logout (@SalonService.CurrentUser.Name)
+                </button>
+            }
+            else
+            {
+                <a href="login" class="btn-staff-nav" style="justify-content: center; width: 100%; text-align: center; margin-top: 8px;" @onclick="() => isMobileNavOpen = false">
+                    <i class="bi bi-person-circle"></i> Login
+                </a>
+            }
+        </div>
+    </div>
+}
 
 <!-- Hero Section (Full-Bleed Cinematic Background Slideshow) -->
 <section class="hero-section hero-full-slideshow" 
@@ -172,7 +205,7 @@
 <!-- What We Offer (Services) -->
 <section class="services-section" id="services">
     <div class="container-custom">
-        <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 36px;">
+        <div class="section-header-flex">
             <div>
                 <span class="section-tag">OUR SERVICES</span>
                 <h2 class="section-title" style="margin-bottom: 0;">What We Offer</h2>
@@ -303,7 +336,7 @@
 <!-- Service Packages -->
 <section class="packages-section" id="packages">
     <div class="container-custom">
-        <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 36px;">
+        <div class="section-header-flex">
             <div>
                 <span class="section-tag">PACKAGES</span>
                 <h2 class="section-title" style="margin-bottom: 0;">Service Packages</h2>

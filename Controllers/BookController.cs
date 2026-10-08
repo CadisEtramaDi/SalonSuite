@@ -32,6 +32,7 @@ public partial class Book : ComponentBase, IDisposable
     private string authErrorMessage = "";
     private bool authRegisterSuccess = false;
     private bool isAuthenticating = false;
+    private bool isMobileNavOpen = false;
 
     private bool showBookingModal = false;
     private bool bookingConfirmed = false;
